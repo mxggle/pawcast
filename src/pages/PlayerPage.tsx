@@ -17,8 +17,12 @@ import { useLayoutSettings } from "../contexts/layoutSettings";
 import { Panel, Group, Separator } from "react-resizable-panels";
 import { cn } from "../utils/cn";
 import { MediaPlayer } from "../components/player/MediaPlayer";
+import { PlayerWorkspace } from "../player/PlayerWorkspace";
+import { PerfOverlay } from "../components/dev/PerfOverlay";
+import { bumpRender } from "../utils/perfMonitor";
 
 export const PlayerPage = () => {
+  bumpRender("PlayerPage");
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { layoutSettings, setLayoutSettings } = useLayoutSettings();
@@ -96,6 +100,7 @@ export const PlayerPage = () => {
 
   return (
     <AppLayout layoutSettings={layoutSettings} setLayoutSettings={setLayoutSettings} bottomPaddingClassName="pb-0">
+      <PerfOverlay />
       <div className="relative flex flex-1 min-h-0 flex-col h-full overflow-hidden overflow-x-hidden">
         {activeResizeAxis && (
           <div
@@ -123,7 +128,7 @@ export const PlayerPage = () => {
         )}
 
         {hasMedia && (
-          <>
+          <PlayerWorkspace>
             {/* Audio-only files need a hidden MediaPlayer since video panel is hidden */}
             {isAudioOnly && (
               <div className="sr-only" aria-hidden="true">
@@ -238,7 +243,7 @@ export const PlayerPage = () => {
               </Panel>
             )}
           </Group>
-          </>
+          </PlayerWorkspace>
         )}
 
         {/* Media History – web only */}
