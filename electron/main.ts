@@ -4,6 +4,14 @@ import { Readable } from 'stream'
 import { pathToFileURL } from 'url'
 import fs from 'fs'
 import { configStore } from './configStore'
+import {
+  analyzeWaveform,
+  getWaveformMeta,
+  getWaveformLevel,
+  deleteWaveformCache,
+  mediaIdFromPath,
+  type WaveformMeta,
+} from './waveformEngine'
 
 const isDev = process.env.NODE_ENV === 'development'
 const transientApprovedFiles = new Set<string>()
@@ -622,6 +630,47 @@ ipcMain.handle('net:fetch', async (_event, url: string, options: RequestInit) =>
   }
 })
 
+
+// IPC: waveform analysis
+ipcMain.handle('waveform:analyze', async (event, params: { filePath: string; mediaId: string }) => {
+  await assertPathInSourceFolders(params.filePath)
+  const mediaId = params.mediaId || mediaIdFromPath(params.filePath)
+
+  const meta = await analyzeWaveform({
+    filePath: params.filePath,
+    mediaId,
+    onProgress: (fraction) => {
+      if (!event.sender.isDestroyed()) {
+        event.sender.send('waveform:analyzeProgress', { mediaId, fraction })
+      }
+    },
+  })
+
+  return meta
+})
+
+ipcMain.handle('waveform:getMeta', async (_event, mediaId: string) => {
+  return getWaveformMeta(mediaId)
+})
+
+ipcMain.handle('waveform:getLevel', async (_event, params: { mediaId: string; level: number }) => {
+  const data = await getWaveformLevel(params.mediaId, params.level)
+  if (!data) return null
+  // Transfer typed arrays to renderer (they get serialized as regular arrays over IPC)
+  return {
+    mediaId: data.mediaId,
+    level: data.level,
+    samplesPerPeak: data.samplesPerPeak,
+    sampleRate: data.sampleRate,
+    min: Array.from(data.min),
+    max: Array.from(data.max),
+    rms: Array.from(data.rms),
+  }
+})
+
+ipcMain.handle('waveform:delete', async (_event, mediaId: string) => {
+  deleteWaveformCache(mediaId)
+})
 
 app.whenReady().then(() => {
   // Serve local media files through the local-media:// protocol.

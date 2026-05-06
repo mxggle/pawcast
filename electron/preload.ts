@@ -61,4 +61,19 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('config:set', key, value),
   configGetAll: () => ipcRenderer.invoke('config:getAll'),
   fetch: (url: string, options?: RequestInit) => ipcRenderer.invoke('net:fetch', url, options),
+  waveformAnalyze: (filePath: string, mediaId: string) =>
+    ipcRenderer.invoke('waveform:analyze', { filePath, mediaId }),
+  waveformGetMeta: (mediaId: string) =>
+    ipcRenderer.invoke('waveform:getMeta', mediaId),
+  waveformGetLevel: (mediaId: string, level: number) =>
+    ipcRenderer.invoke('waveform:getLevel', { mediaId, level }),
+  waveformDelete: (mediaId: string) =>
+    ipcRenderer.invoke('waveform:delete', mediaId),
+  onWaveformProgress: (callback: (payload: { mediaId: string; fraction: number }) => void) => {
+    const listener = (_event: IpcRendererEvent, payload: { mediaId: string; fraction: number }) => {
+      callback(payload)
+    }
+    ipcRenderer.on('waveform:analyzeProgress', listener)
+    return () => { ipcRenderer.removeListener('waveform:analyzeProgress', listener) }
+  },
 })
