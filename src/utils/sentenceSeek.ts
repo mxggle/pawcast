@@ -1,4 +1,4 @@
-import type { TranscriptSegment } from "../stores/playerStore";
+import type { TranscriptSegment } from "../types/transcript";
 
 const SEEK_EPSILON_SECONDS = 0.05;
 
