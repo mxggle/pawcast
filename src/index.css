@@ -104,16 +104,13 @@ body {
 }
 
 /* Resizable media workspace: hide secondary controls before text or frames crush. */
-.timeline-panel-shell,
-.transcript-panel-main {
-    container-type: inline-size;
-}
-
 .timeline-panel-shell {
+    container-type: inline-size;
     container-name: timeline-panel;
 }
 
-.transcript-panel-main {
+.transcript-container {
+    container-type: inline-size;
     container-name: transcript-panel;
 }
 

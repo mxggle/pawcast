@@ -1322,7 +1322,7 @@ export const TranscriptPanel = () => {
   };
 
   return (
-    <div className="flex w-full flex-1 min-h-0 bg-white dark:bg-gray-950/40 rounded-t-xl border border-gray-100 dark:border-white/5 overflow-hidden relative z-0">
+    <div className="flex h-full w-full flex-1 min-h-0 bg-white dark:bg-gray-950/40 rounded-t-xl border border-gray-100 dark:border-white/5 overflow-hidden relative z-0">
       {/* Sidebar Toggle Button (Floating or inside) */}
       <button
         onClick={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -1448,26 +1448,27 @@ export const TranscriptPanel = () => {
       </div>
 
       {/* Main Content */}
-      <div className="transcript-panel-main flex-1 flex flex-col min-w-0 min-h-0 bg-white dark:bg-transparent">
-        <div className="transcript-header flex items-center justify-between p-3 sm:p-4 border-b border-gray-100 dark:border-white/5 bg-white dark:bg-gray-950/60 backdrop-blur-md min-w-0 gap-2">
-          <div className="flex items-center min-w-0 mr-2">
-            <h3 className="transcript-header-title text-sm font-medium text-gray-700 dark:text-gray-300 truncate">
-              {activeTabId
-                ? bookmarks.find(b => b.id === activeTabId)?.name || t("transcript.title")
-                : t("transcript.title")
-              }
-            </h3>
-            {isProcessing && (
-              <div className="ml-2 flex items-center flex-shrink-0">
-                <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-                <span className="ml-1 text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                  {transcriptionStatus || t("transcript.processing", { progress: processingProgress })}
-                </span>
-              </div>
-            )}
-          </div>
+      <div className="transcript-panel-main flex h-full flex-1 flex-col min-w-0 min-h-0 bg-white dark:bg-transparent">
+        <div className="transcript-container flex h-full flex-1 min-h-0 min-w-0 flex-col overflow-hidden">
+          <div className="transcript-header flex items-center justify-between p-3 sm:p-4 border-b border-gray-100 dark:border-white/5 bg-white dark:bg-gray-950/60 backdrop-blur-md min-w-0 gap-2">
+            <div className="flex items-center min-w-0 mr-2">
+              <h3 className="transcript-header-title text-sm font-medium text-gray-700 dark:text-gray-300 truncate">
+                {activeTabId
+                  ? bookmarks.find(b => b.id === activeTabId)?.name || t("transcript.title")
+                  : t("transcript.title")
+                }
+              </h3>
+              {isProcessing && (
+                <div className="ml-2 flex items-center flex-shrink-0">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                  <span className="ml-1 text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                    {transcriptionStatus || t("transcript.processing", { progress: processingProgress })}
+                  </span>
+                </div>
+              )}
+            </div>
 
-          <div className="transcript-header-actions flex items-center gap-1.5 sm:gap-2 flex-shrink-0 overflow-hidden">
+            <div className="transcript-header-actions flex items-center gap-1.5 sm:gap-2 flex-shrink-0 overflow-hidden">
             <button
               onClick={() => setHighlightsEnabled((previous) => !previous)}
               className={`inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium transition-colors ${highlightsEnabled
@@ -1620,8 +1621,8 @@ export const TranscriptPanel = () => {
             >
               <Trash size={16} />
             </button>
+            </div>
           </div>
-        </div>
 
         <div
           ref={transcriptRef}
@@ -1803,6 +1804,7 @@ export const TranscriptPanel = () => {
             </div>
           )}
         </div>
+      </div>
       </div>
 
       {/* Edit bookmark dialog */}
