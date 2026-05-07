@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useState, useCallback, useMemo } from "react";
 import { usePlayerStore } from "../../stores/playerStore";
+import { useSettingsStore } from "../../stores/settingsStore";
 import type { LoopBookmark } from "../../stores/playerStore";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useShadowingStore } from "../../stores/shadowingStore";
@@ -38,7 +39,7 @@ import { WaveformRenderer } from "../../player/WaveformRenderer";
 import type { BookmarkRenderData } from "../../player/WaveformRenderer";
 import { playbackClock } from "../../player/PlaybackClock";
 import { waveformLoader } from "../../player/WaveformLoader";
-import { usePlayerSelection } from "../../player/PlayerWorkspace";
+import { usePlayerSelection } from "../../player/hooks";
 
 // Stable empty arrays used in selectors to avoid creating
 // a new [] on every render (prevents infinite re-render loops)
@@ -166,13 +167,10 @@ export const WaveformVisualizer = ({ className }: WaveformVisualizerProps) => {
     loopStart,
     loopEnd,
     isLooping,
-    waveformZoom,
-    showWaveform,
     selectedBookmarkId,
     setCurrentTime,
     setLoopPoints,
     setIsLooping,
-    setWaveformZoom,
     loadBookmark,
     setIsPlaying,
     isPlaying,
@@ -184,19 +182,18 @@ export const WaveformVisualizer = ({ className }: WaveformVisualizerProps) => {
       loopStart: state.loopStart,
       loopEnd: state.loopEnd,
       isLooping: state.isLooping,
-      waveformZoom: state.waveformZoom,
-      showWaveform: state.showWaveform,
       selectedBookmarkId: state.selectedBookmarkId,
       setCurrentTime: state.setCurrentTime,
       setLoopPoints: state.setLoopPoints,
       setIsLooping: state.setIsLooping,
-      setWaveformZoom: state.setWaveformZoom,
       loadBookmark: state.loadBookmark,
       setIsPlaying: state.setIsPlaying,
       isPlaying: state.isPlaying,
       updateBookmark: state.updateBookmark,
     }))
   );
+
+  const { waveformZoom, showWaveform, setWaveformZoom } = useSettingsStore();
 
   const {
     currentRecording,
@@ -846,7 +843,8 @@ export const WaveformVisualizer = ({ className }: WaveformVisualizerProps) => {
     const onWheel = (ev: WheelEvent) => {
       ev.preventDefault(); ev.stopPropagation();
       const state = usePlayerStore.getState();
-      const dur = state.duration, zoom = state.waveformZoom;
+      const dur = state.duration;
+      const zoom = useSettingsStore.getState().waveformZoom;
       if (ev.ctrlKey || ev.metaKey) {
         const nextZoom = ev.deltaY < 0 ? Math.min(zoom * 1.15, 50) : Math.max(zoom / 1.15, 1);
         setWaveformZoom(nextZoom);

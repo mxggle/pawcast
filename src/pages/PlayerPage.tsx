@@ -7,8 +7,6 @@ import { useShallow } from "zustand/react/shallow";
 import { MediaPreviewPanel } from "../components/player/MediaPreviewPanel";
 import { TimelinePanel } from "../components/player/TimelinePanel";
 import { PanelHeader } from "../components/player/PanelHeader";
-import { isElectron } from "../utils/platform";
-import { MediaHistory } from "../components/web/MediaHistory";
 import { TranscriptPanel } from "../components/transcript";
 import { useKeyboardShortcuts } from "../hooks/useKeyboardShortcuts";
 import { usePlaybackPersistence } from "../hooks/usePlaybackPersistence";
@@ -246,8 +244,6 @@ export const PlayerPage = () => {
           </PlayerWorkspace>
         )}
 
-        {/* Media History – web only */}
-        {!isElectron() && <MediaHistory />}
       </div>
     </AppLayout>
   );

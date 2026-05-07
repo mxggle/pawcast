@@ -6,7 +6,7 @@ import { playbackClock } from "../../player/PlaybackClock";
 import { toast } from "react-hot-toast";
 import { useShallow } from "zustand/react/shallow";
 import { bumpRender } from "../../utils/perfMonitor";
-import { usePlayerSelection } from "../../player/PlayerWorkspace";
+import { usePlayerSelection } from "../../player/hooks";
 
 interface MediaPlayerProps {
   hiddenMode?: boolean;

@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useRef, Dispatch, SetStateAction } fr
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { usePlayerStore } from "../../stores/playerStore";
+import { useSettingsStore } from "../../stores/settingsStore";
 import { useShallow } from "zustand/react/shallow";
 import {
   ChevronDown,
@@ -118,8 +119,6 @@ export const ElectronAppLayout = ({
     sidebarWidth,
     setIsSidebarOpen,
     setSidebarWidth,
-    theme,
-    setTheme,
     sidebarSections,
     toggleSidebarSection,
     addSourceFolder,
@@ -130,14 +129,14 @@ export const ElectronAppLayout = ({
       sidebarWidth: state.sidebarWidth,
       setIsSidebarOpen: state.setIsSidebarOpen,
       setSidebarWidth: state.setSidebarWidth,
-      theme: state.theme,
-      setTheme: state.setTheme,
       sidebarSections: state.sidebarSections,
       toggleSidebarSection: state.toggleSidebarSection,
       addSourceFolder: state.addSourceFolder,
       clearMediaHistory: state.clearMediaHistory,
     }))
   );
+
+  const { theme, setTheme } = useSettingsStore();
 
   /* ── Resize logic ──────────────────────────────────────────────── */
   const startResizing = useCallback((e: React.MouseEvent) => {

@@ -2,6 +2,7 @@ import { useState, Dispatch, SetStateAction } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { usePlayerStore } from "../../stores/playerStore";
+import { useSettingsStore } from "../../stores/settingsStore";
 import { useShallow } from "zustand/react/shallow";
 import {
   Moon, Sun, Info, Settings, Layout, Eye, EyeOff,
@@ -64,20 +65,18 @@ export const AppLayoutBase = ({
   const {
     currentFile,
     currentYouTube,
-    theme,
-    setTheme,
     seekStepSeconds,
     seekSmallStepSeconds,
   } = usePlayerStore(
     useShallow((state) => ({
       currentFile: state.currentFile,
       currentYouTube: state.currentYouTube,
-      theme: state.theme,
-      setTheme: state.setTheme,
       seekStepSeconds: state.seekStepSeconds,
       seekSmallStepSeconds: state.seekSmallStepSeconds,
     }))
   );
+
+  const { theme, setTheme } = useSettingsStore();
 
   const toggleTheme = () => {
     setTheme(theme === "dark" ? "light" : "dark");

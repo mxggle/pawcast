@@ -27,7 +27,7 @@ import { TranscriptUploader } from "./TranscriptUploader";
 import { TranscriptSegmentItem } from "./TranscriptSegmentItem";
 import { breakIntoSentences as utilBreakIntoSentences } from "../../utils/sentenceBreaker";
 import { getCurrentTime, subscribeCurrentTime } from "../../stores/currentTimeStore";
-import { usePlayerSelection } from "../../player/PlayerWorkspace";
+import { usePlayerSelection } from "../../player/hooks";
 
 import { TranscriptSegment as TranscriptSegmentType, LoopBookmark } from "../../stores/playerStore";
 import type {

@@ -1,4 +1,3 @@
-import { isElectron } from "../utils/platform";
 import {
   AIProvider,
   AIServiceConfig,
@@ -55,7 +54,7 @@ async function safeFetch(url: string, options?: RequestInit): Promise<Response> 
 
   try {
     // Use IPC fetch in Electron to bypass CORS issues
-    if (isElectron() && window.electronAPI?.fetch) {
+    if (window.electronAPI?.fetch) {
       const res = await window.electronAPI.fetch(url, options);
       finishLog({ ok: res.ok, status: res.status });
       return {

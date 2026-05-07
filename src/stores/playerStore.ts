@@ -156,10 +156,6 @@ export interface PlayerState {
   loopDelay: number; // Delay in seconds between loops
 
   // UI state
-  theme: "light" | "dark";
-  waveformZoom: number;
-  showWaveform: boolean;
-  videoSize: "sm" | "md" | "lg" | "xl";
   mediaBookmarks: MediaBookmarks; // Changed from bookmarks array to media-scoped object
   selectedBookmarkId: string | null;
   // Seek configuration
@@ -231,10 +227,6 @@ export interface PlayerActions {
   setLoopDelay: (delay: number) => void;
 
   // UI actions
-  setTheme: (theme: "light" | "dark") => void;
-  setWaveformZoom: (zoom: number) => void;
-  setShowWaveform: (show: boolean) => void;
-  setVideoSize: (size: "sm" | "md" | "lg" | "xl") => void;
   setAutoAdvanceBookmarks: (enable: boolean) => void;
   // Seek settings
   setSeekStepSeconds: (seconds: number) => void;
@@ -333,10 +325,6 @@ const initialState: PlayerState = {
   bpm: null,
   quantizeLoop: false,
   loopDelay: 0,
-  theme: "dark",
-  waveformZoom: 1,
-  showWaveform: true,
-  videoSize: "md",
   mediaBookmarks: {},
   selectedBookmarkId: null,
   mediaTranscripts: {},
@@ -783,10 +771,6 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()(
       setLoopDelay: (loopDelay) => set({ loopDelay }),
 
       // UI actions
-      setTheme: (theme) => set({ theme }),
-      setWaveformZoom: (waveformZoom) => set({ waveformZoom }),
-      setShowWaveform: (showWaveform) => set({ showWaveform }),
-      setVideoSize: (videoSize) => set({ videoSize }),
       setAutoAdvanceBookmarks: (autoAdvanceBookmarks) => set({ autoAdvanceBookmarks }),
       // Seek settings
       setSeekStepSeconds: (seconds: number) =>
@@ -2112,10 +2096,6 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()(
         volume: state.volume,
         muted: state.muted,
         playbackRate: state.playbackRate,
-        theme: state.theme,
-        waveformZoom: state.waveformZoom,
-        showWaveform: state.showWaveform,
-        videoSize: state.videoSize,
         mediaBookmarks: state.mediaBookmarks,
         glossaryEntries: state.glossaryEntries,
         showTranscript: state.showTranscript,

@@ -12,7 +12,7 @@ import {
 } from "../../utils/transcriptStudy";
 import { useWordState } from "../../hooks/useWordState";
 import { cn } from "@/utils/cn";
-import { usePlayerSelection } from "../../player/PlayerWorkspace";
+import { usePlayerSelection } from "../../player/hooks";
 
 interface TranscriptWordRendererProps {
   segmentId: string;

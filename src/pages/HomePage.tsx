@@ -2,8 +2,6 @@ import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { usePlayerStore } from "../stores/playerStore";
 import { AppLayout } from "../components/layout/AppLayout";
-import { isElectron } from "../utils/platform";
-import { WebHomePage } from "./WebHomePage";
 import { ElectronHomePage } from "./ElectronHomePage";
 
 export const HomePage = () => {
@@ -24,11 +22,7 @@ export const HomePage = () => {
 
   return (
     <AppLayout>
-      {isElectron() ? (
-        <ElectronHomePage handleVideoIdSubmit={handleVideoIdSubmit} />
-      ) : (
-        <WebHomePage handleVideoIdSubmit={handleVideoIdSubmit} />
-      )}
+      <ElectronHomePage handleVideoIdSubmit={handleVideoIdSubmit} />
     </AppLayout>
   );
 };

@@ -1,8 +1,7 @@
 /**
- * Utility functions for checking browser capabilities
+ * Utility functions for checking browser capabilities.
+ * Electron-only app — all checks return Electron defaults.
  */
-
-import { isElectron } from './platform';
 
 export interface BrowserCapabilities {
     supportsMediaRecorder: boolean;
@@ -12,45 +11,20 @@ export interface BrowserCapabilities {
     isMobile: boolean;
 }
 
-/**
- * Check if the browser supports audio recording
- * Now supports all browsers including iOS Safari through Web Audio API fallback
- */
 export function checkAudioRecordingSupport(): BrowserCapabilities {
-    // In Electron, navigator.userAgent contains "Electron" — never treat as mobile
-    const isMobile = !isElectron() && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-
-    // Detect browser name for better error messages
-    let browserName = 'Unknown';
-    if (isElectron()) {
-        browserName = 'Electron';
-    } else if (navigator.userAgent.indexOf('Safari') !== -1 && navigator.userAgent.indexOf('Chrome') === -1) {
-        browserName = 'Safari';
-    } else if (navigator.userAgent.indexOf('Chrome') !== -1) {
-        browserName = 'Chrome';
-    } else if (navigator.userAgent.indexOf('Firefox') !== -1) {
-        browserName = 'Firefox';
-    }
-
     const supportsGetUserMedia = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
     const supportsMediaRecorder = typeof MediaRecorder !== 'undefined';
-
-    // Audio recording is now supported on all browsers with getUserMedia
-    // We use MediaRecorder where available, and fall back to Web Audio API on iOS Safari
     const supportsAudioRecording = supportsGetUserMedia;
 
     return {
         supportsMediaRecorder,
         supportsGetUserMedia,
         supportsAudioRecording,
-        browserName,
-        isMobile,
+        browserName: 'Electron',
+        isMobile: false,
     };
 }
 
-/**
- * Get a user-friendly error message for why recording is not supported
- */
 export function getRecordingUnsupportedMessage(capabilities: BrowserCapabilities): string {
     const { supportsGetUserMedia } = capabilities;
 

@@ -1,11 +1,10 @@
-import { BrowserRouter, HashRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { HashRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { Suspense, lazy, memo } from "react";
 import { HomePage } from "../pages";
 import { usePlayerStore } from "../stores/playerStore";
 import { useShallow } from "zustand/react/shallow";
-import { isElectron } from "../utils/platform";
 
-const Router = isElectron() ? HashRouter : BrowserRouter;
+const Router = HashRouter;
 const PlayerPage = lazy(async () => {
   const module = await import("../pages/PlayerPage");
   return { default: module.PlayerPage };
