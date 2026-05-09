@@ -12,17 +12,7 @@ import {
   setCachedWaveform,
 } from "../../utils/mediaStorage";
 import { useShadowingPlayer } from "../../hooks/useShadowingPlayer";
-import {
-  ZoomIn,
-  ZoomOut,
-  X,
-  ChevronUp,
-  ChevronDown,
-  Mic,
-  Radio,
-  Trash2,
-} from "lucide-react";
-import { toast } from "react-hot-toast";
+import { X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { cn } from "../../utils/cn";
 import { bumpRender } from "../../utils/perfMonitor";
@@ -199,20 +189,12 @@ export const WaveformVisualizer = ({ className }: WaveformVisualizerProps) => {
     currentRecording,
     currentRecordingRevision,
     isShadowingMode, setShadowingMode,
-    isRecording,
-    recordingSegmentId,
-    deleteAllSegments,
-    setRecordingSegmentId,
   } = useShadowingStore(
     useShallow((state) => ({
       currentRecording: state.currentRecording,
       currentRecordingRevision: state.currentRecordingRevision,
       isShadowingMode: state.isShadowingMode,
       setShadowingMode: state.setShadowingMode,
-      isRecording: state.isRecording,
-      recordingSegmentId: state.recordingSegmentId,
-      deleteAllSegments: state.deleteAllSegments,
-      setRecordingSegmentId: state.setRecordingSegmentId,
     }))
   );
 
@@ -242,7 +224,6 @@ export const WaveformVisualizer = ({ className }: WaveformVisualizerProps) => {
 
   // Shadowing panel expand/collapse state
   const [isShadowingExpanded, setIsShadowingExpanded] = useState(false);
-  const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
   const prevShouldExpandRef = useRef(false);
 
   // Auto-expand shadowing when recording or segments exist
@@ -582,6 +563,9 @@ export const WaveformVisualizer = ({ className }: WaveformVisualizerProps) => {
       if (idleId !== null && typeof window !== "undefined" && "cancelIdleCallback" in window) window.cancelIdleCallback(idleId);
       if (timeoutId !== null) globalThis.clearTimeout(timeoutId);
     };
+    // waveformZoom intentionally omitted — zoom changes should not re-trigger
+    // media reload; a separate effect (below) re-loads viewport-sized levels.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentFile, currentYouTube, duration]);
 
   // ─── WaveformRenderer lifecycle ───────────────────────────────────────────
@@ -1056,9 +1040,6 @@ export const WaveformVisualizer = ({ className }: WaveformVisualizerProps) => {
     document.body.classList.add("user-seeking"); setTimeout(() => document.body.classList.remove("user-seeking"), 100);
   };
 
-  const zoomIn = () => setWaveformZoom(Math.min(waveformZoom * 1.25, 50));
-  const zoomOut = () => setWaveformZoom(Math.max(waveformZoom / 1.25, 1));
-
   // ─── Helpers ──────────────────────────────────────────────────────────────
 
   const downsampleAudioData = (data: Float32Array, targetLength: number): Float32Array => {
@@ -1145,149 +1126,6 @@ export const WaveformVisualizer = ({ className }: WaveformVisualizerProps) => {
             <div className={`absolute bg-gray-800/90 text-white ${isMobile ? "text-sm px-3 py-1.5" : "text-xs px-2 py-1"} rounded pointer-events-none z-10`} style={{ left: `${timeToPosition(hoverTime)}%`, top: isMobile ? "10px" : "0px", transform: "translateX(-50%)" }}>{formatTime(hoverTime)}</div>
           )}
 
-          <div className="absolute top-2 right-2 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-20">
-            <button onClick={(e) => { e.stopPropagation(); zoomIn(); }} className="p-1.5 bg-black/30 dark:bg-white/20 backdrop-blur hover:bg-black/40 dark:hover:bg-white/30 text-white rounded-md border border-white/20 transition-colors" title={t("waveform.zoomIn")}><ZoomIn size={14} /></button>
-            <button onClick={(e) => { e.stopPropagation(); zoomOut(); }} className="p-1.5 bg-black/30 dark:bg-white/20 backdrop-blur hover:bg-black/40 dark:hover:bg-white/30 text-white rounded-md border border-white/20 transition-colors" title={t("waveform.zoomOut")}><ZoomOut size={14} /></button>
-          </div>
-
-          {/* Shadowing control float */}
-          {mediaId && (
-            <div
-              className="absolute right-2 z-20 pointer-events-auto transition-all duration-200"
-              style={{ bottom: isShadowingExpanded ? "8px" : "8px" }}
-              onMouseDown={(e) => e.stopPropagation()}
-              onClick={(e) => e.stopPropagation()}
-              onTouchStart={(e) => e.stopPropagation()}
-            >
-              <div className="flex flex-col items-center gap-1 bg-black/60 backdrop-blur-md border border-white/15 rounded-2xl text-white/80 shadow-[0_8px_24px_rgba(0,0,0,0.18)] py-1.5 px-1.5">
-                {/* Expand / Collapse */}
-                <button
-                  type="button"
-                  onClick={(e) => { e.stopPropagation(); setIsShadowingExpanded((v) => !v); }}
-                  className="inline-flex items-center justify-center rounded-full text-white/70 hover:bg-white/10 active:bg-white/20 transition-colors w-7 h-7"
-                  title={isShadowingExpanded ? t("shadowing.collapse", { defaultValue: "Collapse Shadowing" }) : t("shadowing.expand", { defaultValue: "Expand Shadowing" })}
-                >
-                  {isShadowingExpanded ? <ChevronDown size={13} /> : <ChevronUp size={13} />}
-                </button>
-
-                {/* Recording toggle */}
-                <button
-                  type="button"
-                  onClick={(e) => { e.stopPropagation(); setShadowingMode(!isShadowingMode); }}
-                  aria-pressed={isShadowingMode}
-                  className={`group relative inline-flex items-center justify-center rounded-full border-2 transition-all duration-200 focus:outline-none w-7 h-7 ${
-                    isRecording
-                      ? "border-error-500/70 bg-gradient-to-b from-error-700 to-error-500 shadow-[0_0_10px_rgba(220,38,38,0.5)]"
-                      : isShadowingMode
-                        ? "border-warning-400/50 bg-warning-500/20 shadow-[0_0_8px_rgba(251,191,36,0.25)] hover:bg-warning-500/28"
-                        : "border-white/12 bg-white/8 hover:bg-white/13"
-                  }`}
-                  title={isShadowingMode ? t("shadowing.disable") : t("shadowing.enable")}
-                >
-                  {isRecording ? (
-                    <Radio size={11} className="animate-pulse text-white" />
-                  ) : isShadowingMode ? (
-                    <Mic size={11} className="text-warning-300" />
-                  ) : (
-                    <Mic size={11} className="text-white/60" />
-                  )}
-                </button>
-
-                {/* Per-sentence recording toggle */}
-                {isShadowingExpanded && (
-                  <button
-                    type="button"
-                    onClick={(e) => { e.stopPropagation(); setRecordingSegmentId(recordingSegmentId ? undefined : 'sentence-mode'); }}
-                    className={`inline-flex items-center justify-center rounded-full border transition-all duration-200 w-7 h-7 ${
-                      recordingSegmentId
-                        ? "border-blue-400/50 bg-blue-500/20 text-blue-300"
-                        : "border-white/12 bg-white/8 text-white/50 hover:bg-white/13"
-                    }`}
-                    title={recordingSegmentId ? t("shadowing.disableSentenceMode", { defaultValue: "Disable Sentence Mode" }) : t("shadowing.enableSentenceMode", { defaultValue: "Record per Sentence" })}
-                  >
-                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="4 7 4 4 7 4" />
-                      <polyline points="20 17 20 20 17 20" />
-                      <polyline points="7 20 4 20 4 17" />
-                      <polyline points="17 4 20 4 20 7" />
-                      <line x1="12" y1="8" x2="12" y2="16" />
-                      <line x1="8" y1="12" x2="16" y2="12" />
-                    </svg>
-                  </button>
-                )}
-
-                {/* Delete track */}
-                {shadowingSegments.length > 0 && (
-                  !isConfirmingDelete ? (
-                    <button
-                      type="button"
-                      className="inline-flex items-center justify-center rounded-full text-white/35 hover:text-error-400 hover:bg-white/8 transition-colors w-7 h-7"
-                      onClick={(e) => { e.stopPropagation(); setIsConfirmingDelete(true); }}
-                      title={t("shadowing.deleteTrack", { defaultValue: "Delete Shadow Track" })}
-                    >
-                      <Trash2 size={12} />
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      className="inline-flex items-center justify-center rounded-full text-error-400 bg-error-500/20 hover:bg-error-500/30 transition-colors w-7 h-7 text-[10px] font-bold"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (mediaId) {
-                          deleteAllSegments(mediaId);
-                          toast.success(t("shadowing.success.trackDeleted"));
-                        }
-                        setIsConfirmingDelete(false);
-                      }}
-                      title={t("common.remove")}
-                    >
-                      ?
-                    </button>
-                  )
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Shadowing takes list */}
-          {isShadowingExpanded && shadowingSegments.length > 0 && (
-            <div
-              className="absolute left-2 z-20 pointer-events-auto"
-              style={{ bottom: "8px" }}
-              onMouseDown={(e) => e.stopPropagation()}
-              onClick={(e) => e.stopPropagation()}
-              onTouchStart={(e) => e.stopPropagation()}
-            >
-              <div className="flex flex-col gap-0.5 bg-black/50 backdrop-blur-sm border border-white/10 rounded-lg py-1 px-1.5 max-w-[240px]">
-                <div className="text-[10px] text-white/40 font-medium px-1 pb-0.5">
-                  {t("shadowing.takes", { defaultValue: "Shadow Takes" })}
-                </div>
-                {shadowingSegments.map((seg, idx) => (
-                  <div
-                    key={seg.id}
-                    className="flex items-center gap-1.5 text-[10px] text-white/70 hover:bg-white/5 rounded px-1 py-0.5 cursor-pointer transition-colors"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setCurrentTime(seg.startTime);
-                    }}
-                  >
-                    <span
-                      className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                      style={{
-                        backgroundColor: ['#22c55e', '#34d399', '#6ee7b7', '#059669', '#10b981', '#047857'][idx % 6]
-                      }}
-                    />
-                    <span className="truncate flex-1">
-                      {t("shadowing.take", { defaultValue: "Take" })} {idx + 1}
-                    </span>
-                    <span className="text-white/40 font-mono whitespace-nowrap">
-                      {formatTime(seg.startTime)} - {formatTime(seg.startTime + seg.duration)}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </div>
