@@ -1,6 +1,8 @@
+import { useShallow } from "zustand/react/shallow";
 import { usePlayerStore } from "../../stores/playerStore";
 import { WaveformVisualizer } from "../waveform/WaveformVisualizer";
 import { TimelineToolbar } from "./TimelineToolbar";
+import { TrackHeader } from "./TrackHeader";
 import { formatTime } from "../../utils/formatTime";
 import { cn } from "../../utils/cn";
 
@@ -22,13 +24,21 @@ export const TimelinePanel = ({
   className,
 }: TimelinePanelProps) => {
   const { currentTime, duration } = usePlayerStore();
+  const { currentFile, currentYouTube } = usePlayerStore(
+    useShallow((s) => ({ currentFile: s.currentFile, currentYouTube: s.currentYouTube }))
+  );
+  const mediaId = currentFile
+    ? currentFile.storageId || currentFile.id || `file-${currentFile.name}-${currentFile.size}`
+    : currentYouTube
+      ? `youtube-${currentYouTube.id}`
+      : null;
 
   if (!visible) return null;
 
   // Collapsed mode: only toolbar + thin progress bar
   if (collapsed) {
     return (
-      <div className={cn("timeline-panel-shell flex flex-col bg-white dark:bg-gray-950/40 rounded-t-xl border border-gray-200 dark:border-white/5 overflow-hidden", className)}>
+      <div className={cn("timeline-panel-shell flex flex-col @container/timeline bg-white dark:bg-gray-950/40 rounded-t-xl border border-gray-200 dark:border-white/5 overflow-hidden", className)}>
         <TimelineToolbar
           collapsed={collapsed}
           onCollapse={onCollapse}
@@ -52,7 +62,7 @@ export const TimelinePanel = ({
 
   // Full mode: toolbar + time ruler + waveform
   return (
-    <div className={cn("timeline-panel-shell flex flex-col min-h-0 max-h-[360px] bg-white dark:bg-gray-950/40 rounded-t-xl border border-gray-200 dark:border-white/5 overflow-y-auto overflow-x-hidden overscroll-contain", className)}>
+    <div className={cn("timeline-panel-shell flex flex-col min-h-0 max-h-[360px] @container/timeline bg-white dark:bg-gray-950/40 rounded-t-xl border border-gray-200 dark:border-white/5 overflow-y-auto overflow-x-hidden overscroll-contain", className)}>
       <TimelineToolbar
         collapsed={collapsed}
         onCollapse={onCollapse}
@@ -60,13 +70,15 @@ export const TimelinePanel = ({
         onHide={onHide}
       />
 
+      <TrackHeader mediaId={mediaId} />
+
       {/* Time ruler – hides on very narrow panels */}
       <div className="timeline-ruler h-5 shrink-0 px-3 bg-white dark:bg-gray-950/40 border-b border-gray-100 dark:border-white/5 relative select-none min-w-0 overflow-hidden">
         <TimeRuler duration={duration} />
       </div>
 
       {/* Waveform */}
-      <div className="timeline-waveform-frame flex-1 min-h-[96px] max-h-[260px] bg-gray-100 dark:bg-[#0a0a1a] relative overflow-hidden">
+      <div className="timeline-waveform-frame flex-1 min-h-[96px] max-h-[260px] bg-gray-100 dark:bg-[#0b0e1c] relative overflow-hidden">
         <WaveformVisualizer className="mx-auto h-full max-h-[260px] w-full max-w-[1280px]" />
       </div>
     </div>
