@@ -77,9 +77,9 @@ export const TimelinePanel = ({
         <TimeRuler duration={duration} />
       </div>
 
-      {/* Waveform */}
-      <div className="timeline-waveform-frame flex-1 min-h-[96px] max-h-[260px] bg-gray-100 dark:bg-[#0b0e1c] relative overflow-hidden">
-        <WaveformVisualizer className="mx-auto h-full max-h-[260px] w-full max-w-[1280px]" />
+      {/* Waveform — fixed height so content never stretches when panel is resized */}
+      <div className="timeline-waveform-frame shrink-0 h-[120px] bg-gray-100 dark:bg-[#0b0e1c] relative overflow-hidden">
+        <WaveformVisualizer className="mx-auto h-full w-full max-w-[1280px]" />
       </div>
     </div>
   );
