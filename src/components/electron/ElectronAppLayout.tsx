@@ -200,6 +200,12 @@ export const ElectronAppLayout = ({
     });
   }, [handleOpenSettings]);
 
+  useEffect(() => {
+    import("../../utils/migrationBridge").then(({ runMigrationIfNeeded }) => {
+      void runMigrationIfNeeded();
+    });
+  }, []);
+
   /* ── Sidebar ───────────────────────────────────────────────────── */
   const sidebar = (
     <aside

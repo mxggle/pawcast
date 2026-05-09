@@ -129,7 +129,8 @@
     "title": "設定",
     "tabs": {
       "general": "一般",
-      "ai": "AI"
+      "ai": "AI",
+      "data": "データ"
     },
     "appearance": "外観",
     "interfaceLayout": "インターフェースレイアウト",
@@ -144,6 +145,42 @@
     "smallStep": "小ステップ",
     "status": {
       "ready": "すべて正常です"
+    },
+    "data": {
+      "title": "データ管理",
+      "description": "データディレクトリの管理、ヘルスチェック、バックアップ作成。",
+      "directory": "データディレクトリ",
+      "currentDirectory": "現在のディレクトリ",
+      "changeDirectory": "ディレクトリを変更",
+      "changeDirectoryDescription": "データを新しい場所に移動します。既存のデータはすべてコピーされます。",
+      "changeDirectoryConfirm": "すべてのデータを新しい場所にコピーし、アクティブなディレクトリを切り替えます。続行しますか？",
+      "directorySize": "ディレクトリサイズ",
+      "fileCount": "{{count}} ファイル",
+      "healthCheck": "データの健全性",
+      "runHealthCheck": "ヘルスチェックを実行",
+      "healthStatus": "ステータス",
+      "healthy": "正常",
+      "degraded": "劣化",
+      "damaged": "破損",
+      "manifestStatus": "マニフェスト",
+      "manifestOk": "有効",
+      "manifestCorrupt": "破損",
+      "failedChecksums": "チェックサム不一致",
+      "orphanedReferences": "孤立参照",
+      "corruptedFiles": "破損ファイル",
+      "noIssues": "問題は見つかりませんでした",
+      "recovery": "復旧",
+      "replayJournal": "ジャーナルを再生",
+      "restoreSnapshot": "スナップショットを復元",
+      "remigrate": "再移行",
+      "recoverySuccess": "復旧が完了しました",
+      "recoveryFailed": "復旧に失敗しました: {{message}}",
+      "snapshots": "スナップショット",
+      "exportSnapshot": "スナップショットをエクスポート",
+      "importSnapshot": "スナップショットをインポート",
+      "exportSuccess": "スナップショットをエクスポートしました",
+      "importSuccess": "スナップショットをインポートしました",
+      "electronOnly": "データ管理はデスクトップアプリで利用できます"
     },
     "footer": {
       "autoSaved": "設定はこのデバイスに自動保存されます",

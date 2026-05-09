@@ -129,7 +129,8 @@
     "title": "设置",
     "tabs": {
       "general": "通用",
-      "ai": "AI"
+      "ai": "AI",
+      "data": "数据"
     },
     "appearance": "外观",
     "interfaceLayout": "界面布局",
@@ -144,6 +145,42 @@
     "smallStep": "小步长",
     "status": {
       "ready": "系统一切正常"
+    },
+    "data": {
+      "title": "数据管理",
+      "description": "管理数据目录、运行健康检查并创建备份。",
+      "directory": "数据目录",
+      "currentDirectory": "当前目录",
+      "changeDirectory": "更改目录",
+      "changeDirectoryDescription": "将数据移动到新位置。所有现有数据将被复制。",
+      "changeDirectoryConfirm": "这将把所有数据复制到新位置并切换活动目录。继续？",
+      "directorySize": "目录大小",
+      "fileCount": "{{count}} 个文件",
+      "healthCheck": "数据健康",
+      "runHealthCheck": "运行健康检查",
+      "healthStatus": "状态",
+      "healthy": "正常",
+      "degraded": "降级",
+      "damaged": "损坏",
+      "manifestStatus": "清单",
+      "manifestOk": "有效",
+      "manifestCorrupt": "损坏",
+      "failedChecksums": "校验和失败",
+      "orphanedReferences": "孤立引用",
+      "corruptedFiles": "损坏文件",
+      "noIssues": "未发现问题",
+      "recovery": "恢复",
+      "replayJournal": "重放日志",
+      "restoreSnapshot": "恢复快照",
+      "remigrate": "重新迁移",
+      "recoverySuccess": "恢复成功完成",
+      "recoveryFailed": "恢复失败: {{message}}",
+      "snapshots": "快照",
+      "exportSnapshot": "导出快照",
+      "importSnapshot": "导入快照",
+      "exportSuccess": "快照已导出",
+      "importSuccess": "快照已导入",
+      "electronOnly": "数据管理仅在桌面应用中可用"
     },
     "footer": {
       "autoSaved": "设置会自动保存到此设备",

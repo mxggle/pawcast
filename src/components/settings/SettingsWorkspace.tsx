@@ -1,10 +1,11 @@
 import type { TFunction } from "i18next";
-import { Brain, SlidersHorizontal } from "lucide-react";
+import { Brain, Database, SlidersHorizontal } from "lucide-react";
 import { GeneralSettingsPanel } from "./GeneralSettingsPanel";
 import {
   AISettingsPanel,
   type AiSettingsSection,
 } from "./AISettingsPanel";
+import { DataSettingsPanel } from "./DataSettingsPanel";
 import {
   type SettingsSidebarItem,
   type SettingsTab,
@@ -25,7 +26,9 @@ const parseSettingsWorkspaceSearch = (
   const rawTab = params.get("tab")?.trim();
   const rawSection = params.get("section")?.trim();
   const section = AISettingsPanel.isSection(rawSection) ? rawSection : undefined;
-  const tab = rawTab === "ai" || (rawTab !== "general" && section) ? "ai" : "general";
+  const tab = rawTab === "data" ? "data"
+    : rawTab === "ai" || (rawTab !== "general" && section) ? "ai"
+    : "general";
 
   return {
     tab,
@@ -62,6 +65,11 @@ const getSettingsWorkspaceNavItems = (
       label: t("settingsPage.tabs.ai"),
       Icon: Brain,
     },
+    {
+      id: "data" as const,
+      label: t("settingsPage.tabs.data"),
+      Icon: Database,
+    },
   ];
 };
 
@@ -90,7 +98,9 @@ const SettingsWorkspaceComponent = ({
 }: SettingsWorkspaceProps) => {
   return (
     <div className="min-w-0">
-      {activeTab === "general" ? (
+      {activeTab === "data" ? (
+        <DataSettingsPanel />
+      ) : activeTab === "general" ? (
         <GeneralSettingsPanel />
       ) : (
         <AISettingsPanel

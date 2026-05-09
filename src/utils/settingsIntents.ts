@@ -1,6 +1,6 @@
 export const SETTINGS_OPEN_INTENT_EVENT = "loopmate:open-settings";
 
-export type SettingsIntentTab = "general" | "ai";
+export type SettingsIntentTab = "general" | "ai" | "data";
 
 export interface SettingsOpenIntentDetail {
   tab?: SettingsIntentTab;

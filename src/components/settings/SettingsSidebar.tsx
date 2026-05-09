@@ -1,7 +1,7 @@
 import type { LucideIcon } from "lucide-react";
 import { cn } from "../../utils/cn";
 
-export type SettingsTab = "general" | "ai";
+export type SettingsTab = "general" | "ai" | "data";
 
 export interface SettingsSidebarItem {
   id: SettingsTab;

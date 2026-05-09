@@ -4,6 +4,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { SettingsWindowShell } from "../components/electron/SettingsWindowShell";
 import { SettingsWorkspace } from "../components/settings/SettingsWorkspace";
 import { SettingsSidebar } from "../components/settings/SettingsSidebar";
+import { ElectronDataPanel } from "../components/electron/ElectronDataPanel";
 import { useAiSettingsState } from "../hooks/useAiSettingsState";
 
 export function ElectronSettingsWindowPage() {
@@ -16,9 +17,11 @@ export function ElectronSettingsWindowPage() {
   const navItems = SettingsWorkspace.getNavItems(t);
 
   const subtitle =
-    activeTab === "general"
-      ? t("settingsPage.interfaceLayoutHelp")
-      : t("aiSettingsPage.providerSetupDescription");
+    activeTab === "data"
+      ? t("settingsPage.data.description")
+      : activeTab === "general"
+        ? t("settingsPage.interfaceLayoutHelp")
+        : t("aiSettingsPage.providerSetupDescription");
 
   const handleTabChange = (tab: typeof activeTab) => {
     navigate(
@@ -66,14 +69,18 @@ export function ElectronSettingsWindowPage() {
         </div>
       }
     >
-      <SettingsWorkspace
-        activeTab={activeTab}
-        onTabChange={handleTabChange}
-        aiSettingsState={aiSettingsState}
-        activeSection={routeState.section}
-        onSectionChange={handleSectionChange}
-        variant="standalone"
-      />
+      {activeTab === "data" ? (
+        <ElectronDataPanel />
+      ) : (
+        <SettingsWorkspace
+          activeTab={activeTab}
+          onTabChange={handleTabChange}
+          aiSettingsState={aiSettingsState}
+          activeSection={routeState.section}
+          onSectionChange={handleSectionChange}
+          variant="standalone"
+        />
+      )}
     </SettingsWindowShell>
   );
 }
