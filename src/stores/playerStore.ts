@@ -472,8 +472,9 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()(
               if (historyItem.nativePath) {
                 const url = nativePathToUrl(historyItem.nativePath);
                 const fd: MediaFile = { ...historyItem.fileData, url, nativePath: historyItem.nativePath };
-                // Don't go through setCurrentFile to avoid double-adding to history
                 useMediaStore.getState().setCurrentFile(fd);
+                const mediaId = fd.storageId || fd.id || `file-${fd.name}-${fd.size}`;
+                useTranscriptStore.getState().loadTranscriptForMedia(mediaId);
                 if (historyItem.playbackTime) useMediaStore.setState({ currentTime: historyItem.playbackTime });
                 useMediaStore.setState({ isLoadingMedia: false });
                 return;
@@ -485,6 +486,8 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()(
                     const url = URL.createObjectURL(file);
                     const fd: MediaFile = { ...historyItem.fileData, url, storageId: historyItem.storageId };
                     useMediaStore.getState().setCurrentFile(fd);
+                    const mediaId = fd.storageId || fd.id || `file-${fd.name}-${fd.size}`;
+                    useTranscriptStore.getState().loadTranscriptForMedia(mediaId);
                     if (historyItem.playbackTime) useMediaStore.setState({ currentTime: historyItem.playbackTime });
                     useMediaStore.setState({ isLoadingMedia: false });
                     return;
@@ -502,11 +505,14 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()(
               }
               const fd: MediaFile = { ...historyItem.fileData };
               useMediaStore.getState().setCurrentFile(fd);
+              const mediaId = fd.storageId || fd.id || `file-${fd.name}-${fd.size}`;
+              useTranscriptStore.getState().loadTranscriptForMedia(mediaId);
               if (historyItem.playbackTime) useMediaStore.setState({ currentTime: historyItem.playbackTime });
             } else if (historyItem.type === "youtube" && historyItem.youtubeData) {
               const yid = historyItem.youtubeData.youtubeId;
               if (!yid) { useMediaStore.setState({ isLoadingMedia: false }); return; }
               useMediaStore.getState().setCurrentYouTube({ id: yid, title: historyItem.youtubeData.title });
+              useTranscriptStore.getState().loadTranscriptForMedia(`youtube-${yid}`);
               if (historyItem.playbackTime) useMediaStore.setState({ currentTime: historyItem.playbackTime });
             }
 
@@ -692,6 +698,16 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()(
         }
         if (state.transcriptLanguage && state.transcriptLanguage !== "en-US") {
           useTranscriptStore.setState({ transcriptLanguage: state.transcriptLanguage });
+        }
+
+        // Auto-restore last session on app startup
+        if (state.mediaHistory?.length > 0) {
+          const latest = [...state.mediaHistory].sort((a, b) => b.accessedAt - a.accessedAt)[0];
+          if (latest) {
+            setTimeout(() => {
+              usePlayerStore.getState().loadFromHistory(latest.id);
+            }, 0);
+          }
         }
       },
       partialize: (state) => ({
