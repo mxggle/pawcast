@@ -30,7 +30,7 @@ export const MediaPreviewPanel = ({
   const youtubeId = currentYouTube?.id;
 
   return (
-    <div className={cn("flex flex-col min-h-0 bg-white dark:bg-gray-950/40 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden", className)}>
+    <div className={cn("flex flex-col min-h-0 @container/video bg-white dark:bg-gray-950/40 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden", className)}>
       <PanelHeader
         title={t("player.video", { defaultValue: "Video" })}
         collapsed={collapsed}
@@ -46,7 +46,7 @@ export const MediaPreviewPanel = ({
             )}
             {currentFile && <MediaPlayer />}
             {!currentFile && !youtubeId && (
-              <span className="text-xs text-gray-500 dark:text-gray-400">
+              <span className="text-xs @[260px]/video:text-sm text-gray-500 dark:text-gray-400 px-3">
                 {t("player.noMediaLoaded")}
               </span>
             )}
