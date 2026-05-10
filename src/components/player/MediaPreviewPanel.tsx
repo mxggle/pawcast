@@ -31,13 +31,13 @@ export const MediaPreviewPanel = ({
   const title = t("player.video", { defaultValue: "Video" });
 
   return (
-    <div className={cn("flex flex-col min-h-0 @container/video bg-white dark:bg-gray-950/40 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden", className)}>
+    <div className={cn("flex flex-col min-h-0 min-w-0 @container/video bg-white dark:bg-gray-950/40 overflow-hidden", className)}>
       {collapsed ? (
         <CollapsedVerticalStrip
           title={title}
           onExpand={onExpand}
           onHide={onHide}
-          className="border-r border-gray-200 dark:border-white/5"
+          expandIcon="right"
         />
       ) : (
         <>
@@ -45,8 +45,9 @@ export const MediaPreviewPanel = ({
             title={title}
             onCollapse={onCollapse}
             onHide={onHide}
+            collapseIcon="right"
           />
-          <div className="flex-1 min-h-0 bg-black flex items-center justify-center overflow-hidden">
+          <div className="flex-1 min-h-0 min-w-0 bg-black flex items-center justify-center overflow-hidden">
             <div className="w-full h-full max-h-[60vh] flex items-center justify-center">
               {youtubeId && !currentFile && (
                 <YouTubePlayer videoId={youtubeId} />

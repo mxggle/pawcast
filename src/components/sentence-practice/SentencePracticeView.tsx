@@ -26,6 +26,9 @@ import { TranscriptTextRenderer } from "../transcript/TranscriptTextRenderer";
 import { TranscriptSelectionPopover } from "../transcript/TranscriptSelectionPopover";
 import { ExplanationDrawer } from "../transcript/ExplanationDrawer";
 import type { TranscriptSelectionState } from "../../types/transcriptStudy";
+import type { TranscriptSegment } from "../../types/transcript";
+
+const EMPTY_SEGMENTS: TranscriptSegment[] = [];
 
 export const SentencePracticeView = () => {
   const { t } = useTranslation();
@@ -65,7 +68,7 @@ export const SentencePracticeView = () => {
 
   const mediaId = getCurrentMediaId();
   const transcriptSegments = usePlayerStore(
-    (state) => (mediaId ? state.mediaTranscripts[mediaId] ?? [] : [])
+    useShallow((state) => (mediaId ? state.mediaTranscripts[mediaId] ?? EMPTY_SEGMENTS : EMPTY_SEGMENTS))
   );
 
   const {

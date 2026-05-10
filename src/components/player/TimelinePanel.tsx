@@ -35,10 +35,10 @@ export const TimelinePanel = ({
 
   if (!visible) return null;
 
-  // Collapsed mode: only toolbar + thin progress bar
+  // Collapsed mode: only toolbar + thin progress bar, strict height
   if (collapsed) {
     return (
-      <div className={cn("timeline-panel-shell flex flex-col @container/timeline bg-white dark:bg-gray-950/40 rounded-t-xl border border-gray-200 dark:border-white/5 overflow-hidden", className)}>
+      <div className={cn("flex flex-col justify-end @container/timeline bg-white dark:bg-gray-950/40 overflow-hidden", className)}>
         <TimelineToolbar
           collapsed={collapsed}
           onCollapse={onCollapse}
@@ -46,7 +46,7 @@ export const TimelinePanel = ({
           onHide={onHide}
         />
         {/* Thin progress bar */}
-        <div className="h-1.5 bg-gray-100 dark:bg-gray-800 relative cursor-pointer group">
+        <div className="h-1 bg-gray-100 dark:bg-gray-800 relative cursor-pointer group shrink-0">
           <div
             className="absolute top-0 left-0 h-full bg-primary-500 transition-all"
             style={{ width: duration > 0 ? `${(currentTime / duration) * 100}%` : "0%" }}
@@ -62,7 +62,7 @@ export const TimelinePanel = ({
 
   // Full mode: toolbar + time ruler + waveform
   return (
-    <div className={cn("timeline-panel-shell flex flex-col min-h-0 max-h-[360px] @container/timeline bg-white dark:bg-gray-950/40 rounded-t-xl border border-gray-200 dark:border-white/5 overflow-y-auto overflow-x-hidden overscroll-contain", className)}>
+    <div className={cn("flex flex-col min-h-0 max-h-[360px] @container/timeline bg-white dark:bg-gray-950/40 rounded-t-xl border border-gray-200 dark:border-white/5 overflow-y-auto overflow-x-hidden overscroll-contain", className)}>
       <TimelineToolbar
         collapsed={collapsed}
         onCollapse={onCollapse}

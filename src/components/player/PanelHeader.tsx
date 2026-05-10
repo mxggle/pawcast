@@ -1,127 +1,134 @@
-import { ChevronDown, Minus, X } from "lucide-react";
+import {
+  PanelLeftClose,
+  PanelRightClose,
+  PanelBottomClose,
+  PanelLeft,
+  PanelRight,
+  PanelTop,
+} from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { cn } from "../../utils/cn";
 
 interface PanelHeaderProps {
   title: string;
   onCollapse?: () => void;
-  onHide?: () => void;
   className?: string;
+  collapseIcon?: "left" | "right" | "bottom";
 }
 
 export const PanelHeader = ({
   title,
   onCollapse,
-  onHide,
   className,
+  collapseIcon = "bottom",
 }: PanelHeaderProps) => {
+  const { t } = useTranslation();
+  const CollapseIcon =
+    collapseIcon === "left"
+      ? PanelLeftClose
+      : collapseIcon === "right"
+        ? PanelRightClose
+        : PanelBottomClose;
+
   return (
     <div
       className={cn(
-        "flex items-center justify-between px-3 py-1.5 bg-gray-50 dark:bg-gray-900/80 border-b border-gray-200 dark:border-white/5 select-none min-w-0 shrink-0",
+        "flex items-center justify-between px-3 h-9 bg-white dark:bg-gray-950/40 select-none min-w-0 shrink-0",
         className
       )}
     >
-      <span className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider truncate min-w-0 mr-2">
+      <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider truncate min-w-0 mr-2">
         {title}
       </span>
       <div className="flex items-center gap-0.5 flex-shrink-0">
         <button
           onClick={onCollapse}
-          className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
-          title="Collapse"
+          className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+          title={t("common.collapse")}
         >
-          <Minus size={12} />
-        </button>
-        <button
-          onClick={onHide}
-          className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
-          title="Hide"
-        >
-          <X size={12} />
+          <CollapseIcon size={14} />
         </button>
       </div>
     </div>
   );
 };
 
-/** Horizontal strip shown when outer panel collapses (e.g. transcript-alone or video-alone). */
+/** Horizontal strip shown when a top/bottom panel collapses (e.g. timeline). */
 export const CollapsedHorizontalStrip = ({
   title,
   onExpand,
-  onHide,
   className,
+  expandIcon = "top",
 }: {
   title: string;
   onExpand: () => void;
-  onHide: () => void;
   className?: string;
-}) => (
-  <div
-    className={cn(
-      "flex items-center h-full px-3 gap-2 bg-gray-50 dark:bg-gray-900/80 border-b border-gray-200 dark:border-white/5 select-none",
-      className
-    )}
-  >
-    <button
-      onClick={onExpand}
-      className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
-      title="Expand"
+  expandIcon?: "top" | "bottom";
+}) => {
+  const { t } = useTranslation();
+  const ExpandIcon = expandIcon === "top" ? PanelTop : PanelBottomClose;
+  return (
+    <div
+      className={cn(
+        "flex items-center h-9 px-2 gap-1 bg-white dark:bg-gray-950/40 select-none shrink-0",
+        className
+      )}
     >
-      <ChevronDown size={12} />
-    </button>
-    <span className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider flex-1">
-      {title}
-    </span>
-    <button
-      onClick={onHide}
-      className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
-      title="Hide"
-    >
-      <X size={12} />
-    </button>
-  </div>
-);
+      <button
+        onClick={onExpand}
+        className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors shrink-0"
+        title={t("common.expand")}
+      >
+        <ExpandIcon size={14} />
+      </button>
+      <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider flex-1 truncate px-1">
+        {title}
+      </span>
+    </div>
+  );
+};
 
-/** Vertical strip shown when a panel collapses inside a horizontal group (transcript or video). */
+/** Vertical strip shown when a left/right panel collapses (transcript or video). */
 export const CollapsedVerticalStrip = ({
   title,
   onExpand,
-  onHide,
   className,
+  expandIcon = "left",
 }: {
   title: string;
   onExpand: () => void;
-  onHide: () => void;
   className?: string;
-}) => (
-  <div
-    className={cn(
-      "flex flex-col items-center h-full py-2 gap-1 bg-gray-50 dark:bg-gray-900/80 select-none",
-      className
-    )}
-  >
-    <button
-      onClick={onHide}
-      className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors shrink-0"
-      title="Hide"
+  expandIcon?: "left" | "right";
+}) => {
+  const { t } = useTranslation();
+  const ExpandIcon = expandIcon === "left" ? PanelLeft : PanelRight;
+  return (
+    <div
+      className={cn(
+        "flex flex-col items-center h-full w-12 py-2 gap-1 bg-white dark:bg-gray-950/40 select-none shrink-0",
+        className
+      )}
     >
-      <X size={12} />
-    </button>
-    <button
-      onClick={onExpand}
-      className="flex-1 flex items-center justify-center w-full hover:bg-gray-100 dark:hover:bg-gray-800/60 rounded transition-colors min-h-0"
-      title={`Expand ${title}`}
-    >
-      <span className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest [writing-mode:vertical-rl] rotate-180 select-none">
-        {title}
-      </span>
-    </button>
-    <button
-      onClick={onExpand}
-      className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors shrink-0"
-      title="Expand"
-    >
-      <ChevronDown size={12} className="rotate-[-90deg]" />
-    </button>
-  </div>
-);
+      {/* Top controls: expand + hide — fixed position, never moves */}
+      <div className="flex flex-col items-center gap-1 shrink-0">
+        <button
+          onClick={onExpand}
+          className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors shrink-0"
+          title={t("common.expand")}
+        >
+          <ExpandIcon size={14} />
+        </button>
+      </div>
+      {/* Title occupies remaining space, clickable to expand */}
+      <button
+        onClick={onExpand}
+        className="flex-1 flex items-center justify-center w-full hover:bg-gray-50 dark:hover:bg-gray-900/40 rounded transition-colors min-h-0"
+        title={`${t("common.expand")} ${title}`}
+      >
+        <span className="text-[10px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-widest [writing-mode:vertical-rl] rotate-180 select-none">
+          {title}
+        </span>
+      </button>
+    </div>
+  );
+};

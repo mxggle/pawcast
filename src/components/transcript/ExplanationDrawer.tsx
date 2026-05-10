@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { AI_PROMPTS } from "../../config/prompts";
 
 import { MarkdownRenderer } from "../ui/MarkdownRenderer";
-import { Loader, X } from "lucide-react";
+import { Loader } from "lucide-react";
 import { toast } from "react-hot-toast";
 import {
   AIProvider,
@@ -251,12 +251,6 @@ export const ExplanationDrawer: React.FC<ExplanationDrawerProps> = ({
         <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
           {t("explanation.title")}
         </span>
-        <button
-          onClick={onClose}
-          className="p-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-        >
-          <X size={14} />
-        </button>
       </div>
 
       {/* Content */}

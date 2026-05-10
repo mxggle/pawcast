@@ -2,6 +2,12 @@
 
 [cmd]: https://commandcode.ai/
 
+# Electron Architecture
+- When creating new Electron popup windows, follow the exact Settings window pattern: singleton BrowserWindow with module-level variable, IPC channels (window:openX/window:closeX), preload methods, dedicated route, shell component with custom chrome (hiddenInset, hidden traffic lights, custom close button). Confidence: 0.80
+- Extract shared content components so both the in-app page and the popup window page reuse the same rendering logic (e.g., GlossaryContent used by both GlossaryPage and ElectronGlossaryWindowPage). Confidence: 0.70
+- Skip PersistentPlayer rendering in popup windows (glossary-window, settings-window) — Zustand localStorage rehydration causes PlayerPage to mount in popups otherwise. Confidence: 0.65
+- Glossary popup window should be display-only: navigation actions (e.g., "Play contents" clicks) must fire IPC to the main window via electronAPI, not navigate within the popup. Confidence: 0.70
+
 # Communication Style
 - Provide detailed, in-depth technical explanations for each point. Confidence: 0.85
 - Use specialized subagents (frontend engineer, performance engineer, etc.) for complex tasks instead of general-purpose agents. Confidence: 0.90

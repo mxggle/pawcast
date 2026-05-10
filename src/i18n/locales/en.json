@@ -19,6 +19,8 @@
     "back": "Back",
     "show": "Show",
     "hide": "Hide",
+    "expand": "Expand",
+    "collapse": "Collapse",
     "start": "Start",
     "end": "End",
     "remove": "Remove",

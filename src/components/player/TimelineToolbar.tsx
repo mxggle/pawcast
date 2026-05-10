@@ -13,9 +13,8 @@ import {
   Mic,
   Settings2,
   ListMusic,
-  Minus,
-  Square,
-  X,
+  PanelTop,
+  PanelBottomClose,
   ChevronDown,
 } from "lucide-react";
 import { cn } from "../../utils/cn";
@@ -28,14 +27,12 @@ interface TimelineToolbarProps {
   collapsed: boolean;
   onCollapse: () => void;
   onExpand: () => void;
-  onHide: () => void;
 }
 
 export const TimelineToolbar = ({
   collapsed,
   onCollapse,
   onExpand,
-  onHide,
 }: TimelineToolbarProps) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -84,7 +81,7 @@ export const TimelineToolbar = ({
   const toggleShadowing = () => setShadowingMode(!isShadowingMode);
 
   return (
-    <div className="timeline-toolbar @container/toolbar flex min-w-0 items-center gap-1.5 overflow-hidden px-2 sm:px-3 py-2 bg-gray-50 dark:bg-gray-900/80 border-b border-gray-200 dark:border-white/5">
+    <div className="timeline-toolbar @container/toolbar flex h-11 shrink-0 min-w-0 items-center gap-1.5 overflow-hidden px-2 sm:px-3 py-1 bg-gray-50 dark:bg-gray-900/80 border-b border-gray-200 dark:border-white/5">
       {/* PRIMARY — playback group, always visible */}
       <div className="flex items-center gap-0.5 shrink-0">
         <button
@@ -289,17 +286,22 @@ export const TimelineToolbar = ({
       {/* Panel controls — always visible */}
       <div className="timeline-panel-controls flex shrink-0 items-center gap-0.5 ml-1 pl-2 border-l border-gray-200 dark:border-white/10">
         {collapsed ? (
-          <button onClick={onExpand} className="size-6 flex items-center justify-center rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 transition-colors shrink-0" title="Expand">
-            <Square size={12} />
+          <button
+            onClick={onExpand}
+            className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors shrink-0"
+            title={t("common.expand")}
+          >
+            <PanelTop size={14} />
           </button>
         ) : (
-          <button onClick={onCollapse} className="size-6 flex items-center justify-center rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 transition-colors shrink-0" title="Collapse">
-            <Minus size={12} />
+          <button
+            onClick={onCollapse}
+            className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors shrink-0"
+            title={t("common.collapse")}
+          >
+            <PanelBottomClose size={14} />
           </button>
         )}
-        <button onClick={onHide} className="size-6 flex items-center justify-center rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 transition-colors shrink-0" title="Hide">
-          <X size={12} />
-        </button>
       </div>
     </div>
   );
