@@ -29,7 +29,10 @@
     "showInExplorer": "Show in Windows Explorer",
     "showInFileManager": "Show in file manager",
     "failedToOpenLocation": "Failed to open location",
-    "comingSoon": "Coming Soon"
+    "comingSoon": "Coming Soon",
+    "localFile": "Local File",
+    "home": "Home",
+    "loadingPage": "Loading page"
   },
   "shadowing": {
     "title": "Shadowing",
@@ -61,7 +64,13 @@
     "recordingError": "Recording error: {{message}}",
     "failedToSave": "Failed to save recording",
     "takeOf": "Take {{n}} of {{total}}",
-    "recordFirstTake": "Press REC to record your first take"
+    "recordFirstTake": "Press REC to record your first take",
+    "record": "Record",
+    "takes": "Takes",
+    "take": "Take",
+    "recordingNow": "Recording...",
+    "disableSentenceMode": "Disable Sentence Mode",
+    "enableSentenceMode": "Record per Sentence"
   },
   "sentencePractice": {
     "title": "Sentence Practice",
@@ -107,14 +116,6 @@
     "sourceMediaRequired": "Load the source media first to play this context",
     "deleteEntry": "Delete glossary entry"
   },
-  "bookmarks": {
-    "bookmarkAdded": "Bookmark added",
-    "bookmarkUpdated": "Bookmark updated",
-    "bookmarkDeleted": "Bookmark deleted",
-    "bookmarkLoaded": "Bookmark loaded",
-    "nameCannotBeEmpty": "Bookmark name cannot be empty",
-    "deleteConfirmation": "Are you sure you want to delete this bookmark?"
-  },
   "settings": {
     "title": "Settings",
     "playback": "Playback",
@@ -141,7 +142,8 @@
     "title": "Settings",
     "tabs": {
       "general": "General",
-      "ai": "AI"
+      "ai": "AI",
+      "data": "Data"
     },
     "appearance": "Appearance",
     "interfaceLayout": "Interface Layout",
@@ -197,20 +199,6 @@
       "autoSaved": "Settings are auto-saved to your device",
       "tagline": "LoopMate v1.2.0 • Made with ❤️ for Language Learners"
     }
-  },
-  "loop": {
-    "controlsTitle": "Loop Settings",
-    "repeats": "Repeats",
-    "gap": "Gap",
-    "infinite": "Infinite",
-    "none": "None",
-    "times": "x",
-    "seconds": "s",
-    "bpmNone": "—",
-    "speedHalf": "×½",
-    "speedDouble": "×2",
-    "pointA": "A",
-    "pointB": "B"
   },
   "aiSettingsPage": {
     "title": "AI Settings",
@@ -388,7 +376,11 @@
     "shareSetupRequired": "Set loop points or load a video before sharing",
     "abLoopPlayer": "AB Loop Player",
     "couldNotRetrieveMedia": "File not found in storage. Please re-upload the file.",
-    "noMediaLoadedSimple": "No media loaded"
+    "noMediaLoadedSimple": "No media loaded",
+    "noMedia": "No media",
+    "playFromStart": "Play from start",
+    "abLoop": "A-B Loop",
+    "video": "Video"
   },
   "track": {
     "original": "Original",
@@ -443,7 +435,16 @@
     "autoQuantize": "Auto-quantize loop to beats",
     "quantizeNow": "Quantize Now",
     "repeats": "Repeats",
-    "gap": "Gap"
+    "gap": "Gap",
+    "infinite": "Infinite",
+    "none": "None",
+    "times": "x",
+    "seconds": "s",
+    "bpmNone": "—",
+    "speedHalf": "×½",
+    "speedDouble": "×2",
+    "pointA": "A",
+    "pointB": "B"
   },
   "explanation": {
     "title": "AI Explanation",
@@ -589,7 +590,9 @@
       "ko-KR": "Korean",
       "zh-CN": "Chinese (Simplified)",
       "ru-RU": "Russian"
-    }
+    },
+    "invalidFileFormat": "Invalid transcript file format",
+    "uploadError": "Failed to upload transcript file"
   },
   "ai": {
     "transcription": "Transcription",
@@ -636,7 +639,15 @@
     "setValidRange": "Set a valid A-B range first",
     "defaultClipName": "Clip {{count}}",
     "duplicateRange": "A bookmark for this A–B range already exists",
-    "clipFallback": "Clip"
+    "clipFallback": "Clip",
+    "bookmarkUpdated": "Bookmark updated",
+    "bookmarkDeleted": "Bookmark deleted",
+    "bookmarkLoaded": "Bookmark loaded",
+    "deleteConfirmation": "Are you sure you want to delete this bookmark?",
+    "added": "Bookmark added",
+    "add": "Add Bookmark",
+    "loopingBookmark": "Looping bookmark: {{name}}",
+    "newBookmark": "New Bookmark"
   },
   "history": {
     "recentMedia": "Recent Media",
@@ -724,7 +735,8 @@
     "seekBackwardForward": "Seek backward/forward {{seconds}} seconds",
     "seekBackwardForwardSmall": "Seek backward/forward {{seconds}} seconds",
     "volumeUpDown": "Volume up/down",
-    "jumpToPercent": "Jump to 0-90% of track"
+    "jumpToPercent": "Jump to 0-90% of track",
+    "resizePanels": "Resize panels"
   },
   "modelSelector": {
     "placeholder": "Select a model...",

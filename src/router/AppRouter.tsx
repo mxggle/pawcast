@@ -3,6 +3,7 @@ import { Suspense, lazy, memo } from "react";
 import { HomePage } from "../pages";
 import { usePlayerStore } from "../stores/playerStore";
 import { useShallow } from "zustand/react/shallow";
+import { useTranslation } from "react-i18next";
 
 const Router = HashRouter;
 const PlayerPage = lazy(async () => {
@@ -40,11 +41,14 @@ const HIDDEN_STYLE: React.CSSProperties = {
   pointerEvents: "none",
 };
 
-const ROUTE_FALLBACK = (
-  <div className="flex min-h-[24rem] items-center justify-center" aria-label="Loading page">
-    <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-300 border-t-primary-600 dark:border-gray-700 dark:border-t-primary-400" />
-  </div>
-);
+const RouteFallback = () => {
+  const { t } = useTranslation();
+  return (
+    <div className="flex min-h-[24rem] items-center justify-center" aria-label={t("common.loadingPage")}>
+      <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-300 border-t-primary-600 dark:border-gray-700 dark:border-t-primary-400" />
+    </div>
+  );
+};
 
 // Memoized so it never re-renders due to AppRouterInner re-renders on route change.
 // PlayerPage has no props — all data flows through store hooks — so memo is safe here.
@@ -68,7 +72,7 @@ const AppRouterInner = () => {
 
   return (
     <>
-      <Suspense fallback={ROUTE_FALLBACK}>
+      <Suspense fallback={<RouteFallback />}>
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/settings" element={<SettingsPage />} />
@@ -90,7 +94,7 @@ const AppRouterInner = () => {
           PersistentPlayer (memo) skips re-render on route change — only the wrapper div's
           style prop is updated (a fast direct DOM write, not a React subtree reconciliation). */}
       {hasMedia && !isPopupWindow && (
-        <Suspense fallback={isOnPlayer ? ROUTE_FALLBACK : null}>
+        <Suspense fallback={isOnPlayer ? <RouteFallback /> : null}>
           <div style={isOnPlayer ? undefined : HIDDEN_STYLE}>
             <PersistentPlayer />
           </div>

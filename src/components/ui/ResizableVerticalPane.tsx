@@ -1,5 +1,6 @@
 import React, { useRef, useState, useCallback, useEffect } from "react";
 import { cn } from "../../utils/cn";
+import { useTranslation } from "react-i18next";
 
 interface ResizableVerticalPaneProps {
   /** Content for the top pane */
@@ -30,6 +31,7 @@ export const ResizableVerticalPane: React.FC<ResizableVerticalPaneProps> = ({
   className,
   enabled = true,
 }) => {
+  const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
   const [topHeight, setTopHeight] = useState<number>(() => {
     if (typeof window === "undefined" || !storageKey) return initialTopHeight;
@@ -147,7 +149,7 @@ export const ResizableVerticalPane: React.FC<ResizableVerticalPaneProps> = ({
           onTouchStart={handleTouchStart}
           role="separator"
           aria-orientation="horizontal"
-          aria-label="Resize panels"
+          aria-label={t("layout.resizePanels")}
         >
           <div className="w-8 h-[3px] rounded-full bg-gray-400/40 dark:bg-gray-500/40" />
         </div>

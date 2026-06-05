@@ -27,7 +27,12 @@
     "showInExplorer": "Windows Explorerで表示",
     "showInFileManager": "ファイルマネージャーで表示",
     "failedToOpenLocation": "場所を開けませんでした",
-    "comingSoon": "近日公開"
+    "comingSoon": "近日公開",
+    "start": "開始",
+    "end": "終了",
+    "localFile": "ローカルファイル",
+    "home": "ホーム",
+    "loadingPage": "読み込み中"
   },
   "shadowing": {
     "title": "シャドーイング",
@@ -59,7 +64,13 @@
     "recordingError": "録音エラー：{{message}}",
     "failedToSave": "録音の保存に失敗しました",
     "takeOf": "テイク {{n}} / {{total}}",
-    "recordFirstTake": "RECを押して最初のテイクを録音"
+    "recordFirstTake": "RECを押して最初のテイクを録音",
+    "record": "録音",
+    "takes": "テイク一覧",
+    "take": "テイク",
+    "recordingNow": "録音中...",
+    "disableSentenceMode": "一文ずつ練習を無効化",
+    "enableSentenceMode": "一文ずつ練習を有効化"
   },
   "sentencePractice": {
     "title": "一文ずつ練習",
@@ -189,20 +200,6 @@
       "tagline": "LoopMate v1.2.0 • 言語学習者のために作られました"
     }
   },
-  "loop": {
-    "controlsTitle": "ループ設定",
-    "repeats": "繰り返し",
-    "gap": "間隔",
-    "infinite": "無限",
-    "none": "なし",
-    "times": "回",
-    "seconds": "秒",
-    "bpmNone": "—",
-    "speedHalf": "×½",
-    "speedDouble": "×2",
-    "pointA": "A",
-    "pointB": "B"
-  },
   "aiSettingsPage": {
     "title": "AI設定",
     "subtitle": "AIプロバイダー、既定値、文字起こしツールを設定します",
@@ -236,16 +233,18 @@
       "grok": "xAI Grok",
       "groq": "Groq",
       "opencode": "OpenCode Go",
-      "deepseek": "DeepSeek"
-      },
-      "providerDescriptions": {
+      "deepseek": "DeepSeek",
+      "ollama": "Ollama (ローカル)"
+    },
+    "providerDescriptions": {
       "openai": "OpenAI GPT モデル",
       "gemini": "Google Gemini モデル",
       "grok": "xAI Grok モデル",
       "groq": "Groq LPU 駆動の超快 Whisper 文字起こし",
       "opencode": "OpenCode Go の OpenAI 互換 API",
-      "deepseek": "DeepSeek 公式 API (OpenAI 互換)"
-      },
+      "deepseek": "DeepSeek 公式 API (OpenAI 互換)",
+      "ollama": "Ollama経由のローカルLLM — APIキー不要"
+    },
     "opencodeBaseUrl": "OpenCodeベースURL",
     "opencodeBaseUrlHelp": "OpenCode Go APIエンドポイントのベースURLを入力してください。既定値は https://opencode.ai/zen/go/v1 です。",
     "opencodeModel": "モデル名",
@@ -284,12 +283,14 @@
     "transcriptionProviders": {
       "openai": "OpenAI Whisper",
       "groq": "Groq Whisper（超高速）",
-      "gemini": "Google Gemini"
+      "gemini": "Google Gemini",
+      "local-whisper": "ローカル Whisper"
     },
     "transcriptionProviderDescriptions": {
       "openai": "ワードレベルのタイムスタンプ付き高品質文字起こし",
       "groq": "Groq LPUによる超高速文字起こし",
-      "gemini": "話者識別対応のマルチモーダルAI文字起こし"
+      "gemini": "話者識別対応のマルチモーダルAI文字起こし",
+      "local-whisper": "セルフホストの faster-whisper-server — APIキー不要"
     },
     "groqApiKeyLabel": "Groq APIキー",
     "groqApiKeyPlaceholder": "gsk_...",
@@ -302,7 +303,15 @@
       "chinese": "中国語",
       "japanese": "日本語",
       "korean": "韓国語"
-    }
+    },
+    "ollamaBaseUrl": "Ollama ベースURL",
+    "ollamaBaseUrlHelp": "Ollamaが稼働しているURL。localhost経由で本アプリにアクセスする場合に機能します。",
+    "ollamaModel": "モデル名",
+    "ollamaModelHelp": "ローカルにプル済みの任意のモデル（例: llama3.2, mistral, qwen2.5）。",
+    "localWhisperUrl": "サーバーURL",
+    "localWhisperUrlHelp": "faster-whisper-server インスタンスのURL。localhost経由で本アプリにアクセスする場合に機能します。",
+    "localWhisperModel": "モデル名",
+    "localWhisperModelHelp": "faster-whisper-server に読み込まれているモデル（例: Systran/faster-whisper-large-v3）。"
   },
   "home": {
     "chooseMediaSource": "メディアソースを選択",
@@ -367,7 +376,11 @@
     "shareSetupRequired": "共有する前にループポイントを設定するか動画を読み込んでください",
     "abLoopPlayer": "A-Bループプレーヤー",
     "couldNotRetrieveMedia": "ストレージにファイルが見つかりません。ファイルを再アップロードしてください。",
-    "noMediaLoadedSimple": "メディアが読み込まれていません"
+    "noMediaLoadedSimple": "メディアが読み込まれていません",
+    "noMedia": "メディアなし",
+    "playFromStart": "最初から再生",
+    "abLoop": "A-Bループ",
+    "video": "ビデオ"
   },
   "track": {
     "original": "オリジナル",
@@ -422,7 +435,16 @@
     "autoQuantize": "ループをビートに自動でクオンタイズする",
     "quantizeNow": "今すぐクオンタイズ",
     "repeats": "リピート回数",
-    "gap": "間隔"
+    "gap": "間隔",
+    "infinite": "無限",
+    "none": "なし",
+    "times": "回",
+    "seconds": "秒",
+    "bpmNone": "—",
+    "speedHalf": "×½",
+    "speedDouble": "×2",
+    "pointA": "A",
+    "pointB": "B"
   },
   "explanation": {
     "title": "AIによる説明",
@@ -562,7 +584,15 @@
       "ko-KR": "韓国語",
       "zh-CN": "中国語 (簡体)",
       "ru-RU": "ロシア語"
-    }
+    },
+    "sections": "セクション",
+    "fullTranscript": "全文トランスクリプト",
+    "bookmarks": "ブックマーク",
+    "transcribeBookmark": "このブックマークを文字起こし",
+    "transcribeBookmarkButton": "ブックマークを文字起こし",
+    "noTranscriptForBookmark": "このブックマーク範囲のトランスクリプトはありません。",
+    "invalidFileFormat": "無効な字幕ファイル形式です",
+    "uploadError": "字幕ファイルのアップロードに失敗しました"
   },
   "ai": {
     "transcription": "転写",
@@ -610,7 +640,14 @@
     "setValidRange": "有効なA-B範囲を最初に設定してください",
     "defaultClipName": "クリップ {{count}}",
     "duplicateRange": "このA-B範囲のブックマークは既に存在します",
-    "clipFallback": "クリップ"
+    "clipFallback": "クリップ",
+    "added": "ブックマークが追加されました",
+    "add": "ブックマークを追加",
+    "bookmarkUpdated": "ブックマークが更新されました",
+    "bookmarkDeleted": "ブックマークが削除されました",
+    "bookmarkLoaded": "ブックマークを読み込みました",
+    "loopingBookmark": "ブックマークをループ再生中：{{name}}",
+    "newBookmark": "新規ブックマーク"
   },
   "history": {
     "recentMedia": "最近のメディア",
@@ -698,7 +735,8 @@
     "seekBackwardForward": "後方/前方に{{seconds}}秒シーク",
     "seekBackwardForwardSmall": "後方/前方に{{seconds}}秒シーク",
     "volumeUpDown": "音量アップ/ダウン",
-    "jumpToPercent": "トラックの0-90%にジャンプ"
+    "jumpToPercent": "トラックの0-90%にジャンプ",
+    "resizePanels": "パネルサイズ調整"
   },
   "modelSelector": {
     "placeholder": "モデルを選択...",

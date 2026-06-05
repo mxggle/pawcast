@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import type { ReactNode } from "react";
 import { X } from "lucide-react";
 
@@ -7,6 +8,7 @@ interface GlossaryWindowShellProps {
 }
 
 export function GlossaryWindowShell({ title, children }: GlossaryWindowShellProps) {
+  const { t } = useTranslation();
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900 dark:bg-[#020617] dark:text-white">
       <div className="mx-auto flex min-h-screen max-w-5xl flex-col overflow-hidden border-x border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-950">
@@ -17,7 +19,7 @@ export function GlossaryWindowShell({ title, children }: GlossaryWindowShellProp
           <button
             onClick={() => window.electronAPI?.closeGlossaryWindow()}
             className="[-webkit-app-region:no-drag] rounded-md p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-300"
-            aria-label="Close"
+            aria-label={t("common.close")}
           >
             <X className="h-5 w-5" />
           </button>

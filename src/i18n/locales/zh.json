@@ -27,7 +27,12 @@
     "showInExplorer": "在 Windows Explorer 中显示",
     "showInFileManager": "在文件管理器中显示",
     "failedToOpenLocation": "无法打开位置",
-    "comingSoon": "即将推出"
+    "comingSoon": "即将推出",
+    "start": "开始",
+    "end": "结束",
+    "localFile": "本地文件",
+    "home": "首页",
+    "loadingPage": "加载中"
   },
   "shadowing": {
     "title": "跟读",
@@ -59,7 +64,13 @@
     "recordingError": "录音错误：{{message}}",
     "failedToSave": "保存录音失败",
     "takeOf": "Take {{n}} / {{total}}",
-    "recordFirstTake": "按 REC 录制第一段跟读"
+    "recordFirstTake": "按 REC 录制第一段跟读",
+    "record": "录音",
+    "takes": "录音版本",
+    "take": "录音",
+    "recordingNow": "正在录音...",
+    "disableSentenceMode": "禁用单句模式",
+    "enableSentenceMode": "启用单句模式"
   },
   "sentencePractice": {
     "title": "逐句练习",
@@ -189,20 +200,6 @@
       "tagline": "LoopMate v1.2.0 • 为语言学习者打造"
     }
   },
-  "loop": {
-    "controlsTitle": "循环设置",
-    "repeats": "重复次数",
-    "gap": "间隔",
-    "infinite": "无限",
-    "none": "无",
-    "times": "次",
-    "seconds": "秒",
-    "bpmNone": "—",
-    "speedHalf": "×½",
-    "speedDouble": "×2",
-    "pointA": "A",
-    "pointB": "B"
-  },
   "aiSettingsPage": {
     "title": "AI 设置",
     "subtitle": "配置您的 AI 提供方、默认值和转录工具",
@@ -236,7 +233,8 @@
       "grok": "xAI Grok",
       "groq": "Groq",
       "opencode": "OpenCode Go",
-      "deepseek": "DeepSeek"
+      "deepseek": "DeepSeek",
+      "ollama": "Ollama (本地)"
     },
     "providerDescriptions": {
       "openai": "OpenAI GPT 模型",
@@ -244,7 +242,8 @@
       "grok": "xAI Grok 模型",
       "groq": "Groq LPU 驱动的超快 Whisper 转录",
       "opencode": "OpenCode Go 的 OpenAI 兼容 API",
-      "deepseek": "DeepSeek 官方 API (OpenAI 兼容)"
+      "deepseek": "DeepSeek 官方 API (OpenAI 兼容)",
+      "ollama": "通过 Ollama 运行本地大模型 — 无需 API 密钥"
     },
     "opencodeBaseUrl": "OpenCode 基础 URL",
     "opencodeBaseUrlHelp": "请输入 OpenCode Go API 端点的基础 URL。默认值为 https://opencode.ai/zen/go/v1。",
@@ -284,12 +283,14 @@
     "transcriptionProviders": {
       "openai": "OpenAI Whisper",
       "groq": "Groq Whisper（超快）",
-      "gemini": "Google Gemini"
+      "gemini": "Google Gemini",
+      "local-whisper": "本地 Whisper"
     },
     "transcriptionProviderDescriptions": {
       "openai": "高质量转录，并提供词级时间戳",
       "groq": "由 Groq LPU 提供的超快转录",
-      "gemini": "支持说话人区分的多模态 AI 转录"
+      "gemini": "支持说话人区分的多模态 AI 转录",
+      "local-whisper": "自托管 faster-whisper-server — 无需 API 密钥"
     },
     "groqApiKeyLabel": "Groq API 密钥",
     "groqApiKeyPlaceholder": "gsk_...",
@@ -302,7 +303,15 @@
       "chinese": "中文",
       "japanese": "日语",
       "korean": "韩语"
-    }
+    },
+    "ollamaBaseUrl": "Ollama 基础 URL",
+    "ollamaBaseUrlHelp": "Ollama 运行的 URL。通过 localhost 访问此应用时可用。",
+    "ollamaModel": "模型名称",
+    "ollamaModelHelp": "本地已拉取的任何模型，例如 llama3.2、mistral、qwen2.5。",
+    "localWhisperUrl": "服务器 URL",
+    "localWhisperUrlHelp": "faster-whisper-server 实例的 URL。通过 localhost 访问此应用时可用。",
+    "localWhisperModel": "模型名称",
+    "localWhisperModelHelp": "faster-whisper-server 中加载的模型，例如 Systran/faster-whisper-large-v3。"
   },
   "home": {
     "chooseMediaSource": "选择媒体源",
@@ -367,7 +376,11 @@
     "shareSetupRequired": "分享前请设置循环区间或加载视频",
     "abLoopPlayer": "A-B 循环播放器",
     "couldNotRetrieveMedia": "在存储中找不到文件，请重新上传文件。",
-    "noMediaLoadedSimple": "没有加载媒体"
+    "noMediaLoadedSimple": "没有加载媒体",
+    "noMedia": "无媒体",
+    "playFromStart": "从头播放",
+    "abLoop": "A-B循环",
+    "video": "视频"
   },
   "track": {
     "original": "原音",
@@ -422,7 +435,16 @@
     "autoQuantize": "自动将循环量化到节拍",
     "quantizeNow": "立即量化",
     "repeats": "重复次数",
-    "gap": "间隔"
+    "gap": "间隔",
+    "infinite": "无限",
+    "none": "无",
+    "times": "次",
+    "seconds": "秒",
+    "bpmNone": "—",
+    "speedHalf": "×½",
+    "speedDouble": "×2",
+    "pointA": "A",
+    "pointB": "B"
   },
   "explanation": {
     "title": "AI解释",
@@ -561,7 +583,16 @@
       "ko-KR": "韩语",
       "zh-CN": "中文 (简体)",
       "ru-RU": "俄语"
-    }
+    },
+    "processingWithProvider": "正在使用 {{provider}} 处理媒体...",
+    "sections": "分区",
+    "fullTranscript": "完整转录文本",
+    "bookmarks": "书签",
+    "transcribeBookmark": "转录此书签",
+    "transcribeBookmarkButton": "转录书签",
+    "noTranscriptForBookmark": "此书签范围内无可用转录。",
+    "invalidFileFormat": "无效的转录文件格式",
+    "uploadError": "上传转录文件失败"
   },
   "ai": {
     "transcription": "转录",
@@ -609,7 +640,14 @@
     "setValidRange": "请先设置有效的A-B范围",
     "defaultClipName": "片段 {{count}}",
     "duplicateRange": "此A-B区间的书签已存在",
-    "clipFallback": "片段"
+    "clipFallback": "片段",
+    "added": "书签已添加",
+    "add": "添加书签",
+    "bookmarkUpdated": "书签已更新",
+    "bookmarkDeleted": "书签已删除",
+    "bookmarkLoaded": "书签已加载",
+    "loopingBookmark": "正在循环播放书签：{{name}}",
+    "newBookmark": "新建书签"
   },
   "history": {
     "recentMedia": "最近媒体",
@@ -697,7 +735,8 @@
     "seekBackwardForward": "向后/向前跳转{{seconds}}秒",
     "seekBackwardForwardSmall": "向后/向前跳转{{seconds}}秒",
     "volumeUpDown": "音量增加/减少",
-    "jumpToPercent": "跳转到音轨的0-90%"
+    "jumpToPercent": "跳转到音轨的0-90%",
+    "resizePanels": "调整面板大小"
   },
   "modelSelector": {
     "placeholder": "选择一个模型...",
