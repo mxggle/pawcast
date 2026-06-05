@@ -25,7 +25,7 @@ import {
   shouldUseDetailedWaveform,
   shouldUseProgressiveWaveform,
 } from "../../utils/waveformAnalysis";
-import { WaveformRenderer } from "../../player/WaveformRenderer";
+import { WaveformRenderer, getBookmarkLaneLayout } from "../../player/WaveformRenderer";
 import type { BookmarkRenderData } from "../../player/WaveformRenderer";
 import { playbackClock } from "../../player/PlaybackClock";
 import { waveformLoader } from "../../player/WaveformLoader";
@@ -652,6 +652,12 @@ export const WaveformVisualizer = ({ className }: WaveformVisualizerProps) => {
     r.redrawOverlay();
   }, [bookmarks, selectedBookmarkId]);
 
+  // ─── Sync: mobile flag (drives bookmark lane geometry) ────────────────────
+
+  useEffect(() => {
+    rendererRef.current?.setMobile(isMobile);
+  }, [isMobile]);
+
   // ─── Sync: loop range ────────────────────────────────────────────────────
 
   useEffect(() => {
@@ -740,7 +746,10 @@ export const WaveformVisualizer = ({ className }: WaveformVisualizerProps) => {
   // sync for mouse/touch hit testing in the React handlers.
   useEffect(() => {
     laneRectsRef.current = [];
-    if (!duration || !staticCanvasRef.current || !waveformData) return;
+    // Note: must NOT depend on `waveformData` — on the Electron/FFmpeg path the
+    // renderer is fed level data directly and that React state stays null, so a
+    // guard on it would leave bookmarks visible but unclickable.
+    if (!duration || !staticCanvasRef.current) return;
 
     const zoom = waveformZoom ?? 1;
     const visibleDuration = duration / zoom;
@@ -750,9 +759,8 @@ export const WaveformVisualizer = ({ className }: WaveformVisualizerProps) => {
     const endOffset = startOffset + visibleDuration;
 
     const canvasW = staticCanvasRef.current.clientWidth;
-    const lanePaddingCss = isMobile ? 8 : 4;
-    const laneHeightCss = isMobile ? 24 : 16;
-    const laneGapCss = isMobile ? 4 : 3;
+    if (!canvasW) return;
+    const { pad: lanePaddingCss, height: laneHeightCss, gap: laneGapCss } = getBookmarkLaneLayout(isMobile);
 
     const bmList = Array.isArray(bookmarks) ? bookmarks : [];
     const visibleBookmarks = bmList.filter(
@@ -797,7 +805,7 @@ export const WaveformVisualizer = ({ className }: WaveformVisualizerProps) => {
         y2: y + laneHeightCss + hitPadY,
       });
     });
-  }, [bookmarks, waveformZoom, scrollOffset, isMobile, currentTime, duration, waveformData]);
+  }, [bookmarks, waveformZoom, scrollOffset, isMobile, currentTime, duration]);
 
   // ─── Playhead via PlaybackClock (NOT React state) ─────────────────────────
 
@@ -874,6 +882,20 @@ export const WaveformVisualizer = ({ className }: WaveformVisualizerProps) => {
     return ((time - startOffset) / visibleDuration) * 100;
   }, [duration, waveformZoom, currentTime, isMobile, scrollOffset]);
 
+  // Zoom + scroll so a bookmark region fills most of the viewport, centered.
+  // On mobile the viewport follows the playhead, so zoom alone (plus the seek
+  // the caller performs) is what reveals the region.
+  const focusBookmark = useCallback((bm: { start: number; end: number }) => {
+    if (!duration) return;
+    const region = Math.max(0.1, bm.end - bm.start);
+    const targetVisible = Math.min(duration, region / 0.6); // region ≈ 60% of view
+    const zoom = Math.max(1, Math.min(duration / targetVisible, 50));
+    const visible = duration / zoom;
+    const center = (bm.start + bm.end) / 2;
+    setWaveformZoom(zoom);
+    setScrollOffset(Math.max(0, Math.min(Math.max(0, duration - visible), center - visible / 2)));
+  }, [duration, setWaveformZoom]);
+
   const handleTouchStart = useCallback((e: React.TouchEvent<HTMLDivElement>) => {
     if (e.touches.length === 1) {
       setIsDragging(true);
@@ -911,9 +933,13 @@ export const WaveformVisualizer = ({ className }: WaveformVisualizerProps) => {
           const yCss = rect ? e.changedTouches[0].clientY - rect.top : 0;
           const laneHit = laneRectsRef.current.find(r => xCss >= r.x1 && xCss <= r.x2 && yCss >= r.y1 && yCss <= r.y2);
           if (laneHit) {
-            loadBookmark(laneHit.id);
-            setCurrentTime(getBookmarkById(laneHit.id)!.start);
-            setIsPlaying(true);
+            const bm = getBookmarkById(laneHit.id);
+            if (bm) {
+              const alreadySelected = selectedBookmarkId === laneHit.id;
+              loadBookmark(laneHit.id);
+              setCurrentTime(bm.start);
+              if (alreadySelected) focusBookmark(bm); // second tap zooms to fit
+            }
           } else {
             setCurrentTime(time);
             if (isShadowingMode) setShadowingMode(false);
@@ -931,7 +957,7 @@ export const WaveformVisualizer = ({ className }: WaveformVisualizerProps) => {
     dragStartXRef.current = null;
     document.body.classList.remove("user-seeking");
     if (wasPlayingRef.current) { setIsPlaying(true); wasPlayingRef.current = false; }
-  }, [setIsPlaying, positionToTime, duration, loadBookmark, setCurrentTime, isLooping, loopStart, loopEnd, isShadowingMode, setShadowingMode, setIsLooping, getBookmarkById]);
+  }, [setIsPlaying, positionToTime, duration, loadBookmark, setCurrentTime, isLooping, loopStart, loopEnd, isShadowingMode, setShadowingMode, setIsLooping, getBookmarkById, selectedBookmarkId, focusBookmark]);
 
   const handleMouseWheel = (e: React.WheelEvent<HTMLDivElement>) => {
     e.preventDefault(); e.stopPropagation();
@@ -946,7 +972,10 @@ export const WaveformVisualizer = ({ className }: WaveformVisualizerProps) => {
     if (rect && laneRectsRef.current.length > 0) {
       const xCss = e.clientX - rect.left, yCss = e.clientY - rect.top;
       for (const lane of laneRectsRef.current) {
-        if (yCss >= lane.y1 && yCss <= lane.y2) {
+        // Only allow edge-resize when the lane is wide enough to have a distinct
+        // interior — otherwise a click on a tiny bookmark always lands within 8px
+        // of both edges and gets swallowed as a resize instead of a click.
+        if (yCss >= lane.y1 && yCss <= lane.y2 && lane.x2 - lane.x1 > 24) {
           if (Math.abs(xCss - lane.x1) <= 8) { setResizingBookmark({ id: lane.id, edge: "start" }); resizingRef.current = true; return; }
           if (Math.abs(xCss - lane.x2) <= 8) { setResizingBookmark({ id: lane.id, edge: "end" }); resizingRef.current = true; return; }
         }
@@ -979,7 +1008,7 @@ export const WaveformVisualizer = ({ className }: WaveformVisualizerProps) => {
       return;
     }
     let onHandle = false;
-    if (rect && !isDragging) { for (const lane of laneRectsRef.current) if (yCss >= lane.y1 && yCss <= lane.y2 && (Math.abs(xCss - lane.x1) <= 8 || Math.abs(xCss - lane.x2) <= 8)) { onHandle = true; break; } }
+    if (rect && !isDragging) { for (const lane of laneRectsRef.current) if (yCss >= lane.y1 && yCss <= lane.y2 && lane.x2 - lane.x1 > 24 && (Math.abs(xCss - lane.x1) <= 8 || Math.abs(xCss - lane.x2) <= 8)) { onHandle = true; break; } }
     if (containerRef.current) containerRef.current.style.cursor = onHandle ? "ew-resize" : (isDragging ? "crosshair" : "default");
     const time = positionToTime(e.clientX);
     if (time >= 0 && time <= duration) {
@@ -1028,8 +1057,10 @@ export const WaveformVisualizer = ({ className }: WaveformVisualizerProps) => {
       const xCss = rect ? e.clientX - rect.left : 0, yCss = rect ? e.clientY - rect.top : 0;
       const laneHit = laneRectsRef.current.find(r => xCss >= r.x1 && xCss <= r.x2 && yCss >= r.y1 && yCss <= r.y2);
       if (laneHit) {
+        // Single click: non-disruptive select + seek (loads as A-B loop, no autoplay).
+        // Double click zooms to fit — see handleWaveformDoubleClick.
         const bm = getBookmarkById(laneHit.id);
-        if (bm) { loadBookmark(bm.id); setCurrentTime(bm.start); setIsPlaying(true); document.body.classList.add("user-seeking"); setTimeout(() => document.body.classList.remove("user-seeking"), 100); return; }
+        if (bm) { loadBookmark(bm.id); setCurrentTime(bm.start); document.body.classList.add("user-seeking"); setTimeout(() => document.body.classList.remove("user-seeking"), 100); return; }
       }
       if (isLooping && loopStart !== null && loopEnd !== null && (time < loopStart || time > loopEnd)) setIsLooping(false);
       setCurrentTime(time);
@@ -1039,10 +1070,26 @@ export const WaveformVisualizer = ({ className }: WaveformVisualizerProps) => {
     }
   };
 
+  // Double click on a bookmark marker: zoom + scroll so the region fills the view.
+  const handleWaveformDoubleClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!staticCanvasRef.current || e.button !== 0) return;
+    const rect = containerRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const xCss = e.clientX - rect.left, yCss = e.clientY - rect.top;
+    const laneHit = laneRectsRef.current.find(r => xCss >= r.x1 && xCss <= r.x2 && yCss >= r.y1 && yCss <= r.y2);
+    if (!laneHit) return;
+    const bm = getBookmarkById(laneHit.id);
+    if (!bm) return;
+    loadBookmark(bm.id);
+    focusBookmark(bm);
+    setCurrentTime(bm.start);
+    document.body.classList.add("user-seeking"); setTimeout(() => document.body.classList.remove("user-seeking"), 100);
+  };
+
   const handleSelectBookmark = (id: string) => {
     const bm = getBookmarkById(id);
     if (!bm) return;
-    loadBookmark(id); setCurrentTime(bm.start); setIsPlaying(true); setOverlapMenu(null);
+    loadBookmark(id); focusBookmark(bm); setCurrentTime(bm.start); setOverlapMenu(null);
     if (isShadowingMode) setShadowingMode(false);
     document.body.classList.add("user-seeking"); setTimeout(() => document.body.classList.remove("user-seeking"), 100);
   };
@@ -1079,6 +1126,7 @@ export const WaveformVisualizer = ({ className }: WaveformVisualizerProps) => {
           onMouseUp={handleMouseUp}
           onMouseLeave={handleMouseLeave}
           onClick={handleWaveformClick}
+          onDoubleClick={handleWaveformDoubleClick}
           onWheel={handleMouseWheel}
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}

@@ -16,6 +16,15 @@ import { hexToRgba } from "../utils/theme";
 export interface BookmarkRenderData {
   id: string; start: number; end: number; name: string;
 }
+
+/** Bookmark lane geometry (CSS pixels). Shared between the renderer and the
+ *  React hit-test layer so drawn lanes and clickable rects always match. */
+export interface BookmarkLaneLayout { pad: number; height: number; gap: number; }
+export function getBookmarkLaneLayout(isMobile: boolean): BookmarkLaneLayout {
+  return isMobile
+    ? { pad: 8, height: 28, gap: 4 }
+    : { pad: 4, height: 20, gap: 3 };
+}
 export interface ShadowingWaveformData {
   start: number; peaks: Float32Array; duration: number;
   takeIndex?: number;
@@ -60,6 +69,7 @@ export class WaveformRenderer {
   private _currentTakeIndex: number | null = null;
   private _recordingOverlay: RecordingOverlayData | null = null;
   private _fadingRecording: { startedAt: number; data: RecordingOverlayData } | null = null;
+  private _isMobile = false;
 
   constructor(canvases: {
     static: HTMLCanvasElement;
@@ -105,6 +115,10 @@ export class WaveformRenderer {
   setBookmarks(bookmarks: BookmarkRenderData[], selectedId: string | null): void {
     this._bookmarks = bookmarks; this._selectedId = selectedId; this.redrawOverlay();
   }
+  setMobile(isMobile: boolean): void {
+    if (this._isMobile === isMobile) return;
+    this._isMobile = isMobile; this.redrawOverlay();
+  }
   setShadowingExpanded(expanded: boolean): void {
     this._shadowingExpanded = expanded; this.redrawStatic();
   }
@@ -145,6 +159,16 @@ export class WaveformRenderer {
   }
   private _clear(cs: CanvasSet): void {
     cs.ctx.clearRect(0, 0, cs.cvs.width, cs.cvs.height);
+  }
+  private _roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number): void {
+    const rr = Math.max(0, Math.min(r, w / 2, h / 2));
+    ctx.beginPath();
+    ctx.moveTo(x + rr, y);
+    ctx.arcTo(x + w, y, x + w, y + h, rr);
+    ctx.arcTo(x + w, y + h, x, y + h, rr);
+    ctx.arcTo(x, y + h, x, y, rr);
+    ctx.arcTo(x, y, x + w, y, rr);
+    ctx.closePath();
   }
   private _vp() {
     const p = dpr();
@@ -398,45 +422,72 @@ export class WaveformRenderer {
     // Bookmarks (lane-based)
     const visibleBm = this._bookmarks.filter(b => !(b.end < startOffset || b.start > endOffset));
     const lanes: { lastEnd: number }[] = [];
-    const assigned: { id: string; start: number; end: number; lane: number }[] = [];
+    const assigned: { id: string; start: number; end: number; lane: number; name: string }[] = [];
     visibleBm.slice().sort((a, b) => a.start - b.start || (a.end - a.start) - (b.end - b.start))
       .forEach(bm => {
         for (let i = 0; i < lanes.length; i++) {
           if (bm.start >= lanes[i].lastEnd) {
             lanes[i].lastEnd = bm.end;
-            assigned.push({ id: bm.id, start: bm.start, end: bm.end, lane: i });
+            assigned.push({ id: bm.id, start: bm.start, end: bm.end, lane: i, name: bm.name });
             return;
           }
         }
         lanes.push({ lastEnd: bm.end });
-        assigned.push({ id: bm.id, start: bm.start, end: bm.end, lane: lanes.length - 1 });
+        assigned.push({ id: bm.id, start: bm.start, end: bm.end, lane: lanes.length - 1, name: bm.name });
       });
 
-    const lanePad = 4, laneH = 16, laneGap = 3;
-    for (const { id, start, end, lane } of assigned) {
+    const { pad: lanePad, height: laneH, gap: laneGap } = getBookmarkLaneLayout(this._isMobile);
+    const idxMap = new Map(this._bookmarks.map((b, i) => [b.id, i + 1]));
+    const radius = 3 * dpr;
+    for (const { id, start, end, lane, name } of assigned) {
       const x1c = toX(start);
       const x2c = ((Math.min(end, endOffset) - startOffset) / visibleDuration) * cw;
-      const w = Math.max(1, x2c - x1c);
-      const yCss = lanePad + lane * (laneH + laneGap);
-      const yc = yCss * dpr, hc = laneH * dpr;
+      const w = Math.max(2 * dpr, x2c - x1c);
+      const yc = (lanePad + lane * (laneH + laneGap)) * dpr;
+      const hc = laneH * dpr;
       const active = id === this._selectedId;
-      ctx.fillStyle = active ? "rgba(139,92,246,0.95)" : "rgba(139,92,246,0.65)";
-      ctx.fillRect(x1c, yc, w, hc);
-      ctx.beginPath();
-      ctx.strokeStyle = "rgba(255,255,255,0.9)";
-      ctx.lineWidth = 2 * dpr;
-      ctx.strokeRect(x1c + 0.5 * dpr, yc + 0.5 * dpr, Math.max(0, w - dpr), Math.max(0, hc - dpr));
-      const hw = 4 * dpr;
-      ctx.fillStyle = "rgba(255,255,255,0.5)";
-      ctx.fillRect(x1c, yc, hw, hc);
-      ctx.fillRect(Math.max(x1c, x2c - hw), yc, hw, hc);
+
+      // Body fill — opaque enough to stand out against the waveform below
+      ctx.fillStyle = active ? hexToRgba(colors.primary, 0.98) : hexToRgba(colors.primary, 0.8);
+      this._roundRect(ctx, x1c, yc, w, hc, radius);
+      ctx.fill();
+
+      // High-contrast border (brighter + thicker when selected)
+      const lw = (active ? 2 : 1.25) * dpr;
+      ctx.strokeStyle = active ? "rgba(255,255,255,1)" : "rgba(255,255,255,0.85)";
+      ctx.lineWidth = lw;
+      this._roundRect(ctx, x1c + lw / 2, yc + lw / 2, Math.max(0, w - lw), Math.max(0, hc - lw), radius);
+      ctx.stroke();
+
+      // Edge resize handles — only when the lane is wide enough to grab them
+      if (w > 24 * dpr) {
+        const hw = 3 * dpr, hPad = hc * 0.25;
+        ctx.fillStyle = "rgba(255,255,255,0.6)";
+        ctx.fillRect(x1c + 1.5 * dpr, yc + hPad, hw, hc - hPad * 2);
+        ctx.fillRect(x2c - hw - 1.5 * dpr, yc + hPad, hw, hc - hPad * 2);
+      }
+
+      // Number + name label, clipped to the lane, when there's room
+      if (w > 26 * dpr) {
+        const num = idxMap.get(id) ?? "";
+        const label = name && name.trim() ? `${num}. ${name.trim()}` : `#${num}`;
+        ctx.save();
+        this._roundRect(ctx, x1c, yc, w, hc, radius);
+        ctx.clip();
+        ctx.fillStyle = "#FFFFFF";
+        ctx.font = `${(this._isMobile ? 12 : 11) * dpr}px ui-sans-serif, system-ui, -apple-system, sans-serif`;
+        ctx.textAlign = "left";
+        ctx.textBaseline = "middle";
+        ctx.fillText(label, x1c + 6 * dpr, yc + hc / 2 + 0.5 * dpr);
+        ctx.restore();
+      }
     }
 
     const active = this._bookmarks.find(b => b.id === this._selectedId);
     if (active && !(active.end < startOffset || active.start > endOffset)) {
       const x1 = toX(active.start);
       const x2 = ((Math.min(active.end, endOffset) - startOffset) / visibleDuration) * cw;
-      ctx.fillStyle = "rgba(139,92,246,0.15)";
+      ctx.fillStyle = hexToRgba(colors.primary, 0.15);
       ctx.fillRect(x1, 0, Math.max(1, x2 - x1), ch);
     }
 
