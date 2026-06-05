@@ -140,6 +140,8 @@
   },
   "settingsPage": {
     "title": "設定",
+    "generalDescription": "言語、インターフェースレイアウト、テーマカラー、再生パラメータを設定します。",
+    "aiDescription": "AIサービスプロバイダー、APIキー、およびデフォルトの応答動作を設定します。",
     "tabs": {
       "general": "一般",
       "ai": "AI",

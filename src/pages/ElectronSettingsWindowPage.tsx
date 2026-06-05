@@ -20,8 +20,8 @@ export function ElectronSettingsWindowPage() {
     activeTab === "data"
       ? t("settingsPage.data.description")
       : activeTab === "general"
-        ? t("settingsPage.interfaceLayoutHelp")
-        : t("aiSettingsPage.providerSetupDescription");
+        ? t("settingsPage.generalDescription")
+        : t("settingsPage.aiDescription");
 
   const handleTabChange = (tab: typeof activeTab) => {
     navigate(

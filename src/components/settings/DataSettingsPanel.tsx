@@ -70,7 +70,7 @@ export function DataSettingsPanel() {
       {/* Storage usage */}
       <SettingsSection
         title={t("settingsPage.data.storage")}
-        icon={<HardDrive className="h-4 w-4 text-primary-500" />}
+        icon={<HardDrive className="h-4 w-4 text-primary" />}
       >
         <Card>
           <CardContent className="space-y-4 p-[18px]">
@@ -119,7 +119,7 @@ export function DataSettingsPanel() {
       {/* Backup */}
       <SettingsSection
         title={t("settingsPage.data.backup")}
-        icon={<Database className="h-4 w-4 text-primary-500" />}
+        icon={<Database className="h-4 w-4 text-primary" />}
       >
         <Card>
           <CardContent className="p-0">
@@ -151,9 +151,9 @@ export function DataSettingsPanel() {
       {/* Danger zone */}
       <SettingsSection
         title={t("settingsPage.data.dangerZone")}
-        icon={<Trash2 className="h-4 w-4 text-primary-500" />}
+        icon={<Trash2 className="h-4 w-4 text-error" />}
       >
-        <Card className="border-primary-500/30 ring-1 ring-primary-500/5">
+        <Card className="border-error/20 ring-1 ring-error/5 dark:border-error/10">
           <CardContent className="p-0">
             <ActionRow
               icon={<RotateCcw className="h-[18px] w-[18px]" />}
@@ -164,7 +164,7 @@ export function DataSettingsPanel() {
               action={
                 <button
                   type="button"
-                  className="shrink-0 rounded-xl border border-primary-500/30 bg-transparent px-3.5 py-2 text-xs font-bold text-primary-600 transition-colors hover:bg-primary-500/10 dark:text-primary-400"
+                  className="shrink-0 rounded-xl border border-error/30 bg-transparent px-3.5 py-2 text-xs font-bold text-error transition-colors hover:bg-error/10 dark:text-error-400"
                 >
                   {t("settingsPage.data.clearAction")}
                 </button>
@@ -178,7 +178,7 @@ export function DataSettingsPanel() {
               action={
                 <button
                   type="button"
-                  className="shrink-0 rounded-xl bg-primary-500 px-3.5 py-2 text-xs font-bold text-white transition-colors hover:bg-primary-600"
+                  className="shrink-0 rounded-xl bg-error px-3.5 py-2 text-xs font-bold text-white transition-colors hover:bg-error-600 dark:hover:bg-error-500"
                 >
                   {t("settingsPage.data.deleteAction")}
                 </button>

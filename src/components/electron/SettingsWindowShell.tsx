@@ -19,9 +19,8 @@ export function SettingsWindowShell({
 }: SettingsWindowShellProps) {
   const { t } = useTranslation();
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900 dark:bg-[#020617] dark:text-white">
-      <div className="mx-auto flex min-h-screen max-w-6xl flex-col overflow-hidden border-x border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-950">
-        <div className="h-[3px] shrink-0 bg-gradient-to-r from-primary-500 to-orange-400 opacity-90" />
+    <div className="min-h-screen bg-white text-gray-900 dark:bg-gray-950 dark:text-white">
+      <div className="flex min-h-screen flex-col overflow-hidden">
         <header className="[-webkit-app-region:drag] flex items-center justify-between border-b border-gray-100 px-6 py-5 dark:border-gray-800">
           <div className="space-y-1">
             <h1 className="text-xl font-semibold text-gray-900 dark:text-white">

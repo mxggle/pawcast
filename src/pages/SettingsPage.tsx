@@ -40,11 +40,16 @@ export function SettingsPage() {
 
   const navItems = SettingsWorkspace.getNavItems(t);
 
+  const subtitle =
+    activeTab === "data"
+      ? t("settingsPage.data.description")
+      : activeTab === "general"
+        ? t("settingsPage.generalDescription")
+        : t("settingsPage.aiDescription");
+
   return (
     <AppLayout bottomPaddingClassName="pb-0">
       <div className="flex h-full flex-col overflow-hidden">
-        {/* Aurora accent hairline */}
-        <div className="h-[3px] shrink-0 bg-gradient-to-r from-primary-500 to-orange-400 opacity-90" />
         {/* Header */}
         <div className="shrink-0 border-b border-gray-200 dark:border-gray-800 px-6 py-5 sm:px-8 sm:py-6">
           <div className="flex items-start justify-between">
@@ -53,7 +58,7 @@ export function SettingsPage() {
                 {t("settingsPage.title")}
               </h1>
               <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                {t("aiSettingsPage.providerSetupDescription")}
+                {subtitle}
               </p>
             </div>
             <button

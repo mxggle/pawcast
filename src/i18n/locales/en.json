@@ -140,6 +140,8 @@
   },
   "settingsPage": {
     "title": "Settings",
+    "generalDescription": "Configure language, interface layout, theme color, and playback parameters.",
+    "aiDescription": "Configure AI service providers, API keys, and default response behaviors.",
     "tabs": {
       "general": "General",
       "ai": "AI",

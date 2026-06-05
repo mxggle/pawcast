@@ -28,13 +28,13 @@ export const LanguageSelector: React.FC = () => {
             className={cn(
               "relative flex flex-col items-start rounded-xl border-[1.5px] p-4 text-left transition-all duration-200",
               isActive
-                ? "border-primary-500 bg-primary-500/10"
+                ? "border-primary bg-primary/10"
                 : "border-gray-200 bg-white hover:border-gray-300 dark:border-gray-700 dark:bg-gray-900/40 dark:hover:border-gray-600"
             )}
           >
             <span
               className={cn(
-                "absolute right-2.5 top-2.5 flex h-[18px] w-[18px] items-center justify-center rounded-full bg-primary-500 text-white transition-all duration-200",
+                "absolute right-2.5 top-2.5 flex h-[18px] w-[18px] items-center justify-center rounded-full bg-primary text-white transition-all duration-200",
                 isActive ? "scale-100 opacity-100" : "scale-50 opacity-0"
               )}
             >
@@ -44,7 +44,7 @@ export const LanguageSelector: React.FC = () => {
               className={cn(
                 "text-base font-bold tracking-tight",
                 isActive
-                  ? "text-primary-600 dark:text-primary-300"
+                  ? "text-primary dark:text-primary-300"
                   : "text-gray-900 dark:text-white"
               )}
             >
@@ -53,7 +53,7 @@ export const LanguageSelector: React.FC = () => {
             <span
               className={cn(
                 "mt-1 text-[10.5px] font-bold uppercase tracking-[0.12em]",
-                isActive ? "text-primary-500/70" : "text-gray-400"
+                isActive ? "text-primary/70" : "text-gray-400"
               )}
             >
               {language.name}

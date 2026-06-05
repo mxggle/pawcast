@@ -23,7 +23,7 @@ export function SettingsIconChip({
       className={cn(
         "flex h-9 w-9 shrink-0 items-center justify-center rounded-[11px] transition-colors duration-200",
         active
-          ? "bg-primary-500/10 text-primary-500"
+          ? "bg-primary/10 text-primary-500"
           : "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-300",
         className
       )}

@@ -62,7 +62,7 @@ export function GeneralSettingsPanel() {
       {/* Appearance */}
       <SettingsSection
         title={t("settingsPage.appearance")}
-        icon={<Globe className="h-4 w-4 text-primary-500" />}
+        icon={<Globe className="h-4 w-4 text-primary" />}
       >
         <Card>
           <CardContent className="p-6">
@@ -127,7 +127,7 @@ export function GeneralSettingsPanel() {
       >
         <Card>
           <CardContent className="space-y-8 p-6">
-            <div className="grid grid-cols-4 gap-4 sm:grid-cols-6">
+            <div className="grid grid-cols-3 gap-6 sm:grid-cols-6 justify-items-center">
               {Object.entries(THEME_PRESETS).map(([name, themeColors]) => {
                 const isActive = colors.primary === themeColors.primary;
 
@@ -136,14 +136,14 @@ export function GeneralSettingsPanel() {
                     key={name}
                     type="button"
                     onClick={() => setColors(themeColors)}
-                    className="group flex flex-col items-center gap-2"
+                    className="group flex flex-col items-center gap-2.5 transition-transform duration-200"
                   >
                     <span
                       className={cn(
-                        "relative flex h-10 w-10 items-center justify-center rounded-xl border-2 border-white shadow-sm ring-1 transition-transform duration-200 dark:border-gray-950",
+                        "relative flex h-11 w-11 items-center justify-center rounded-full border-2 border-white shadow-md transition-all duration-300 dark:border-gray-900",
                         isActive
-                          ? "scale-105 ring-2"
-                          : "ring-gray-200 group-hover:-translate-y-0.5 dark:ring-gray-700"
+                          ? "scale-105 ring-2 ring-primary shadow-lg shadow-primary/20"
+                          : "ring-1 ring-gray-200/80 group-hover:scale-105 group-hover:shadow-md dark:ring-gray-700/80"
                       )}
                       style={{
                         backgroundColor: themeColors.primary,
@@ -158,10 +158,10 @@ export function GeneralSettingsPanel() {
                     </span>
                     <span
                       className={cn(
-                        "text-xs font-medium capitalize",
+                        "text-xs font-bold capitalize transition-colors duration-200",
                         isActive
-                          ? "text-primary-600 dark:text-primary-400"
-                          : "text-gray-400"
+                          ? "text-primary font-semibold"
+                          : "text-gray-400 group-hover:text-gray-600 dark:text-gray-500 dark:group-hover:text-gray-400"
                       )}
                     >
                       {name}
@@ -172,19 +172,19 @@ export function GeneralSettingsPanel() {
             </div>
 
             <div className="border-t border-gray-100 pt-6 dark:border-gray-800">
-              <label className="mb-3 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              <label className="mb-3 block text-sm font-bold text-gray-700 dark:text-gray-300">
                 {t("settingsPage.customPrimaryColor")}
               </label>
               <div className="flex items-center gap-4">
-                <div className="relative h-10 w-10 shrink-0">
+                <div className="relative h-11 w-11 shrink-0">
                   <input
                     type="color"
                     value={colors.primary}
                     onChange={(event) => setColors({ primary: event.target.value })}
-                    className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                    className="absolute inset-0 h-full w-full cursor-pointer opacity-0 z-10"
                   />
                   <div
-                    className="h-full w-full rounded-lg border border-gray-200 shadow-sm dark:border-gray-700"
+                    className="h-full w-full rounded-full border-2 border-white shadow-md ring-1 ring-gray-200 dark:border-gray-900 dark:ring-gray-700 transition-all duration-300 hover:scale-105 hover:shadow-lg"
                     style={{ backgroundColor: colors.primary }}
                   />
                 </div>
@@ -198,7 +198,7 @@ export function GeneralSettingsPanel() {
                     }
                   }}
                   placeholder="#8B5CF6"
-                  className="h-10 max-w-[140px] font-mono text-sm uppercase"
+                  className="h-11 max-w-[140px] rounded-xl border-[1.5px] font-mono text-sm font-semibold uppercase text-center focus:border-primary focus:ring-[3px] focus:ring-primary/10"
                   maxLength={7}
                 />
               </div>
@@ -224,7 +224,7 @@ export function GeneralSettingsPanel() {
                 onChange={(event) =>
                   setSeekMode(event.target.value as "seconds" | "sentence")
                 }
-                className="h-10 w-40 rounded-md border border-gray-200 bg-white px-3 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary-500/20 dark:border-gray-700 dark:bg-gray-950"
+                className="h-10 w-40 rounded-md border border-gray-200 bg-white px-3 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-gray-700 dark:bg-gray-950"
               >
                 <option value="seconds">{t("settings.seekModeSeconds")}</option>
                 <option value="sentence">{t("settings.seekModeSentence")}</option>

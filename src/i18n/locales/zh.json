@@ -140,6 +140,8 @@
   },
   "settingsPage": {
     "title": "设置",
+    "generalDescription": "配置语言、界面布局、主题颜色及播放参数。",
+    "aiDescription": "设置 AI 服务提供商、API 密钥与默认响应行为。",
     "tabs": {
       "general": "通用",
       "ai": "AI",
