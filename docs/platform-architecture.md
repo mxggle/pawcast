@@ -106,6 +106,7 @@ src/
 Direct calls to `window.electronAPI` are only allowed in:
 - `electron/preload.ts` (definition)
 - `src/stores/electronStorage.ts` (config persistence bridge)
+- `src/repositories/dataClient.ts` (data persistence bridge)
 - `src/components/electron/` (Electron-specific components)
 
 Never call `window.electronAPI` from shared layers (Layer 1 or Layer 2).

@@ -19,6 +19,8 @@
     "back": "返回",
     "show": "显示",
     "hide": "隐藏",
+    "expand": "展开",
+    "collapse": "收起",
     "remove": "移除",
     "shadowing": "跟读",
     "showInFinder": "在 Finder 中显示",
@@ -55,7 +57,9 @@
       "trackDeleted": "跟读音轨已删除"
     },
     "recordingError": "录音错误：{{message}}",
-    "failedToSave": "保存录音失败"
+    "failedToSave": "保存录音失败",
+    "takeOf": "Take {{n}} / {{total}}",
+    "recordFirstTake": "按 REC 录制第一段跟读"
   },
   "sentencePractice": {
     "title": "逐句练习",
@@ -127,7 +131,8 @@
     "title": "设置",
     "tabs": {
       "general": "通用",
-      "ai": "AI"
+      "ai": "AI",
+      "data": "数据"
     },
     "appearance": "外观",
     "interfaceLayout": "界面布局",
@@ -142,6 +147,42 @@
     "smallStep": "小步长",
     "status": {
       "ready": "系统一切正常"
+    },
+    "data": {
+      "title": "数据管理",
+      "description": "管理数据目录、运行健康检查并创建备份。",
+      "directory": "数据目录",
+      "currentDirectory": "当前目录",
+      "changeDirectory": "更改目录",
+      "changeDirectoryDescription": "将数据移动到新位置。所有现有数据将被复制。",
+      "changeDirectoryConfirm": "这将把所有数据复制到新位置并切换活动目录。继续？",
+      "directorySize": "目录大小",
+      "fileCount": "{{count}} 个文件",
+      "healthCheck": "数据健康",
+      "runHealthCheck": "运行健康检查",
+      "healthStatus": "状态",
+      "healthy": "正常",
+      "degraded": "降级",
+      "damaged": "损坏",
+      "manifestStatus": "清单",
+      "manifestOk": "有效",
+      "manifestCorrupt": "损坏",
+      "failedChecksums": "校验和失败",
+      "orphanedReferences": "孤立引用",
+      "corruptedFiles": "损坏文件",
+      "noIssues": "未发现问题",
+      "recovery": "恢复",
+      "replayJournal": "重放日志",
+      "restoreSnapshot": "恢复快照",
+      "remigrate": "重新迁移",
+      "recoverySuccess": "恢复成功完成",
+      "recoveryFailed": "恢复失败: {{message}}",
+      "snapshots": "快照",
+      "exportSnapshot": "导出快照",
+      "importSnapshot": "导入快照",
+      "exportSuccess": "快照已导出",
+      "importSuccess": "快照已导入",
+      "electronOnly": "数据管理仅在桌面应用中可用"
     },
     "footer": {
       "autoSaved": "设置会自动保存到此设备",
@@ -328,6 +369,13 @@
     "couldNotRetrieveMedia": "在存储中找不到文件，请重新上传文件。",
     "noMediaLoadedSimple": "没有加载媒体"
   },
+  "track": {
+    "original": "原音",
+    "shadowing": "跟读",
+    "totalDuration": "总 {{time}}",
+    "originalVolume": "原音音量",
+    "shadowingVolume": "跟读音量"
+  },
   "upload": {
     "openFile": "打开文件",
     "dragDrop": "拖放音频/视频文件到此处",
@@ -416,7 +464,15 @@
       "japanese": "日语",
       "korean": "韩语"
     },
-    "mockExplanation": "这是针对“{{snippet}}”生成的说明"
+    "mockExplanation": "这是针对“{{snippet}}”生成的说明",
+    "overview": "概览",
+    "translation": "翻译",
+    "breakdown": "深入解析",
+    "grammarSpotlight": "语法重点",
+    "form": "形式：",
+    "meaning": "含义：",
+    "examples": "例句：",
+    "logicSummary": "句子逻辑总结"
   },
   "transcript": {
     "title": "转录文本",
@@ -724,6 +780,8 @@
     "recent": "最近",
     "addFolder": "添加文件夹",
     "clearHistory": "清除历史",
+    "clearHistoryConfirmTitle": "清除历史",
+    "clearHistoryConfirmMessage": "这将从历史记录中移除所有最近文件，此操作无法撤销。",
     "searchPlaceholder": "搜索文件",
     "clearSearch": "清除搜索",
     "scopeLabel": "媒体库范围",

@@ -27,6 +27,7 @@ import { TranscriptUploader } from "./TranscriptUploader";
 import { TranscriptSegmentItem } from "./TranscriptSegmentItem";
 import { breakIntoSentences as utilBreakIntoSentences } from "../../utils/sentenceBreaker";
 import { getCurrentTime, subscribeCurrentTime } from "../../stores/currentTimeStore";
+import { usePlayerSelection } from "../../player/hooks";
 
 import { TranscriptSegment as TranscriptSegmentType, LoopBookmark } from "../../stores/playerStore";
 import type {
@@ -61,6 +62,36 @@ const SEGMENT_SCROLL_OFFSET_RATIO = 0.15;
 const BOOKMARK_MATCH_TOLERANCE_SECONDS = 0.5;
 
 // WhisperSegment/WhisperResponse types moved to transcriptionService.ts
+
+/**
+ * Map word-level timing data from the API response to the segments they
+ * belong to, based on time overlap. Each word is assigned to the segment
+ * whose [start, end) range contains the word's start time.
+ */
+function assignWordsToSegments(
+  words: Array<{ word: string; start: number; end: number }> | undefined,
+  segments: Array<{ id: number; start: number; end: number }>
+): Map<number, Array<{ word: string; start: number; end: number }>> {
+  const map = new Map<number, Array<{ word: string; start: number; end: number }>>();
+  if (!words || words.length === 0) return map;
+
+  let segIdx = 0;
+  for (const word of words) {
+    // Advance to the segment that contains this word's start time
+    while (segIdx < segments.length && segments[segIdx].end <= word.start) {
+      segIdx++;
+    }
+    if (segIdx < segments.length) {
+      const seg = segments[segIdx];
+      if (word.start >= seg.start && word.end <= seg.end) {
+        if (!map.has(seg.id)) map.set(seg.id, []);
+        map.get(seg.id)!.push(word);
+      }
+    }
+  }
+
+  return map;
+}
 
 const isTimeWithinSegment = (time: number, segment: TranscriptSegmentType) =>
   time >= segment.startTime && time <= segment.endTime;
@@ -205,6 +236,8 @@ export const TranscriptPanel = () => {
     return localStorage.getItem("transcript_auto_scroll") === "true";
   });
 
+  const { selection: playerSelection, setSelection } = usePlayerSelection();
+
   const LANGUAGE_OPTIONS = [
     { value: "en-US", label: t("transcript.languages.en-US") },
     { value: "en-GB", label: t("transcript.languages.en-GB") },
@@ -343,14 +376,78 @@ export const TranscriptPanel = () => {
       setActiveSelection(null);
     };
 
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setActiveSelection(null);
+      }
+    };
+
     document.addEventListener("mousedown", handlePointerDown);
-    return () => document.removeEventListener("mousedown", handlePointerDown);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
   }, []);
+
+  // Sync transcript word selection → PlayerWorkspace context (for waveform highlight)
+  useEffect(() => {
+    if (activeSelection?.timeRange) {
+      const { timeRange } = activeSelection;
+      // Find words in the selected segment that overlap the time range
+      const segment = transcriptSegments.find((s) => s.id === activeSelection.segmentId);
+      const wordIds = segment?.words
+        ?.filter((w) => w.start < timeRange.end && w.end > timeRange.start)
+        .map((w) => w.id);
+      setSelection({
+        type: 'time-range',
+        start: timeRange.start,
+        end: timeRange.end,
+        source: 'transcript',
+        segmentIds: [activeSelection.segmentId],
+        wordIds,
+      });
+    } else if (activeSelection === null) {
+      // User cleared the transcript selection (clicked empty space, scrolled, etc.)
+      // Also clear the shared selection
+      setSelection(null);
+    }
+  }, [activeSelection, transcriptSegments, setSelection]);
 
   // Sync active tab with selected bookmark from store (e.g. from waveform interactions)
   useEffect(() => {
     setActiveTabId(selectedBookmarkId);
   }, [selectedBookmarkId]);
+
+  // When a bookmark tab is selected and has wordIds/segmentIds, highlight those words
+  useEffect(() => {
+    if (!activeTabId) {
+      // Full transcript view — no bookmark-related highlighting
+      return;
+    }
+    const bookmark = bookmarks.find((b) => b.id === activeTabId);
+    if (bookmark) {
+      // If the bookmark references transcript words, create a selection highlight
+      if (bookmark.wordIds && bookmark.wordIds.length > 0) {
+        setSelection({
+          type: 'time-range',
+          start: bookmark.start,
+          end: bookmark.end,
+          source: 'bookmark',
+          wordIds: bookmark.wordIds,
+          segmentIds: bookmark.segmentIds,
+        });
+      } else {
+        // No word links — clear any bookmark selection highlight
+        if (playerSelection?.source === 'bookmark') {
+          setSelection(null);
+        }
+      }
+    }
+    // playerSelection.source / setSelection intentionally omitted — re-running
+    // when those change would loop the bookmark-selection sync.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTabId, bookmarks]);
 
   // Filter segments based on active tab
   const activeBookmark = useMemo(
@@ -933,14 +1030,31 @@ export const TranscriptPanel = () => {
       }
 
       if (result.segments && result.segments.length > 0) {
+        // Map word-level data from API response to segments
+        const wordMap = assignWordsToSegments(result.words, result.segments);
+        let wordCounter = 0;
+
         addTranscriptSegments(
-          result.segments.map((segment) => ({
-            text: segment.text.trim(),
-            startTime: Math.max(0, segment.start + startTimeOffset),
-            endTime: Math.max(segment.start + startTimeOffset, segment.end + startTimeOffset),
-            confidence: segment.confidence,
-            isFinal: true,
-          }))
+          result.segments.map((segment) => {
+            const segmentWords = wordMap.get(segment.id);
+            const words = segmentWords?.map((w) => ({
+              id: `word-${wordCounter++}`,
+              text: w.word,
+              start: Math.max(0, w.start + startTimeOffset),
+              end: Math.max(0, w.end + startTimeOffset),
+            }));
+            const wordIds = words?.map((w) => w.id);
+
+            return {
+              text: segment.text.trim(),
+              startTime: Math.max(0, segment.start + startTimeOffset),
+              endTime: Math.max(segment.start + startTimeOffset, segment.end + startTimeOffset),
+              confidence: segment.confidence,
+              isFinal: true,
+              words,
+              wordIds,
+            };
+          })
         );
       } else {
         // If no segments are returned, use the full transcript with basic sentence breaking
@@ -1322,7 +1436,7 @@ export const TranscriptPanel = () => {
   };
 
   return (
-    <div className="flex w-full flex-1 min-h-0 bg-white dark:bg-gray-950/40 rounded-t-xl border border-gray-100 dark:border-white/5 overflow-hidden relative z-0">
+    <div className="flex h-full w-full flex-1 min-h-0 @container/transcript bg-white dark:bg-gray-950/40 rounded-t-xl border border-gray-100 dark:border-white/5 overflow-hidden relative z-0">
       {/* Sidebar Toggle Button (Floating or inside) */}
       <button
         onClick={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -1448,26 +1562,27 @@ export const TranscriptPanel = () => {
       </div>
 
       {/* Main Content */}
-      <div className="transcript-panel-main flex-1 flex flex-col min-w-0 min-h-0 bg-white dark:bg-transparent">
-        <div className="transcript-header flex items-center justify-between p-3 sm:p-4 border-b border-gray-100 dark:border-white/5 bg-white dark:bg-gray-950/60 backdrop-blur-md min-w-0 gap-2">
-          <div className="flex items-center min-w-0 mr-2">
-            <h3 className="transcript-header-title text-sm font-medium text-gray-700 dark:text-gray-300 truncate">
-              {activeTabId
-                ? bookmarks.find(b => b.id === activeTabId)?.name || t("transcript.title")
-                : t("transcript.title")
-              }
-            </h3>
-            {isProcessing && (
-              <div className="ml-2 flex items-center flex-shrink-0">
-                <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-                <span className="ml-1 text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                  {transcriptionStatus || t("transcript.processing", { progress: processingProgress })}
-                </span>
-              </div>
-            )}
-          </div>
+      <div className="transcript-panel-main flex h-full flex-1 flex-col min-w-0 min-h-0 bg-white dark:bg-transparent">
+        <div className="transcript-container flex h-full flex-1 min-h-0 min-w-0 flex-col overflow-hidden">
+          <div className="transcript-header flex items-center justify-between p-3 sm:p-4 border-b border-gray-100 dark:border-white/5 bg-white dark:bg-gray-950/60 backdrop-blur-md min-w-0 gap-2">
+            <div className="flex items-center min-w-0 mr-2">
+              <h3 className="transcript-header-title text-sm font-medium text-gray-700 dark:text-gray-300 truncate">
+                {activeTabId
+                  ? bookmarks.find(b => b.id === activeTabId)?.name || t("transcript.title")
+                  : t("transcript.title")
+                }
+              </h3>
+              {isProcessing && (
+                <div className="ml-2 flex items-center flex-shrink-0">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                  <span className="ml-1 text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                    {transcriptionStatus || t("transcript.processing", { progress: processingProgress })}
+                  </span>
+                </div>
+              )}
+            </div>
 
-          <div className="transcript-header-actions flex items-center gap-1.5 sm:gap-2 flex-shrink-0 overflow-hidden">
+            <div className="transcript-header-actions flex items-center gap-1.5 sm:gap-2 flex-shrink-0 overflow-hidden">
             <button
               onClick={() => setHighlightsEnabled((previous) => !previous)}
               className={`inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium transition-colors ${highlightsEnabled
@@ -1620,8 +1735,8 @@ export const TranscriptPanel = () => {
             >
               <Trash size={16} />
             </button>
+            </div>
           </div>
-        </div>
 
         <div
           ref={transcriptRef}
@@ -1716,38 +1831,48 @@ export const TranscriptPanel = () => {
               ) : (
                 // Full Transcript Empty State
                 transcriptSegments.length === 0 ? (
-                  <div className="mx-auto flex min-h-[260px] max-w-lg items-center justify-center py-6">
-                    <div className="w-full rounded-lg border border-gray-200 bg-gray-50 px-6 py-7 text-center dark:border-gray-700 dark:bg-gray-800/50">
-                      <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-primary-100 text-primary-600 dark:bg-primary-900/30 dark:text-primary-400">
-                        <FileAudio size={18} />
+                  <div className="mx-auto flex min-h-[200px] max-w-lg items-center justify-center py-6">
+                    <div className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 @[260px]/transcript:px-4 @[400px]/transcript:px-6 py-5 @[400px]/transcript:py-7 text-center dark:border-gray-700 dark:bg-gray-800/50">
+                      <div className="mx-auto mb-3 flex h-8 w-8 @[260px]/transcript:h-10 @[260px]/transcript:w-10 @[400px]/transcript:h-12 @[400px]/transcript:w-12 items-center justify-center rounded-full bg-primary-100 text-primary-600 dark:bg-primary-900/30 dark:text-primary-400">
+                        <span className="@[260px]/transcript:hidden">
+                          <FileAudio size={14} />
+                        </span>
+                        <span className="hidden @[260px]/transcript:inline @[400px]/transcript:hidden">
+                          <FileAudio size={18} />
+                        </span>
+                        <span className="hidden @[400px]/transcript:inline">
+                          <FileAudio size={22} />
+                        </span>
                       </div>
-                      <h3 className="text-sm font-medium text-gray-800 dark:text-gray-200">
+                      <h3 className="text-xs @[260px]/transcript:text-sm font-medium text-gray-800 dark:text-gray-200">
                         {t(!currentFile && !currentYouTube ? "transcript.loadMediaFirst" : "transcript.clickToTranscribe", { provider: transcriptionService.getProviderInfo(currentProvider).name })}
                       </h3>
-                      <p className="mx-auto mt-2 max-w-md text-sm text-gray-500 dark:text-gray-400">
+                      <p className="mx-auto mt-2 max-w-md text-[11px] @[260px]/transcript:text-xs @[400px]/transcript:text-sm text-gray-500 dark:text-gray-400">
                         {currentFile || currentYouTube
                           ? t("transcript.uploadExisting")
                           : t("transcript.loadMediaFirst")}
                       </p>
                       {(currentFile || currentYouTube) && (
-                        <div className="mt-5 space-y-3">
-                          <div className="flex flex-col items-center justify-center gap-2 sm:flex-row">
+                        <div className="mt-4 @[260px]/transcript:mt-5 space-y-3">
+                          <div className="flex flex-col @[300px]/transcript:flex-row items-stretch @[300px]/transcript:items-center justify-center gap-2">
                             <button
                               onClick={handleTranscribeDefault}
-                              className="inline-flex items-center justify-center gap-2 rounded-md bg-primary-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-700"
+                              className="inline-flex items-center justify-center gap-2 rounded-md bg-primary-600 px-3 @[260px]/transcript:px-4 py-2 text-xs @[260px]/transcript:text-sm font-medium text-white transition-colors hover:bg-primary-700"
                             >
-                              <FileAudio size={16} />
-                              {loopStart !== null && loopEnd !== null
-                                ? t("transcript.transcribeLoopRangeButton")
-                                : t("transcript.transcribeWithWhisper")}
+                              <FileAudio size={14} />
+                              <span>
+                                {loopStart !== null && loopEnd !== null
+                                  ? t("transcript.transcribeLoopRangeButton")
+                                  : t("transcript.transcribeWithWhisper")}
+                              </span>
                             </button>
                             <TranscriptUploader variant="prominent" />
                           </div>
-                          <div className="text-xs text-gray-400 dark:text-gray-500">
+                          <div className="text-[10px] @[260px]/transcript:text-xs text-gray-400 dark:text-gray-500">
                             .srt / .vtt / .txt
                           </div>
                           {loopStart !== null && loopEnd !== null && (
-                            <div className="text-xs text-primary-600 dark:text-primary-400">
+                            <div className="text-[10px] @[260px]/transcript:text-xs text-primary-600 dark:text-primary-400">
                               {t("transcript.transcribeLoopRangeButton")}
                             </div>
                           )}
@@ -1803,6 +1928,7 @@ export const TranscriptPanel = () => {
             </div>
           )}
         </div>
+      </div>
       </div>
 
       {/* Edit bookmark dialog */}

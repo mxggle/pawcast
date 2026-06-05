@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useRef, Dispatch, SetStateAction } fr
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { usePlayerStore } from "../../stores/playerStore";
+import { useSettingsStore } from "../../stores/settingsStore";
 import { useShallow } from "zustand/react/shallow";
 import {
   ChevronDown,
@@ -20,6 +21,14 @@ import {
   Settings,
 } from "lucide-react";
 import { AppLayoutBase } from "../layout/AppLayoutBase";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "../ui/dialog";
 import { FolderBrowser } from "./FolderBrowser";
 import type {
   LibraryScope,
@@ -106,6 +115,7 @@ export const ElectronAppLayout = ({
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [isResizing, setIsResizing] = useState(false);
+  const [clearHistoryDialogOpen, setClearHistoryDialogOpen] = useState(false);
   const [libraryQuery, setLibraryQuery] = useState("");
   const [libraryScope, setLibraryScope] = useState<LibraryScope>("all");
   const [librarySortBy, setLibrarySortBy] = useState<LibrarySortBy>("recent");
@@ -118,8 +128,6 @@ export const ElectronAppLayout = ({
     sidebarWidth,
     setIsSidebarOpen,
     setSidebarWidth,
-    theme,
-    setTheme,
     sidebarSections,
     toggleSidebarSection,
     addSourceFolder,
@@ -130,14 +138,14 @@ export const ElectronAppLayout = ({
       sidebarWidth: state.sidebarWidth,
       setIsSidebarOpen: state.setIsSidebarOpen,
       setSidebarWidth: state.setSidebarWidth,
-      theme: state.theme,
-      setTheme: state.setTheme,
       sidebarSections: state.sidebarSections,
       toggleSidebarSection: state.toggleSidebarSection,
       addSourceFolder: state.addSourceFolder,
       clearMediaHistory: state.clearMediaHistory,
     }))
   );
+
+  const { theme, setTheme } = useSettingsStore();
 
   /* ── Resize logic ──────────────────────────────────────────────── */
   const startResizing = useCallback((e: React.MouseEvent) => {
@@ -182,6 +190,7 @@ export const ElectronAppLayout = ({
 
   const handleClearHistory = useCallback(async () => {
     await clearMediaHistory();
+    setClearHistoryDialogOpen(false);
   }, [clearMediaHistory]);
 
   const toggleSortOrder = useCallback(() => {
@@ -200,6 +209,49 @@ export const ElectronAppLayout = ({
       void handleOpenSettings(detail);
     });
   }, [handleOpenSettings]);
+
+  useEffect(() => {
+    if (!window.electronAPI?.onNavigate) return;
+    return window.electronAPI.onNavigate(async ({ route, entryId }) => {
+      if (!entryId) {
+        navigate(route);
+        return;
+      }
+
+      const playerStore = usePlayerStore.getState();
+      const entry = playerStore.glossaryEntries.find((e) => e.id === entryId);
+      if (!entry) return;
+
+      if (playerStore.playGlossaryEntryContext(entryId)) {
+        navigate(route);
+        return;
+      }
+
+      const historyItem = playerStore.mediaHistory.find((h) => {
+        if (h.type === "youtube" && h.youtubeData?.youtubeId) {
+          return `youtube-${h.youtubeData.youtubeId}` === entry.mediaId;
+        }
+        if (h.type === "file") {
+          return (h.storageId || `file-${h.name}-${h.fileData?.size}`) === entry.mediaId;
+        }
+        return false;
+      });
+
+      if (!historyItem) return;
+
+      await playerStore.loadFromHistory(historyItem.id);
+
+      if (playerStore.playGlossaryEntryContext(entryId)) {
+        navigate(route);
+      }
+    });
+  }, [navigate]);
+
+  useEffect(() => {
+    import("../../utils/migrationBridge").then(({ runMigrationIfNeeded }) => {
+      void runMigrationIfNeeded();
+    });
+  }, []);
 
   /* ── Sidebar ───────────────────────────────────────────────────── */
   const sidebar = (
@@ -231,7 +283,7 @@ export const ElectronAppLayout = ({
                   <FolderPlus className="w-3.5 h-3.5" />
                 </HeaderAction>
                 <HeaderAction
-                  onClick={handleClearHistory}
+                  onClick={() => setClearHistoryDialogOpen(true)}
                   title={t("sidebar.clearHistory", "Clear history")}
                 >
                   <Trash2 className="w-3.5 h-3.5" />
@@ -440,6 +492,30 @@ export const ElectronAppLayout = ({
       onOpenSettings={() => void handleOpenSettings()}
     >
       {children}
+      <Dialog open={clearHistoryDialogOpen} onOpenChange={setClearHistoryDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{t("sidebar.clearHistoryConfirmTitle")}</DialogTitle>
+            <DialogDescription>{t("sidebar.clearHistoryConfirmMessage")}</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <button
+              type="button"
+              onClick={() => setClearHistoryDialogOpen(false)}
+              className="inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-medium border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
+            >
+              {t("common.cancel")}
+            </button>
+            <button
+              type="button"
+              onClick={() => void handleClearHistory()}
+              className="inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-medium bg-red-600 text-white hover:bg-red-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+            >
+              {t("sidebar.clearHistory")}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppLayoutBase>
   );
 };

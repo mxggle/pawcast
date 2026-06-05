@@ -6,6 +6,7 @@ import { UniversalAudioRecorder } from "../../utils/audioRecorder";
 import { storeMediaFile, retrieveMediaFile } from "../../utils/mediaStorage";
 import { useSentencePracticeStore } from "../../stores/sentencePracticeStore";
 import { formatTime } from "../../utils/formatTime";
+import { recordingRepository } from "../../repositories/recordingRepository";
 
 interface SentenceRecorderProps {
   mediaId: string;
@@ -119,6 +120,12 @@ export const SentenceRecorder = ({ mediaId, sentenceIndex }: SentenceRecorderPro
           const file = new File([blob], fileName, { type: blob.type });
 
           const storageId = await storeMediaFile(file);
+          recordingRepository.saveRecordingData(
+            `recordings/sentence-practice/files/${storageId}`,
+            file,
+          ).catch((error) => {
+            console.warn("[SentenceRecorder] Failed to mirror recording file:", error);
+          });
 
           addRecording(mediaId, {
             id: Math.random().toString(36).substring(7),

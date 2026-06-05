@@ -19,6 +19,8 @@
     "back": "戻る",
     "show": "表示",
     "hide": "非表示",
+    "expand": "展開",
+    "collapse": "折りたたむ",
     "remove": "削除",
     "shadowing": "シャドーイング",
     "showInFinder": "Finderで表示",
@@ -55,7 +57,9 @@
       "trackDeleted": "シャドートラックを削除しました"
     },
     "recordingError": "録音エラー：{{message}}",
-    "failedToSave": "録音の保存に失敗しました"
+    "failedToSave": "録音の保存に失敗しました",
+    "takeOf": "テイク {{n}} / {{total}}",
+    "recordFirstTake": "RECを押して最初のテイクを録音"
   },
   "sentencePractice": {
     "title": "一文ずつ練習",
@@ -127,7 +131,8 @@
     "title": "設定",
     "tabs": {
       "general": "一般",
-      "ai": "AI"
+      "ai": "AI",
+      "data": "データ"
     },
     "appearance": "外観",
     "interfaceLayout": "インターフェースレイアウト",
@@ -142,6 +147,42 @@
     "smallStep": "小ステップ",
     "status": {
       "ready": "すべて正常です"
+    },
+    "data": {
+      "title": "データ管理",
+      "description": "データディレクトリの管理、ヘルスチェック、バックアップ作成。",
+      "directory": "データディレクトリ",
+      "currentDirectory": "現在のディレクトリ",
+      "changeDirectory": "ディレクトリを変更",
+      "changeDirectoryDescription": "データを新しい場所に移動します。既存のデータはすべてコピーされます。",
+      "changeDirectoryConfirm": "すべてのデータを新しい場所にコピーし、アクティブなディレクトリを切り替えます。続行しますか？",
+      "directorySize": "ディレクトリサイズ",
+      "fileCount": "{{count}} ファイル",
+      "healthCheck": "データの健全性",
+      "runHealthCheck": "ヘルスチェックを実行",
+      "healthStatus": "ステータス",
+      "healthy": "正常",
+      "degraded": "劣化",
+      "damaged": "破損",
+      "manifestStatus": "マニフェスト",
+      "manifestOk": "有効",
+      "manifestCorrupt": "破損",
+      "failedChecksums": "チェックサム不一致",
+      "orphanedReferences": "孤立参照",
+      "corruptedFiles": "破損ファイル",
+      "noIssues": "問題は見つかりませんでした",
+      "recovery": "復旧",
+      "replayJournal": "ジャーナルを再生",
+      "restoreSnapshot": "スナップショットを復元",
+      "remigrate": "再移行",
+      "recoverySuccess": "復旧が完了しました",
+      "recoveryFailed": "復旧に失敗しました: {{message}}",
+      "snapshots": "スナップショット",
+      "exportSnapshot": "スナップショットをエクスポート",
+      "importSnapshot": "スナップショットをインポート",
+      "exportSuccess": "スナップショットをエクスポートしました",
+      "importSuccess": "スナップショットをインポートしました",
+      "electronOnly": "データ管理はデスクトップアプリで利用できます"
     },
     "footer": {
       "autoSaved": "設定はこのデバイスに自動保存されます",
@@ -328,6 +369,13 @@
     "couldNotRetrieveMedia": "ストレージにファイルが見つかりません。ファイルを再アップロードしてください。",
     "noMediaLoadedSimple": "メディアが読み込まれていません"
   },
+  "track": {
+    "original": "オリジナル",
+    "shadowing": "シャドーイング",
+    "totalDuration": "全 {{time}}",
+    "originalVolume": "オリジナルの音量",
+    "shadowingVolume": "シャドーイングの音量"
+  },
   "upload": {
     "openFile": "ファイルを開く",
     "dragDrop": "音声/動画ファイルをここにドラッグ＆ドロップ",
@@ -416,7 +464,15 @@
       "japanese": "日本語",
       "korean": "韓国語"
     },
-    "mockExplanation": "生成された説明: \"{{snippet}}\""
+    "mockExplanation": "生成された説明: \"{{snippet}}\"",
+    "overview": "概要",
+    "translation": "翻訳",
+    "breakdown": "詳細解説",
+    "grammarSpotlight": "文法ポイント",
+    "form": "形：",
+    "meaning": "意味：",
+    "examples": "例文：",
+    "logicSummary": "文の論理まとめ"
   },
   "transcript": {
     "title": "トランスクリプト",
@@ -725,6 +781,8 @@
     "recent": "最近",
     "addFolder": "フォルダーを追加",
     "clearHistory": "履歴をクリア",
+    "clearHistoryConfirmTitle": "履歴をクリア",
+    "clearHistoryConfirmMessage": "最近使用したファイルの履歴がすべて削除されます。この操作は元に戻せません。",
     "searchPlaceholder": "ファイルを検索",
     "clearSearch": "検索をクリア",
     "scopeLabel": "ライブラリ範囲",

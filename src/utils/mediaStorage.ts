@@ -1,6 +1,6 @@
 import { toast } from "react-hot-toast";
 import i18n from "../i18n";
-import type { TranscriptSegment } from "../stores/playerStore";
+import type { TranscriptSegment } from "../types/transcript";
 import type { MediaTranscriptStudy } from "../types/transcriptStudy";
 
 // Default limits (can be made configurable in settings)

@@ -2,9 +2,11 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { usePlayerStore } from "../stores/playerStore";
 import { useShadowingStore } from "../stores/shadowingStore";
+import type { ShadowingSegment } from "../stores/shadowingStore";
 import { storeMediaFile } from "../utils/mediaStorage";
 import { toast } from "react-hot-toast";
 import { UniversalAudioRecorder } from "../utils/audioRecorder";
+import { recordingRepository } from "../repositories/recordingRepository";
 
 type WindowWithWebkitAudioContext = Window & typeof globalThis & {
     webkitAudioContext?: typeof AudioContext;
@@ -30,6 +32,9 @@ export const useShadowingRecorder = () => {
     const previousMuteStateRef = useRef<boolean>(false);
     const isStartingRef = useRef(false);
     const [streamVersion, setStreamVersion] = useState(0);
+    // Per-sentence recording refs
+    const recordingEndTimeRef = useRef<number | null>(null);
+    const recordingSegmentIdRef = useRef<string | undefined>(undefined);
 
     useEffect(() => {
         return () => {
@@ -135,6 +140,25 @@ export const useShadowingRecorder = () => {
             if (isStartingRef.current) return;
             if (audioRecorderRef.current && audioRecorderRef.current.getState() === "recording") return;
 
+            // Read per-sentence recording target from store
+            const state = useShadowingStore.getState();
+            const targetSegmentId = state.recordingSegmentId;
+            recordingSegmentIdRef.current = targetSegmentId;
+
+            // Look up the transcript segment to determine auto-stop time
+            if (targetSegmentId) {
+                const { mediaTranscripts, getCurrentMediaId: getMediaId } = usePlayerStore.getState();
+                const currentMediaId = getMediaId();
+                const allSegments = currentMediaId ? (mediaTranscripts[currentMediaId] || []) : [];
+                const targetSeg = allSegments.find((s) => s.id === targetSegmentId);
+                if (targetSeg) {
+                    recordingEndTimeRef.current = targetSeg.endTime;
+                    console.log("🎤 [ShadowingRecorder] Per-sentence recording, will auto-stop at:", targetSeg.endTime);
+                }
+            } else {
+                recordingEndTimeRef.current = null;
+            }
+
             const currentMuteState = shadowingMuted;
             previousMuteStateRef.current = currentMuteState;
             console.log("💾 [ShadowingRecorder] Saved mute state BEFORE recording:", currentMuteState);
@@ -186,6 +210,12 @@ export const useShadowingRecorder = () => {
 
                             console.log("🎙️ [ShadowingRecorder] Storing file to IndexedDB...");
                             const storageId = await storeMediaFile(file);
+                            recordingRepository.saveRecordingData(
+                                `recordings/shadowing/files/${storageId}`,
+                                file,
+                            ).catch((error) => {
+                                console.warn("[ShadowingRecorder] Failed to mirror recording file:", error);
+                            });
                             console.log("🎙️ [ShadowingRecorder] File stored with ID:", storageId);
 
                             const { getCurrentMediaId } = usePlayerStore.getState();
@@ -201,17 +231,24 @@ export const useShadowingRecorder = () => {
                                 const { removeOverlappingSegments } = useShadowingStore.getState();
                                 await removeOverlappingSegments(mediaId, recordingStartTime, recordingEndTime);
 
-                                const segment = {
+                                const recordingSegmentId = recordingSegmentIdRef.current;
+                                const segment: ShadowingSegment = {
                                     id: Math.random().toString(36).substring(7),
                                     startTime: recordingStartTime,
                                     duration: actualDuration,
                                     storageId,
                                     peaks: finalCurrentRecording?.peaks ? [...finalCurrentRecording.peaks] : [],
                                     peakTimes: finalCurrentRecording?.peakTimes ? [...finalCurrentRecording.peakTimes] : [],
+                                    ...(recordingSegmentId ? { segmentId: recordingSegmentId } : {}),
                                 };
 
                                 console.log("🎙️ [ShadowingRecorder] Adding segment to store:", segment);
                                 addSegment(mediaId, segment);
+                                // Also add to sentence recordings if per-sentence recording
+                                if (recordingSegmentId) {
+                                    const { addSentenceRecording } = useShadowingStore.getState();
+                                    addSentenceRecording(recordingSegmentId, segment);
+                                }
                                 console.log("🎙️ [ShadowingRecorder] Segment added successfully");
 
                                 toast.success(t("shadowing.success.saved"));
@@ -276,4 +313,23 @@ export const useShadowingRecorder = () => {
             stopRecording();
         }
     }, [isPlaying, isShadowingMode, currentFile, currentYouTube, setIsRecording, addSegment, setShadowingMuted, shadowingMuted, streamVersion, t]);
+
+    // Auto-stop per-sentence recording when currentTime reaches end time
+    const { currentTime } = usePlayerStore();
+    useEffect(() => {
+        if (!useShadowingStore.getState().isRecording) return;
+        if (recordingEndTimeRef.current === null) return;
+        if (currentTime >= recordingEndTimeRef.current) {
+            console.log("🎤 [ShadowingRecorder] Auto-stopping per-sentence recording at", currentTime);
+            recordingEndTimeRef.current = null;
+            const { isRecording: currentlyRecording } = useShadowingStore.getState();
+            if (currentlyRecording && audioRecorderRef.current && audioRecorderRef.current.getState() === "recording") {
+                const { setMuted: setShadowMuted } = useShadowingStore.getState();
+                const stateToRestore = previousMuteStateRef.current;
+                endTimeRef.current = currentTime;
+                audioRecorderRef.current.stop();
+                setShadowMuted(stateToRestore);
+            }
+        }
+    }, [currentTime]);
 };

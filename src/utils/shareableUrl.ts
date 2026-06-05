@@ -1,4 +1,4 @@
-import { LoopBookmark } from '../stores/playerStore';
+import type { LoopBookmark } from '../types/bookmark';
 
 /**
  * Generate a shareable URL that includes loop settings and optionally a specific bookmark

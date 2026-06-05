@@ -1,4 +1,4 @@
-import { memo, useState } from "react";
+import { memo, useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useShallow } from "zustand/react/shallow";
 import { Bookmark, Brain, Pause, Play, Repeat } from "lucide-react";
@@ -15,6 +15,7 @@ import { useSegmentState } from "../../hooks/useSegmentState";
 import { ExplanationDrawer } from "./ExplanationDrawer";
 import { TranscriptSelectionPopover } from "./TranscriptSelectionPopover";
 import { TranscriptTextRenderer } from "./TranscriptTextRenderer";
+import { TranscriptWordRenderer } from "./TranscriptWordRenderer";
 
 interface TranscriptSegmentItemProps {
   segment: TranscriptSegmentType;
@@ -105,6 +106,16 @@ export const TranscriptSegmentItem = memo(
       onClearSelection();
       setShowExplanation((previous) => !previous);
     };
+
+    const handleWordClick = useCallback(
+      (_wordId: string, startTime: number) => {
+        onClearSelection();
+        setIsLooping(false);
+        setCurrentTime(startTime);
+        setIsPlaying(true);
+      },
+      [onClearSelection, setIsLooping, setCurrentTime, setIsPlaying]
+    );
 
     return (
       <>
@@ -207,16 +218,30 @@ export const TranscriptSegmentItem = memo(
                 isActive ? "translate-x-0.5" : "translate-x-0"
               }`}
             >
-              <TranscriptTextRenderer
-                segmentId={segment.id}
-                text={segment.text}
-                study={study}
-                highlightsEnabled={highlightsEnabled}
-                activeLevels={activeLevels}
-                selectionEnabled={selectionEnabled}
-                onSelectionChange={onSelectionChange}
-                isActive={isActive}
-              />
+              {segment.words && segment.words.length > 0 ? (
+                <TranscriptWordRenderer
+                  segmentId={segment.id}
+                  words={segment.words}
+                  study={study}
+                  highlightsEnabled={highlightsEnabled}
+                  activeLevels={activeLevels}
+                  selectionEnabled={selectionEnabled}
+                  onSelectionChange={onSelectionChange}
+                  onWordClick={handleWordClick}
+                  isActive={isActive}
+                />
+              ) : (
+                <TranscriptTextRenderer
+                  segmentId={segment.id}
+                  text={segment.text}
+                  study={study}
+                  highlightsEnabled={highlightsEnabled}
+                  activeLevels={activeLevels}
+                  selectionEnabled={selectionEnabled}
+                  onSelectionChange={onSelectionChange}
+                  isActive={isActive}
+                />
+              )}
             </div>
           </div>
         </div>

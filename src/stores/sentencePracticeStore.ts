@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { deleteMediaFile } from "../utils/mediaStorage";
+import { recordingRepository } from "../repositories/recordingRepository";
 
 export interface SentenceRecording {
     id: string;
@@ -97,3 +98,34 @@ export const useSentencePracticeStore = create<SentencePracticeState & SentenceP
         }
     )
 );
+
+// ─── Dual-write sync ───
+let _sentenceSaveTimer: ReturnType<typeof setTimeout>
+useSentencePracticeStore.subscribe((state) => {
+  clearTimeout(_sentenceSaveTimer)
+  _sentenceSaveTimer = setTimeout(() => {
+    if (!window.electronAPI?.dataPut) return
+    const allRecordings: Array<{ id: string; mediaId: string; sentenceIndex: number; filePath: string; duration: number; createdAt: number; peaks: number[] }> = []
+    if (state.recordings) {
+      for (const key of Object.keys(state.recordings)) {
+        const recs = state.recordings[key]
+        if (Array.isArray(recs)) {
+          for (const rec of recs) {
+            allRecordings.push({
+              id: rec.id,
+              mediaId: key,
+              sentenceIndex: rec.sentenceIndex,
+              filePath: `recordings/sentence-practice/files/${rec.storageId}`,
+              duration: rec.duration,
+              createdAt: rec.createdAt || Date.now(),
+              peaks: rec.peaks || [],
+            })
+          }
+        }
+      }
+    }
+    if (allRecordings.length > 0) {
+      recordingRepository.saveSentenceIndex(allRecordings).catch(() => {})
+    }
+  }, 300)
+})

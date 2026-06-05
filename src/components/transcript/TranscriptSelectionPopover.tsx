@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
+import { motion } from "framer-motion";
 import { AI_PROMPTS } from "../../config/prompts";
 import { BookmarkPlus, Loader, Sparkles, X } from "lucide-react";
 import { toast } from "react-hot-toast";
@@ -238,25 +239,29 @@ export const TranscriptSelectionPopover = ({
   };
 
   const content = (
-    <div
-      className="transcript-selection-popover fixed z-[70] w-[min(24rem,calc(100vw-2rem))] rounded-xl border border-gray-200 bg-white/95 p-3 text-gray-900 shadow-xl backdrop-blur dark:border-gray-700 dark:bg-gray-900/95 dark:text-gray-100"
+    <motion.div
+      className="transcript-selection-popover fixed z-[70] w-[min(22rem,calc(100vw-1.5rem))] rounded-xl border border-gray-200/80 bg-white/98 p-3 text-gray-900 shadow-lg shadow-black/8 backdrop-blur-sm dark:border-white/10 dark:bg-gray-900/98 dark:text-gray-100"
+      initial={{ opacity: 0, scale: 0.96, y: -4 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      transition={{ duration: 0.12, ease: "easeOut" }}
       style={{
-        top: Math.min(position.top, window.innerHeight - 280),
-        left: Math.min(position.left, Math.max(12, window.innerWidth - 400)),
+        top: Math.min(position.top, window.innerHeight - 220),
+        left: Math.min(position.left, Math.max(12, window.innerWidth - 376)),
       }}
       onMouseDown={(event) => event.stopPropagation()}
     >
       <div
-        className="mb-2 flex cursor-move items-start justify-between gap-3"
+        className="mb-2.5 flex cursor-move items-start justify-between gap-2"
         onPointerDown={handleDragStart}
       >
-        <div className="min-w-0">
-          <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-gray-500 dark:text-gray-400">
-            {t("transcript.selectionContext")}
+        <div className="min-w-0 flex-1">
+          <div className="inline-flex max-w-full items-center rounded-md bg-gray-100 px-2 py-0.5 dark:bg-gray-800">
+            <span className="truncate text-sm font-semibold text-gray-900 dark:text-gray-100">
+              "{selection.text}"
+            </span>
           </div>
-          <div className="mt-1 truncate text-sm font-semibold">“{selection.text}”</div>
           {selection.matchedItem && (
-            <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            <div className="mt-1 text-xs text-gray-400 dark:text-gray-500">
               {t("transcript.selectionKnownItem", {
                 type: t(`transcript.studyType.${selection.matchedItem.type}`),
                 level: selection.matchedItem.level,
@@ -268,20 +273,20 @@ export const TranscriptSelectionPopover = ({
         <button
           type="button"
           onClick={onClose}
-          className="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-200"
+          className="shrink-0 rounded-md p-1 text-gray-300 transition-colors hover:bg-gray-100 hover:text-gray-500 dark:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
           aria-label={t("common.close")}
         >
-          <X size={14} />
+          <X size={13} />
         </button>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-1.5">
         <button
           type="button"
           onClick={handleSaveToGlossary}
-          className="inline-flex items-center gap-1 rounded-md bg-emerald-600 px-2.5 py-1.5 text-xs font-medium text-white transition-colors hover:bg-emerald-500"
+          className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-2.5 py-1.5 text-xs font-medium text-white transition-colors hover:bg-emerald-500 active:bg-emerald-700"
         >
-          <BookmarkPlus size={13} />
+          <BookmarkPlus size={12} />
           {t("glossary.saveSelection")}
         </button>
 
@@ -290,12 +295,12 @@ export const TranscriptSelectionPopover = ({
             type="button"
             onClick={generateExplanation}
             disabled={isLoading}
-            className="inline-flex items-center gap-1 rounded-md bg-blue-600 px-2.5 py-1.5 text-xs font-medium text-white transition-colors hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-70"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-2.5 py-1.5 text-xs font-medium text-white transition-colors hover:bg-blue-500 active:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isLoading ? (
-              <Loader size={13} className="animate-spin" />
+              <Loader size={12} className="animate-spin" />
             ) : (
-              <Sparkles size={13} />
+              <Sparkles size={12} />
             )}
             {t("transcript.explainSelection")}
           </button>
@@ -303,15 +308,15 @@ export const TranscriptSelectionPopover = ({
       </div>
 
       {error && (
-        <div className="mt-3 text-sm text-error-600 dark:text-error-400">{error}</div>
+        <div className="mt-2.5 text-xs text-red-500 dark:text-red-400">{error}</div>
       )}
 
       {result && (
-        <div className="mt-3 space-y-2">
-          <div className="prose perror-sm max-w-none text-sm dark:perror-invert [&_p]:my-1 [&_ul]:my-1 [&_li]:my-0">
+        <div className="mt-2.5 space-y-1.5">
+          <div className="prose prose-sm max-w-none text-sm dark:prose-invert [&_p]:my-1 [&_ul]:my-1 [&_li]:my-0">
             <MarkdownRenderer content={result.explanation} />
           </div>
-          <div className="text-[11px] text-gray-400 dark:text-gray-500">
+          <div className="text-[10px] text-gray-400 dark:text-gray-500">
             {t("explanation.providerInfo", {
               provider: result.provider,
               model: result.model,
@@ -320,7 +325,7 @@ export const TranscriptSelectionPopover = ({
           </div>
         </div>
       )}
-    </div>
+    </motion.div>
   );
 
   return createPortal(content, document.body);

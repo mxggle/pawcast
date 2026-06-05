@@ -1,79 +1,39 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
+import { toast } from "react-hot-toast";
+import i18n from "../i18n";
 import { electronStorage } from "./electronStorage";
 import {
-  storeMediaFile,
   retrieveMediaFile,
   deleteMediaFile,
-  getStoredTranscriptRecord,
-  setStoredTranscript,
-  deleteStoredTranscript,
   clearAllStoredTranscripts,
 } from "../utils/mediaStorage";
 import { nativePathToUrl } from "../utils/platform";
-import { toast } from "react-hot-toast";
-import i18n from "../i18n";
-import type {
-  CreateGlossaryEntryInput,
-  GlossaryEntry,
-  MediaTranscriptStudy,
-} from "../types/transcriptStudy";
-import {
-  buildSegmentTranscriptStudy,
-  buildTranscriptStudy,
-  inferTranscriptLevelSystem,
-} from "../utils/transcriptStudy";
-import {
-  createGlossaryEntry,
-  isDuplicateGlossaryEntry,
-} from "../utils/glossary";
-import {
-  getNextSentenceSeekTime,
-  getPreviousSentenceSeekTime,
-} from "../utils/sentenceSeek";
+import { getNextSentenceSeekTime, getPreviousSentenceSeekTime } from "../utils/sentenceSeek";
+import { useMediaStore } from "./mediaStore";
+import { useBookmarkStore } from "./bookmarkStore";
+import { useTranscriptStore } from "./transcriptStore";
+import type { MediaFile, YouTubeMedia } from "./mediaStore";
+import type { LoopBookmark, MediaBookmarks } from "../types/bookmark";
+import type { TranscriptSegment, MediaTranscripts, MediaTranscriptStudies } from "../types/transcript";
+import type { GlossaryEntry, CreateGlossaryEntryInput } from "../types/transcriptStudy";
+import { bookmarkRepository } from "../repositories/bookmarkRepository";
+import { glossaryRepository } from "../repositories/glossaryRepository";
+import { libraryRepository } from "../repositories/libraryRepository";
+import { settingsRepository } from "../repositories/settingsRepository";
+import type { PersistedBookmark, PersistedGlossaryEntry } from "../types/persistence";
 
-// Prevent noisy duplicate toasts for existing A–B ranges
-let lastDuplicateToastAt = 0;
-const DUPLICATE_TOAST_ID = "bookmark-duplicate";
+// Re-export sub-stores
+export { useMediaStore } from "./mediaStore";
+export { useBookmarkStore } from "./bookmarkStore";
+export { useTranscriptStore } from "./transcriptStore";
+export type { MediaFile, YouTubeMedia } from "./mediaStore";
+export type { LoopBookmark, MediaBookmarks } from "../types/bookmark";
+export type { TranscriptSegment, MediaTranscripts, MediaTranscriptStudies } from "../types/transcript";
 
-const revokeObjectUrl = (url?: string | null) => {
-  if (url && url.startsWith("blob:")) {
-    URL.revokeObjectURL(url);
-  }
+export const revokeObjectUrlIfNeeded = (url?: string | null) => {
+  if (url?.startsWith("blob:")) URL.revokeObjectURL(url);
 };
-
-export interface MediaFile {
-  name: string;
-  type: string;
-  size: number;
-  url: string;
-  id?: string;
-  storageId?: string; // ID for IndexedDB storage (web / drag-drop)
-  nativePath?: string; // Absolute filesystem path (Electron native files only)
-}
-
-export interface YouTubeMedia {
-  id: string;
-  title?: string;
-}
-
-export interface LoopBookmark {
-  id: string;
-  name: string;
-  start: number;
-  end: number;
-  createdAt: number;
-  mediaName?: string;
-  mediaType?: string;
-  youtubeId?: string;
-  playbackRate?: number;
-  annotation?: string;
-}
-
-// New interface for media-scoped bookmarks
-export interface MediaBookmarks {
-  [mediaId: string]: LoopBookmark[];
-}
 
 export interface MediaHistoryItem {
   id: string;
@@ -83,12 +43,9 @@ export interface MediaHistoryItem {
   folderId?: string | null;
   playbackTime?: number;
   fileData?: Omit<MediaFile, "id">;
-  youtubeData?: {
-    title?: string;
-    youtubeId?: string;
-  };
-  storageId?: string; // ID for IndexedDB storage (web / drag-drop)
-  nativePath?: string; // Absolute filesystem path (Electron native files only)
+  youtubeData?: { title?: string; youtubeId?: string };
+  storageId?: string;
+  nativePath?: string;
 }
 
 export interface MediaFolder {
@@ -98,33 +55,15 @@ export interface MediaFolder {
   parentId: string | null;
 }
 
-export interface TranscriptSegment {
-  id: string;
-  text: string;
-  startTime: number;
-  endTime: number;
-  confidence: number;
-  isFinal: boolean;
-}
-
-// New interface for media-scoped transcripts
-export interface MediaTranscripts {
-  [mediaId: string]: TranscriptSegment[];
-}
-
-export interface MediaTranscriptStudies {
-  [mediaId: string]: MediaTranscriptStudy;
-}
-
 type PersistedPlayerStoreState = {
-  mediaFolders?: Record<string, { parentId?: string | null }>;
+  mediaFolders?: Record<string, { parentId?: string | null; name?: string; createdAt?: number; id?: string }>;
   historyFolderFilter?: string;
   sourceFolder?: string;
   sourceFolders?: string[];
 };
 
 export interface PlayerState {
-  // Media state
+  // Mirrored from mediaStore
   currentFile: MediaFile | null;
   currentYouTube: YouTubeMedia | null;
   isPlaying: boolean;
@@ -132,14 +71,12 @@ export interface PlayerState {
   currentTime: number;
   duration: number;
   volume: number;
-  mediaVolume: number; // New separate media volume
-  previousMediaVolume?: number; // Store media volume before muting
-  previousVolume?: number; // Store volume before muting
+  mediaVolume: number;
+  previousMediaVolume?: number;
+  previousVolume?: number;
   playbackRate: number;
   muted: boolean;
-  isLoadingMedia: boolean; // Add loading state
-
-  // Loop state
+  isLoadingMedia: boolean;
   loopStart: number | null;
   loopEnd: number | null;
   isLooping: boolean;
@@ -148,22 +85,17 @@ export interface PlayerState {
   autoAdvanceBookmarks: boolean;
   bpm: number | null;
   quantizeLoop: boolean;
-  loopDelay: number; // Delay in seconds between loops
-
-  // UI state
-  theme: "light" | "dark";
-  waveformZoom: number;
-  showWaveform: boolean;
-  videoSize: "sm" | "md" | "lg" | "xl";
-  mediaBookmarks: MediaBookmarks; // Changed from bookmarks array to media-scoped object
-  selectedBookmarkId: string | null;
-  // Seek configuration
-  seekStepSeconds: number; // default seek step for arrows/buttons
-  seekSmallStepSeconds: number; // shift+arrow small step
+  loopDelay: number;
+  seekStepSeconds: number;
+  seekSmallStepSeconds: number;
   seekMode: "seconds" | "sentence";
 
-  // Transcript state
-  mediaTranscripts: MediaTranscripts; // Changed from transcriptSegments array to media-scoped object
+  // Mirrored from bookmarkStore
+  mediaBookmarks: MediaBookmarks;
+  selectedBookmarkId: string | null;
+
+  // Mirrored from transcriptStore
+  mediaTranscripts: MediaTranscripts;
   mediaTranscriptStudy: MediaTranscriptStudies;
   glossaryEntries: GlossaryEntry[];
   isTranscriptLoading: boolean;
@@ -171,19 +103,15 @@ export interface PlayerState {
   isTranscribing: boolean;
   transcriptLanguage: string;
 
-  // History and sharing
+  // Owned
   recentYouTubeVideos: YouTubeMedia[];
   mediaHistory: MediaHistoryItem[];
   historyLimit: number;
-  // Library organization & sorting
   mediaFolders: Record<string, MediaFolder>;
   historySortBy: "date" | "name" | "type";
   historySortOrder: "asc" | "desc";
   historyFolderFilter: "all" | "unfiled" | string;
-  // Source folders (Electron only — persisted paths, files loaded at runtime)
   sourceFolders: string[];
-
-  // Layout state
   isSidebarOpen: boolean;
   sidebarWidth: number;
   activeSidebarTab: "recent" | "folders";
@@ -191,7 +119,6 @@ export interface PlayerState {
 }
 
 export interface PlayerActions {
-  // Media actions
   setCurrentFile: (file: MediaFile | null) => void;
   setCurrentYouTube: (youtube: YouTubeMedia | null) => void;
   setIsPlaying: (isPlaying: boolean) => void;
@@ -208,9 +135,8 @@ export interface PlayerActions {
   toggleMute: () => void;
   seekForward: (seconds: number) => void;
   seekBackward: (seconds: number) => void;
-  setIsLoadingMedia: (loading: boolean) => void; // Add loading action
+  setIsLoadingMedia: (loading: boolean) => void;
 
-  // Loop actions
   setLoopPoints: (start: number | null, end: number | null) => void;
   setIsLooping: (isLooping: boolean) => void;
   setLoopCount: (count: number) => void;
@@ -224,28 +150,25 @@ export interface PlayerActions {
   setQuantizeLoop: (quantize: boolean) => void;
   quantizeCurrentLoop: () => void;
   setLoopDelay: (delay: number) => void;
-
-  // UI actions
-  setTheme: (theme: "light" | "dark") => void;
-  setWaveformZoom: (zoom: number) => void;
-  setShowWaveform: (show: boolean) => void;
-  setVideoSize: (size: "sm" | "md" | "lg" | "xl") => void;
   setAutoAdvanceBookmarks: (enable: boolean) => void;
-  // Seek settings
   setSeekStepSeconds: (seconds: number) => void;
   setSeekSmallStepSeconds: (seconds: number) => void;
   setSeekMode: (mode: "seconds" | "sentence") => void;
 
-  // Transcript actions
+  addBookmark: (bookmark: Omit<LoopBookmark, "id" | "createdAt">) => boolean;
+  updateBookmark: (id: string, changes: Partial<LoopBookmark>) => void;
+  deleteBookmark: (id: string) => void;
+  loadBookmark: (id: string) => void;
+  setSelectedBookmarkId: (id: string | null) => void;
+  importBookmarks: (bookmarks: LoopBookmark[]) => void;
+  getCurrentMediaBookmarks: () => LoopBookmark[];
+
   startTranscribing: () => void;
   stopTranscribing: () => void;
   toggleTranscribing: () => void;
   addTranscriptSegment: (segment: Omit<TranscriptSegment, "id">) => void;
   addTranscriptSegments: (segments: Array<Omit<TranscriptSegment, "id">>) => void;
-  updateTranscriptSegment: (
-    id: string,
-    changes: Partial<TranscriptSegment>
-  ) => void;
+  updateTranscriptSegment: (id: string, changes: Partial<TranscriptSegment>) => void;
   clearTranscript: () => void;
   setShowTranscript: (show: boolean) => void;
   toggleShowTranscript: () => void;
@@ -257,51 +180,30 @@ export interface PlayerActions {
   addGlossaryEntry: (entry: CreateGlossaryEntryInput) => boolean;
   deleteGlossaryEntry: (id: string) => void;
   playGlossaryEntryContext: (id: string) => boolean;
-
-  // Bookmark actions
-  addBookmark: (bookmark: Omit<LoopBookmark, "id" | "createdAt">) => boolean;
-  updateBookmark: (id: string, changes: Partial<LoopBookmark>) => void;
-  deleteBookmark: (id: string) => void;
-  loadBookmark: (id: string) => void;
-  setSelectedBookmarkId: (id: string | null) => void;
-  importBookmarks: (bookmarks: LoopBookmark[]) => void;
-
-  // Helper functions for media-scoped bookmarks
-  getCurrentMediaId: () => string | null;
-  getCurrentMediaBookmarks: () => LoopBookmark[];
-
-  // Helper functions for media-scoped transcripts
   getCurrentMediaTranscripts: () => TranscriptSegment[];
 
-  // History actions
+  getCurrentMediaId: () => string | null;
+
   addRecentYouTubeVideo: (video: YouTubeMedia) => void;
   clearRecentYouTubeVideos: () => void;
-  addToMediaHistory: (
-    item: Omit<MediaHistoryItem, "id" | "accessedAt">
-  ) => void;
+  addToMediaHistory: (item: Omit<MediaHistoryItem, "id" | "accessedAt">) => void;
   updateHistoryPlaybackTime: (id: string, time: number) => void;
   loadFromHistory: (historyItemId: string) => void;
   removeFromHistory: (historyItemId: string) => Promise<void>;
   clearMediaHistory: () => Promise<void>;
   setHistoryLimit: (limit: number) => void;
 
-  // Source folder actions (Electron only)
   addSourceFolder: (path: string) => void;
   removeSourceFolder: (path: string) => void;
 
-  // Folder & item management
   createMediaFolder: (name: string, parentId?: string | null) => string;
   renameMediaFolder: (folderId: string, newName: string) => void;
   deleteMediaFolder: (folderId: string) => void;
   moveHistoryItemToFolder: (historyItemId: string, folderId: string | null) => void;
   renameHistoryItem: (historyItemId: string, newName: string) => void;
-  setHistorySort: (
-    by: "date" | "name" | "type",
-    order: "asc" | "desc"
-  ) => void;
+  setHistorySort: (by: "date" | "name" | "type", order: "asc" | "desc") => void;
   setHistoryFolderFilter: (filter: "all" | "unfiled" | string) => void;
 
-  // Layout actions
   setIsSidebarOpen: (isOpen: boolean) => void;
   setSidebarWidth: (width: number) => void;
   setActiveSidebarTab: (tab: "recent" | "folders") => void;
@@ -309,1766 +211,475 @@ export interface PlayerActions {
 }
 
 const initialState: PlayerState = {
-  currentFile: null,
-  currentYouTube: null,
-  isPlaying: false,
-  isTransitioning: false,
-  currentTime: 0,
-  duration: 0,
-  volume: 1,
-  mediaVolume: 1,
-  playbackRate: 1,
-  muted: false,
-  loopStart: null,
-  loopEnd: null,
-  isLooping: false,
-  loopCount: 0,
-  maxLoops: 0,
-  autoAdvanceBookmarks: false,
-  bpm: null,
-  quantizeLoop: false,
-  loopDelay: 0,
-  theme: "dark",
-  waveformZoom: 1,
-  showWaveform: true,
-  videoSize: "md",
-  mediaBookmarks: {},
-  selectedBookmarkId: null,
-  mediaTranscripts: {},
-  mediaTranscriptStudy: {},
-  glossaryEntries: [],
-  isTranscriptLoading: false,
-  showTranscript: false,
-  isTranscribing: false,
-  transcriptLanguage: "en-US",
-  recentYouTubeVideos: [],
-  mediaHistory: [],
-  historyLimit: 30,
+  currentFile: null, currentYouTube: null, isPlaying: false, isTransitioning: false,
+  currentTime: 0, duration: 0, volume: 1, mediaVolume: 1, playbackRate: 1, muted: false,
   isLoadingMedia: false,
-  // Defaults for seek steps
-  seekStepSeconds: 5,
-  seekSmallStepSeconds: 1,
-  seekMode: "seconds",
-  // Library organization & sorting defaults
-  mediaFolders: {},
-  historySortBy: "date",
-  historySortOrder: "desc",
-  historyFolderFilter: "unfiled",
+  loopStart: null, loopEnd: null, isLooping: false, loopCount: 0, maxLoops: 0,
+  autoAdvanceBookmarks: false, bpm: null, quantizeLoop: false, loopDelay: 0,
+  seekStepSeconds: 5, seekSmallStepSeconds: 1, seekMode: "seconds",
+  mediaBookmarks: {}, selectedBookmarkId: null,
+  mediaTranscripts: {}, mediaTranscriptStudy: {}, glossaryEntries: [],
+  isTranscriptLoading: false, showTranscript: false, isTranscribing: false, transcriptLanguage: "en-US",
+  recentYouTubeVideos: [], mediaHistory: [], historyLimit: 30,
+  mediaFolders: {}, historySortBy: "date", historySortOrder: "desc", historyFolderFilter: "unfiled",
   sourceFolders: [],
-  // Layout defaults (sidebar is Electron-only; default closed so web is unaffected)
-  isSidebarOpen: false,
-  sidebarWidth: 288,
-  activeSidebarTab: "recent",
+  isSidebarOpen: false, sidebarWidth: 288, activeSidebarTab: "recent",
   sidebarSections: { explorer: true, recent: true },
 };
 
 export const usePlayerStore = create<PlayerState & PlayerActions>()(
   persist(
-    (set, get) => ({
-      ...initialState,
-
-      async loadTranscriptForMedia(mediaId: string) {
-        set({ isTranscriptLoading: true });
-
-        const transcriptRecord = await getStoredTranscriptRecord(mediaId);
-        const segments = transcriptRecord?.segments || [];
-        const levelSystem = inferTranscriptLevelSystem(get().transcriptLanguage);
-        const studyBySegment =
-          transcriptRecord?.studyBySegment &&
-          Object.keys(transcriptRecord.studyBySegment).length > 0
-            ? transcriptRecord.studyBySegment
-            : buildTranscriptStudy(segments, levelSystem);
-
-        if (
-          transcriptRecord &&
-          Object.keys(transcriptRecord.studyBySegment).length === 0 &&
-          segments.length > 0
-        ) {
-          void setStoredTranscript(mediaId, segments, studyBySegment);
-        }
-
-        set((state) => {
-          const nextTranscripts = {
-            ...state.mediaTranscripts,
-            [mediaId]: segments,
-          };
-          const nextTranscriptStudy = {
-            ...state.mediaTranscriptStudy,
-            [mediaId]: studyBySegment,
-          };
-
-          return {
-            mediaTranscripts: nextTranscripts,
-            mediaTranscriptStudy: nextTranscriptStudy,
-            isTranscriptLoading:
-              state.getCurrentMediaId() === mediaId ? false : state.isTranscriptLoading,
-          };
+    (set, get) => {
+      // ── Sub-store subscriptions (keep playerStore mirrors in sync) ──
+      useMediaStore.subscribe(() => {
+        const ms = useMediaStore.getState();
+        set({
+          currentFile: ms.currentFile, currentYouTube: ms.currentYouTube,
+          isPlaying: ms.isPlaying, isTransitioning: ms.isTransitioning,
+          currentTime: ms.currentTime, duration: ms.duration,
+          volume: ms.volume, mediaVolume: ms.mediaVolume,
+          previousMediaVolume: ms.previousMediaVolume, previousVolume: ms.previousVolume,
+          playbackRate: ms.playbackRate, muted: ms.muted, isLoadingMedia: ms.isLoadingMedia,
+          loopStart: ms.loopStart, loopEnd: ms.loopEnd, isLooping: ms.isLooping,
+          loopCount: ms.loopCount, maxLoops: ms.maxLoops,
+          autoAdvanceBookmarks: ms.autoAdvanceBookmarks,
+          bpm: ms.bpm, quantizeLoop: ms.quantizeLoop, loopDelay: ms.loopDelay,
+          seekStepSeconds: ms.seekStepSeconds, seekSmallStepSeconds: ms.seekSmallStepSeconds,
+          seekMode: ms.seekMode,
         });
-      },
+      });
 
-      // Media actions
-      setCurrentFile: async (file) => {
-        if (file) {
-          try {
-            const previousUrl = get().currentFile?.url;
-            let storageId = file.storageId;
+      useBookmarkStore.subscribe(() => {
+        const bs = useBookmarkStore.getState();
+        set({ mediaBookmarks: bs.mediaBookmarks, selectedBookmarkId: bs.selectedBookmarkId });
+      });
 
-            // Native Electron files: skip IndexedDB entirely — the file:// URL is persistent
+      useTranscriptStore.subscribe(() => {
+        const ts = useTranscriptStore.getState();
+        set({
+          mediaTranscripts: ts.mediaTranscripts, mediaTranscriptStudy: ts.mediaTranscriptStudy,
+          glossaryEntries: ts.glossaryEntries, isTranscriptLoading: ts.isTranscriptLoading,
+          showTranscript: ts.showTranscript, isTranscribing: ts.isTranscribing,
+          transcriptLanguage: ts.transcriptLanguage,
+        });
+      });
+
+      return {
+        ...initialState,
+
+        // ── Enriched Media actions ──
+        setCurrentFile: async (file) => {
+          if (file?.nativePath && window.electronAPI?.approvePath) {
+            await window.electronAPI.approvePath(file.nativePath);
+          }
+          useMediaStore.getState().setCurrentFile(file);
+          if (file) {
             const isNativeFile = !!file.nativePath;
-
-            if (!isNativeFile && file instanceof File && !storageId) {
+            let storageId = file.storageId;
+            if (!isNativeFile && !storageId) {
               try {
-                // Pass current storageId so cleanup never evicts the playing file
-                const currentStorageId = get().currentFile?.storageId;
-                const excludeIds = currentStorageId ? [currentStorageId] : [];
-                storageId = await storeMediaFile(
-                  file,
-                  undefined,
-                  undefined,
-                  excludeIds
-                );
-              } catch (error) {
-                console.error("Failed to store file in IndexedDB:", error);
-              }
+                const { storeMediaFile } = await import("../utils/mediaStorage");
+                const currentId = useMediaStore.getState().currentFile?.storageId;
+                storageId = await storeMediaFile(file as unknown as File, undefined, undefined, currentId ? [currentId] : []);
+              } catch (_) { /* ignore */ }
             }
-
-            // Check if this file already exists in history by name and size or storageId
-            const { mediaHistory } = get();
-            let existingHistoryItem = null;
-
-            if (isNativeFile && file.nativePath) {
-              // For native files, match by nativePath
-              existingHistoryItem = mediaHistory.find(
-                (item) => item.type === "file" && item.nativePath === file.nativePath
-              );
-            } else if (storageId) {
-              // First try to find by storageId (most reliable)
-              existingHistoryItem = mediaHistory.find(
-                (item) => item.type === "file" && item.storageId === storageId
-              );
-            }
-
-            if (!existingHistoryItem) {
-              // Then try by filename and size
-              existingHistoryItem = mediaHistory.find(
-                (item) =>
-                  item.type === "file" &&
-                  item.fileData?.name === file.name &&
-                  item.fileData?.size === file.size
-              );
-            }
-
-            // Use existing ID if found in history, otherwise generate a new one
-            const fileId = existingHistoryItem
-              ? existingHistoryItem.id.replace("history-", "file-")
-              : `file-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-
-            const fileWithId = {
-              ...file,
-              id: file.id || fileId,
-              storageId,
-            };
-
-            // Add to history (native files carry nativePath; web files carry storageId)
             get().addToMediaHistory({
               type: "file",
-              name: fileWithId.name,
-              fileData: {
-                name: fileWithId.name,
-                type: fileWithId.type,
-                size: fileWithId.size,
-                url: fileWithId.url,
-                nativePath: fileWithId.nativePath,
-              },
+              name: file.name,
+              fileData: { name: file.name, type: file.type, size: file.size, url: file.url, nativePath: file.nativePath },
               storageId: isNativeFile ? undefined : storageId,
-              nativePath: fileWithId.nativePath,
+              nativePath: file.nativePath,
             });
-
-            // Resuming playback time if available in history
-            const startQuery = new URLSearchParams(window.location.search).get("t");
-            let initialTime = 0;
-            if (startQuery) {
-              initialTime = parseFloat(startQuery) || 0;
-            } else if (existingHistoryItem?.playbackTime) {
-              initialTime = existingHistoryItem.playbackTime;
-            }
-
-            set({
-              currentFile: fileWithId,
-              currentYouTube: null,
-              currentTime: initialTime,
-              isPlaying: false,
-              isTranscriptLoading: true,
-              // Reset loop points and selected bookmark when switching media
-              loopStart: null,
-              loopEnd: null,
-              isLooping: false,
-              selectedBookmarkId: null,
-            });
-
-            const mediaId =
-              fileWithId.storageId ||
-              fileWithId.id ||
-              `file-${fileWithId.name}-${fileWithId.size}`;
-            await get().loadTranscriptForMedia(mediaId);
-
-            if (previousUrl && previousUrl !== fileWithId.url) {
-              revokeObjectUrl(previousUrl);
-            }
-          } catch (error) {
-            console.error("Error setting current file:", error);
-            toast.error(i18n.t("history.failedToLoadMedia"));
-
-            revokeObjectUrl(get().currentFile?.url);
-            set({
-              currentFile: null,
-              currentTime: 0,
-              isPlaying: false,
-              isTranscriptLoading: false,
-              loopStart: null,
-              loopEnd: null,
-              isLooping: false,
-              selectedBookmarkId: null,
-            });
+            const mediaId = storageId || file.id || `file-${file.name}-${file.size}`;
+            useTranscriptStore.getState().loadTranscriptForMedia(mediaId);
           }
-        } else {
-          revokeObjectUrl(get().currentFile?.url);
-          set({
-            currentFile: null,
-            currentTime: 0,
-            isPlaying: false,
-            isTranscriptLoading: false,
-            loopStart: null,
-            loopEnd: null,
-            isLooping: false,
-            selectedBookmarkId: null,
-          });
-        }
-      },
-      setCurrentYouTube: async (youtube) => {
-        revokeObjectUrl(get().currentFile?.url);
-        if (youtube) {
-          get().addRecentYouTubeVideo(youtube);
+        },
 
-          // Also add to general history
-          get().addToMediaHistory({
-            type: "youtube",
-            name: youtube.title || `YouTube Video: ${youtube.id}`,
-            youtubeData: {
-              title: youtube.title,
-              youtubeId: youtube.id,
-            },
-          });
-        }
-
-        // Find if we have a saved time for this video
-        const { mediaHistory } = get();
-        const existingHistoryItem = mediaHistory.find(
-          (item) =>
-            item.type === "youtube" &&
-            item.youtubeData?.youtubeId === youtube?.id
-        );
-
-        const startQuery = new URLSearchParams(window.location.search).get("t");
-        let initialTime = 0;
-        if (startQuery) {
-          initialTime = parseFloat(startQuery) || 0;
-        } else if (existingHistoryItem?.playbackTime) {
-          initialTime = existingHistoryItem.playbackTime;
-        }
-
-        set({
-          currentYouTube: youtube,
-          currentFile: null,
-          currentTime: initialTime,
-          isPlaying: false,
-          isTranscriptLoading: !!youtube,
-          // Reset loop points and selected bookmark when switching media
-          loopStart: null,
-          loopEnd: null,
-          isLooping: false,
-          selectedBookmarkId: null,
-        });
-
-        if (youtube?.id) {
-          await get().loadTranscriptForMedia(`youtube-${youtube.id}`);
-        } else {
-          set({ isTranscriptLoading: false });
-        }
-      },
-      setIsPlaying: (isPlaying) => set({ isPlaying }),
-      setIsTransitioning: (isTransitioning) => set({ isTransitioning }),
-      setCurrentTime: (currentTime) => set({ currentTime }),
-      setDuration: (duration) => set({ duration }),
-      setVolume: (volume) => set({ volume }),
-      setMediaVolume: (mediaVolume) => set({ mediaVolume }),
-      setPreviousMediaVolume: (previousMediaVolume) => set({ previousMediaVolume }),
-      setPreviousVolume: (previousVolume) => set({ previousVolume }),
-      setPlaybackRate: (playbackRate) => set({ playbackRate }),
-      setMuted: (muted) => set({ muted }),
-      togglePlay: () => set((state) => ({ isPlaying: !state.isPlaying })),
-      toggleMute: () => {
-        const { muted, volume, previousVolume } = get();
-        if (muted) {
-          // Unmuting
-          if (volume === 0) {
-            if (previousVolume !== undefined && previousVolume > 0) {
-              set({ volume: previousVolume, muted: false });
-            } else {
-              set({ volume: 1, muted: false });
+        setCurrentYouTube: async (youtube) => {
+          useMediaStore.getState().setCurrentYouTube(youtube);
+          if (youtube) {
+            get().addRecentYouTubeVideo(youtube);
+            get().addToMediaHistory({
+              type: "youtube",
+              name: youtube.title || `YouTube Video: ${youtube.id}`,
+              youtubeData: { title: youtube.title, youtubeId: youtube.id },
+            });
+            if (youtube.id) {
+              useTranscriptStore.getState().loadTranscriptForMedia(`youtube-${youtube.id}`);
             }
+          }
+        },
+
+        setIsPlaying: (v) => useMediaStore.setState({ isPlaying: v }),
+        setIsTransitioning: (v) => useMediaStore.setState({ isTransitioning: v }),
+        setCurrentTime: (v) => useMediaStore.setState({ currentTime: v }),
+        setDuration: (v) => useMediaStore.setState({ duration: v }),
+        setVolume: (v) => useMediaStore.setState({ volume: v }),
+        setMediaVolume: (v) => useMediaStore.setState({ mediaVolume: v }),
+        setPreviousMediaVolume: (v) => useMediaStore.setState({ previousMediaVolume: v }),
+        setPreviousVolume: (v) => useMediaStore.setState({ previousVolume: v }),
+        setPlaybackRate: (v) => useMediaStore.setState({ playbackRate: v }),
+        setMuted: (v) => useMediaStore.setState({ muted: v }),
+        togglePlay: () => useMediaStore.getState().togglePlay(),
+        toggleMute: () => useMediaStore.getState().toggleMute(),
+
+        seekForward: (seconds) => {
+          const ms = useMediaStore.getState();
+          if (ms.seekMode === "sentence") {
+            const transcripts = useTranscriptStore.getState().getCurrentMediaTranscripts();
+            const nextTime = getNextSentenceSeekTime(transcripts, ms.currentTime);
+            if (nextTime !== null) { useMediaStore.setState({ currentTime: nextTime }); return; }
+          }
+          useMediaStore.getState().seekForward(seconds);
+        },
+
+        seekBackward: (seconds) => {
+          const ms = useMediaStore.getState();
+          if (ms.seekMode === "sentence") {
+            const transcripts = useTranscriptStore.getState().getCurrentMediaTranscripts();
+            const prevTime = getPreviousSentenceSeekTime(transcripts, ms.currentTime);
+            if (prevTime !== null) { useMediaStore.setState({ currentTime: prevTime }); return; }
+          }
+          useMediaStore.getState().seekBackward(seconds);
+        },
+
+        setIsLoadingMedia: (v) => useMediaStore.setState({ isLoadingMedia: v }),
+
+        setLoopPoints: (s, e) => useMediaStore.setState({ loopStart: s, loopEnd: e }),
+        setIsLooping: (v) => useMediaStore.setState({ isLooping: v }),
+        setLoopCount: (v) => useMediaStore.setState({ loopCount: v }),
+        setMaxLoops: (v) => useMediaStore.setState({ maxLoops: v }),
+
+        toggleLooping: () => {
+          const ms = useMediaStore.getState();
+          if (ms.isLooping) {
+            useMediaStore.setState({ isLooping: false });
           } else {
-            set({ muted: false });
-          }
-        } else {
-          // Muting
-          set({ previousVolume: volume, volume: 0, muted: true });
-        }
-
-      },
-
-      // Seek forward/backward
-      seekForward: (seconds) => {
-        const { currentTime, duration, seekMode, getCurrentMediaTranscripts } = get();
-        if (seekMode === "sentence") {
-          const nextSentenceTime = getNextSentenceSeekTime(
-            getCurrentMediaTranscripts(),
-            currentTime
-          );
-          if (nextSentenceTime !== null) {
-            set({ currentTime: nextSentenceTime });
-            return;
-          }
-        }
-        const newTime = Math.min(currentTime + seconds, duration);
-        set({ currentTime: newTime });
-      },
-
-      seekBackward: (seconds) => {
-        const { currentTime, seekMode, getCurrentMediaTranscripts } = get();
-        if (seekMode === "sentence") {
-          const previousSentenceTime = getPreviousSentenceSeekTime(
-            getCurrentMediaTranscripts(),
-            currentTime
-          );
-          if (previousSentenceTime !== null) {
-            set({ currentTime: previousSentenceTime });
-            return;
-          }
-        }
-        const newTime = Math.max(currentTime - seconds, 0);
-        set({ currentTime: newTime });
-      },
-
-      // Loop actions
-      setLoopPoints: (loopStart, loopEnd) => set({ loopStart, loopEnd }),
-      setIsLooping: (isLooping) => set({ isLooping }),
-      setLoopCount: (loopCount) => set({ loopCount }),
-      setMaxLoops: (maxLoops) => set({ maxLoops }),
-      toggleLooping: () => {
-        const { isLooping, currentTime, getCurrentMediaBookmarks } = get();
-
-        if (isLooping) {
-          // If already looping, just turn it off
-          set({ isLooping: false });
-        } else {
-          // If turning on, check if we are inside a bookmark
-          const bookmarks = getCurrentMediaBookmarks();
-          const coveringBookmarks = bookmarks.filter(
-            (b) => b.start <= currentTime && b.end >= currentTime
-          );
-
-          if (coveringBookmarks.length > 0) {
-            // Find the shortest bookmark
-            const shortest = coveringBookmarks.reduce((prev, curr) => {
-              const prevDur = prev.end - prev.start;
-              const currDur = curr.end - curr.start;
-              return currDur < prevDur ? curr : prev;
-            });
-
-            set({
-              isLooping: true,
-              loopStart: shortest.start,
-              loopEnd: shortest.end,
-              selectedBookmarkId: shortest.id,
-              loopCount: 0,
-            });
-            toast.success(i18n.t("bookmarks.loopingBookmark", { name: shortest.name }));
-          } else {
-            // Default behavior: just toggle on (restores previous loop or enables if set)
-            // If no loop points set, user might expect something, but let's stick to standard toggle
-            set({ isLooping: true, loopCount: 0 });
-          }
-        }
-      },
-      moveLoopWindow: (deltaTime) => {
-        const { loopStart, loopEnd, duration } = get();
-        if (loopStart === null || loopEnd === null) return;
-
-        let newStart = loopStart + deltaTime;
-        let newEnd = loopEnd + deltaTime;
-
-        // Ensure we stay within valid bounds
-        if (newStart < 0) {
-          const shift = -newStart;
-          newStart = 0;
-          newEnd = Math.min(newEnd + shift, duration);
-        }
-
-        if (newEnd > duration) {
-          const shift = newEnd - duration;
-          newEnd = duration;
-          newStart = Math.max(newStart - shift, 0);
-        }
-
-        set({ loopStart: newStart, loopEnd: newEnd });
-      },
-      extendLoopStart: (deltaTime) => {
-        const { loopStart, loopEnd } = get();
-        if (loopStart === null || loopEnd === null) return;
-
-        const newStart = Math.max(0, loopStart + deltaTime);
-        if (newStart < loopEnd) {
-          set({ loopStart: newStart });
-        }
-      },
-      extendLoopEnd: (deltaTime) => {
-        const { loopStart, loopEnd, duration } = get();
-        if (loopStart === null || loopEnd === null) return;
-
-        const newEnd = Math.min(duration, loopEnd + deltaTime);
-        if (newEnd > loopStart) {
-          set({ loopEnd: newEnd });
-        }
-      },
-      scaleLoop: (factor) => {
-        const { loopStart, loopEnd, duration } = get();
-        if (loopStart === null || loopEnd === null) return;
-
-        const center = (loopStart + loopEnd) / 2;
-        const halfLength = (loopEnd - loopStart) / 2;
-        const newHalfLength = halfLength * factor;
-
-        const newStart = Math.max(0, center - newHalfLength);
-        const newEnd = Math.min(duration, center + newHalfLength);
-
-        set({ loopStart: newStart, loopEnd: newEnd });
-      },
-      setBpm: (bpm) => set({ bpm }),
-      setQuantizeLoop: (quantizeLoop) => set({ quantizeLoop }),
-      quantizeCurrentLoop: () => {
-        const { loopStart, loopEnd, bpm } = get();
-        if (loopStart === null || loopEnd === null || !bpm) return;
-
-        // Calculate beat duration in seconds
-        const beatDuration = 60 / bpm;
-
-        // Calculate how many beats the current loop spans
-        const currentDuration = loopEnd - loopStart;
-        const numBeats = Math.round(currentDuration / beatDuration);
-
-        // Ensure at least 1 beat
-        const quantizedNumBeats = Math.max(1, numBeats);
-        const quantizedDuration = quantizedNumBeats * beatDuration;
-
-        // Calculate the new end time while keeping the start fixed
-        const newEnd = loopStart + quantizedDuration;
-        set({ loopEnd: newEnd });
-      },
-      setLoopDelay: (loopDelay) => set({ loopDelay }),
-
-      // UI actions
-      setTheme: (theme) => set({ theme }),
-      setWaveformZoom: (waveformZoom) => set({ waveformZoom }),
-      setShowWaveform: (showWaveform) => set({ showWaveform }),
-      setVideoSize: (videoSize) => set({ videoSize }),
-      setAutoAdvanceBookmarks: (autoAdvanceBookmarks) => set({ autoAdvanceBookmarks }),
-      // Seek settings
-      setSeekStepSeconds: (seconds: number) =>
-        set({ seekStepSeconds: Math.max(0.1, Math.min(120, seconds)) }),
-      setSeekSmallStepSeconds: (seconds: number) =>
-        set({ seekSmallStepSeconds: Math.max(0.05, Math.min(10, seconds)) }),
-      setSeekMode: (seekMode) => set({ seekMode }),
-
-      // Bookmark actions
-      addBookmark: (bookmark) => {
-        const { getCurrentMediaId } = get();
-        const mediaId = getCurrentMediaId();
-        if (!mediaId) return false;
-
-        // Prevent duplicates: same start/end within tolerance
-        const TOL = 0.05; // 50ms tolerance
-        const existing = get().mediaBookmarks[mediaId] || [];
-        const isDup = existing.some(
-          (b) => Math.abs(b.start - bookmark.start) < TOL && Math.abs(b.end - bookmark.end) < TOL
-        );
-        if (isDup) {
-          const now = Date.now();
-          // Show at most once every 1.5s and reuse the same toast id
-          if (now - lastDuplicateToastAt > 1500) {
-            lastDuplicateToastAt = now;
-            toast.error(i18n.t("bookmarks.duplicateRange"), {
-              id: DUPLICATE_TOAST_ID,
-              duration: 1500,
-            });
-          }
-          return false;
-        }
-
-        set((state) => ({
-          mediaBookmarks: {
-            ...state.mediaBookmarks,
-            [mediaId]: [
-              ...(state.mediaBookmarks[mediaId] || []),
-              {
-                ...bookmark,
-                id: Date.now().toString(),
-                createdAt: Date.now(),
-              },
-            ],
-          },
-        }));
-        return true;
-      },
-      updateBookmark: (id, changes) => {
-        const { getCurrentMediaId } = get();
-        const mediaId = getCurrentMediaId();
-        if (!mediaId) return;
-
-        set((state) => ({
-          mediaBookmarks: {
-            ...state.mediaBookmarks,
-            [mediaId]: (state.mediaBookmarks[mediaId] || []).map((bookmark) =>
-              bookmark.id === id ? { ...bookmark, ...changes } : bookmark
-            ),
-          },
-        }));
-      },
-      deleteBookmark: (id) => {
-        const { getCurrentMediaId } = get();
-        const mediaId = getCurrentMediaId();
-        if (!mediaId) return;
-
-        set((state) => ({
-          mediaBookmarks: {
-            ...state.mediaBookmarks,
-            [mediaId]: (state.mediaBookmarks[mediaId] || []).filter(
-              (bookmark) => bookmark.id !== id
-            ),
-          },
-          selectedBookmarkId:
-            state.selectedBookmarkId === id ? null : state.selectedBookmarkId,
-        }));
-      },
-      loadBookmark: (id) => {
-        const { getCurrentMediaBookmarks } = get();
-        const bookmarks = getCurrentMediaBookmarks();
-        const bookmark = bookmarks.find((b) => b.id === id);
-
-        if (bookmark) {
-          set({
-            loopStart: bookmark.start,
-            loopEnd: bookmark.end,
-            isLooping: true,
-            selectedBookmarkId: id,
-            loopCount: 0,
-            ...(bookmark.playbackRate !== undefined
-              ? { playbackRate: bookmark.playbackRate }
-              : {}),
-          });
-        }
-      },
-      setSelectedBookmarkId: (selectedBookmarkId) =>
-        set({ selectedBookmarkId }),
-      importBookmarks: (bookmarks) => {
-        const { getCurrentMediaId } = get();
-        const mediaId = getCurrentMediaId();
-        if (!mediaId) return;
-
-        // Deduplicate on import by time range (within tolerance)
-        const TOL = 0.05;
-        const current = get().mediaBookmarks[mediaId] || [];
-        const filtered = bookmarks.filter(
-          (bm) =>
-            !current.some(
-              (b) => Math.abs(b.start - bm.start) < TOL && Math.abs(b.end - bm.end) < TOL
-            )
-        );
-
-        set((state) => ({
-          mediaBookmarks: {
-            ...state.mediaBookmarks,
-            [mediaId]: [...(state.mediaBookmarks[mediaId] || []), ...filtered],
-          },
-        }));
-      },
-
-      addGlossaryEntry: (input) => {
-        const { glossaryEntries } = get();
-        if (isDuplicateGlossaryEntry(glossaryEntries, input)) {
-          toast.error(i18n.t("glossary.alreadySaved"));
-          return false;
-        }
-
-        const entry = createGlossaryEntry(input);
-
-        set((state) => ({
-          glossaryEntries: [entry, ...state.glossaryEntries],
-        }));
-        return true;
-      },
-      deleteGlossaryEntry: (id) => {
-        set((state) => ({
-          glossaryEntries: state.glossaryEntries.filter((entry) => entry.id !== id),
-        }));
-      },
-      playGlossaryEntryContext: (id) => {
-        const { glossaryEntries, getCurrentMediaId } = get();
-        const entry = glossaryEntries.find((candidate) => candidate.id === id);
-        const currentMediaId = getCurrentMediaId();
-
-        if (!entry || !currentMediaId || entry.mediaId !== currentMediaId) {
-          return false;
-        }
-
-        const startTime = Math.max(0, entry.startTime - 0.15);
-
-        set({
-          currentTime: startTime,
-          loopStart: startTime,
-          loopEnd: entry.endTime,
-          isLooping: true,
-          isPlaying: true,
-          selectedBookmarkId: null,
-          loopCount: 0,
-        });
-        return true;
-      },
-
-      // History actions
-      addRecentYouTubeVideo: (video) =>
-        set((state) => {
-          // Check if this video is already in recent videos
-          const exists = state.recentYouTubeVideos.some(
-            (v) => v.id === video.id
-          );
-          if (exists) {
-            // Move it to the top of the list
-            return {
-              recentYouTubeVideos: [
-                video,
-                ...state.recentYouTubeVideos.filter((v) => v.id !== video.id),
-              ].slice(0, 10), // Keep only 10 most recent
-            };
-          } else {
-            // Add it to the top
-            return {
-              recentYouTubeVideos: [video, ...state.recentYouTubeVideos].slice(
-                0,
-                10
-              ), // Keep only 10 most recent
-            };
-          }
-        }),
-      clearRecentYouTubeVideos: () => set({ recentYouTubeVideos: [] }),
-
-      // Extended history management
-      addToMediaHistory: (item) =>
-        set((state) => {
-          const id = `history-${Date.now()}-${Math.random()
-            .toString(36)
-            .substr(2, 9)}`;
-          const timestamp = Date.now();
-
-          // Check if this item already exists in history
-          let existingItemIndex = -1;
-
-          if (item.type === "file" && item.fileData) {
-            // First check by storageId if available (most reliable)
-            if (item.storageId) {
-              existingItemIndex = state.mediaHistory.findIndex(
-                (h) => h.type === "file" && h.storageId === item.storageId
-              );
-            }
-
-            // If not found by storageId, try by filename and size
-            if (existingItemIndex === -1 && item.fileData.name) {
-              existingItemIndex = state.mediaHistory.findIndex(
-                (h) =>
-                  h.type === "file" &&
-                  h.fileData?.name === item.fileData?.name &&
-                  h.fileData?.size === item.fileData?.size
-              );
-            }
-          } else if (item.type === "youtube" && item.youtubeData) {
-            existingItemIndex = state.mediaHistory.findIndex(
-              (h) =>
-                h.type === "youtube" &&
-                h.youtubeData?.youtubeId === item.youtubeData?.youtubeId
-            );
-          }
-
-          // If item exists, update its timestamp and move to top of history
-          if (existingItemIndex >= 0) {
-            const updatedHistory = [...state.mediaHistory];
-            const existingItem = updatedHistory.splice(existingItemIndex, 1)[0];
-
-            // Update the storageId if the new item has one but the existing one doesn't
-            const updatedItem = {
-              ...existingItem,
-              accessedAt: timestamp,
-              // Preserve existing name (keep user renames)
-              name: existingItem.name || item.name,
-              // Update storageId if the new item has one
-              ...(item.storageId && !existingItem.storageId
-                ? { storageId: item.storageId }
-                : {}),
-              // Update fileData if needed
-              ...(item.fileData
-                ? { fileData: { ...existingItem.fileData, ...item.fileData } }
-                : {}),
-              // Preserve folder assignment
-              folderId: existingItem.folderId ?? null,
-            };
-
-            return {
-              mediaHistory: [updatedItem, ...updatedHistory].slice(
-                0,
-                state.historyLimit
-              ),
-            };
-          }
-
-          // Otherwise add as new item
-          return {
-            mediaHistory: [
-              { ...item, id, accessedAt: timestamp, folderId: null },
-              ...state.mediaHistory,
-            ].slice(0, state.historyLimit),
-          };
-        }),
-
-      updateHistoryPlaybackTime: (id, time) =>
-        set((state) => ({
-          mediaHistory: state.mediaHistory.map((item) =>
-            item.id === id ? { ...item, playbackTime: time } : item
-          ),
-        })),
-
-      loadFromHistory: async (historyItemId) => {
-        // Set loading state at the beginning
-        set({ isLoadingMedia: true });
-
-        const { mediaHistory } = get();
-        const historyItem = mediaHistory.find(
-          (item) => item.id === historyItemId
-        );
-
-        if (!historyItem) {
-          set({ isLoadingMedia: false });
-          return;
-        }
-
-        try {
-          if (historyItem.type === "file" && historyItem.fileData) {
-            // Native Electron file: reconstruct file:// URL from the saved path
-            if (historyItem.nativePath) {
-              const url = nativePathToUrl(historyItem.nativePath);
-              const fileData: MediaFile = {
-                name: historyItem.fileData.name,
-                type: historyItem.fileData.type,
-                size: historyItem.fileData.size,
-                url,
-                nativePath: historyItem.nativePath,
-              };
-              get().setCurrentFile(fileData);
-              if (historyItem.playbackTime) {
-                set({ currentTime: historyItem.playbackTime });
-              }
-              set({ isLoadingMedia: false });
+            const bookmarks = useBookmarkStore.getState().getCurrentMediaBookmarks();
+            const covering = bookmarks.filter((b) => b.start <= ms.currentTime && b.end >= ms.currentTime);
+            if (covering.length > 0) {
+              const shortest = covering.reduce((p, c) => (c.end - c.start) < (p.end - p.start) ? c : p);
+              useMediaStore.setState({
+                isLooping: true, loopStart: shortest.start, loopEnd: shortest.end, loopCount: 0,
+              });
+              useBookmarkStore.setState({ selectedBookmarkId: shortest.id });
+              toast.success(i18n.t("bookmarks.loopingBookmark", { name: shortest.name }));
               return;
             }
-
-            // Check if we have this file stored in IndexedDB
-            if (historyItem.storageId) {
-              try {
-                // Try to retrieve the file from IndexedDB
-                const file = await retrieveMediaFile(historyItem.storageId);
-
-                if (file) {
-                  // Create a URL for the file
-                  const url = URL.createObjectURL(file);
-                  console.log(
-                    "Retrieved file from IndexedDB:",
-                    file,
-                    "Created URL:",
-                    url
-                  );
-
-                  const fileData: MediaFile = {
-                    name: historyItem.fileData.name,
-                    type: historyItem.fileData.type,
-                    size: historyItem.fileData.size,
-                    url: url,
-                    storageId: historyItem.storageId,
-                  };
-
-                  get().setCurrentFile(fileData);
-                  // Restore playback time if available
-                  if (historyItem.playbackTime) {
-                    set({ currentTime: historyItem.playbackTime });
-                  }
-                  set({ isLoadingMedia: false });
-                  return;
-                }
-              } catch (error) {
-                console.error("Failed to load file from storage:", error);
-              }
-
-              // storageId was present but file not found/failed — don't try the stale blob URL
-              toast.error(i18n.t("player.couldNotRetrieveMedia"));
-              set({ isLoadingMedia: false });
-              return;
-            }
-
-            // No storageId — try the URL only if it's not a blob (blob URLs don't survive page refresh)
-            const savedUrl = historyItem.fileData.url;
-            if (!savedUrl || savedUrl.startsWith("blob:")) {
-              toast.error(i18n.t("player.couldNotRetrieveMedia"));
-              set({ isLoadingMedia: false });
-              return;
-            }
-
-            const fileData: MediaFile = {
-              ...historyItem.fileData,
-            };
-
-            get().setCurrentFile(fileData);
-            // Restore playback time if available
-            if (historyItem.playbackTime) {
-              set({ currentTime: historyItem.playbackTime });
-            }
-          } else if (
-            historyItem.type === "youtube" &&
-            historyItem.youtubeData
-          ) {
-            // Get the YouTube ID from the history item
-            const youtubeId = historyItem.youtubeData.youtubeId;
-            if (!youtubeId) {
-              set({ isLoadingMedia: false });
-              return;
-            }
-
-            const youtubeData: YouTubeMedia = {
-              id: youtubeId,
-              title: historyItem.youtubeData.title,
-            };
-            get().setCurrentYouTube(youtubeData);
-            // Restore playback time if available
-            if (historyItem.playbackTime) {
-              set({ currentTime: historyItem.playbackTime });
-            }
+            useMediaStore.setState({ isLooping: true, loopCount: 0 });
           }
+        },
 
-          // Update the access timestamp but don't create a new entry
-          // Just move this item to the top of the history list
+        moveLoopWindow: (d) => useMediaStore.getState().moveLoopWindow(d),
+        extendLoopStart: (d) => useMediaStore.getState().extendLoopStart(d),
+        extendLoopEnd: (d) => useMediaStore.getState().extendLoopEnd(d),
+        scaleLoop: (f) => useMediaStore.getState().scaleLoop(f),
+        setBpm: (v) => useMediaStore.setState({ bpm: v }),
+        setQuantizeLoop: (v) => useMediaStore.setState({ quantizeLoop: v }),
+        quantizeCurrentLoop: () => useMediaStore.getState().quantizeCurrentLoop(),
+        setLoopDelay: (v) => useMediaStore.setState({ loopDelay: v }),
+        setAutoAdvanceBookmarks: (v) => useMediaStore.setState({ autoAdvanceBookmarks: v }),
+        setSeekStepSeconds: (s) => useMediaStore.getState().setSeekStepSeconds(s),
+        setSeekSmallStepSeconds: (s) => useMediaStore.getState().setSeekSmallStepSeconds(s),
+        setSeekMode: (m) => useMediaStore.setState({ seekMode: m }),
+
+        // ── Bookmark actions ──
+        addBookmark: (b) => useBookmarkStore.getState().addBookmark(b),
+        updateBookmark: (id, c) => useBookmarkStore.getState().updateBookmark(id, c),
+        deleteBookmark: (id) => useBookmarkStore.getState().deleteBookmark(id),
+        loadBookmark: (id) => useBookmarkStore.getState().loadBookmark(id),
+        setSelectedBookmarkId: (id) => useBookmarkStore.setState({ selectedBookmarkId: id }),
+        importBookmarks: (b) => useBookmarkStore.getState().importBookmarks(b),
+        getCurrentMediaBookmarks: () => useBookmarkStore.getState().getCurrentMediaBookmarks(),
+
+        // ── Transcript actions ──
+        startTranscribing: () => useTranscriptStore.getState().startTranscribing(),
+        stopTranscribing: () => useTranscriptStore.getState().stopTranscribing(),
+        toggleTranscribing: () => useTranscriptStore.getState().toggleTranscribing(),
+        addTranscriptSegment: (s) => useTranscriptStore.getState().addTranscriptSegment(s),
+        addTranscriptSegments: (s) => useTranscriptStore.getState().addTranscriptSegments(s),
+        updateTranscriptSegment: (id, c) => useTranscriptStore.getState().updateTranscriptSegment(id, c),
+        clearTranscript: () => useTranscriptStore.getState().clearTranscript(),
+        setShowTranscript: (s) => useTranscriptStore.setState({ showTranscript: s }),
+        toggleShowTranscript: () => useTranscriptStore.getState().toggleShowTranscript(),
+        setTranscriptLanguage: (l) => useTranscriptStore.setState({ transcriptLanguage: l }),
+        exportTranscript: (f) => useTranscriptStore.getState().exportTranscript(f),
+        importTranscript: (f) => useTranscriptStore.getState().importTranscript(f),
+        createBookmarkFromTranscript: (id) => useTranscriptStore.getState().createBookmarkFromTranscript(id),
+        loadTranscriptForMedia: (id) => useTranscriptStore.getState().loadTranscriptForMedia(id),
+        addGlossaryEntry: (e) => useTranscriptStore.getState().addGlossaryEntry(e),
+        deleteGlossaryEntry: (id) => useTranscriptStore.getState().deleteGlossaryEntry(id),
+        playGlossaryEntryContext: (id) => useTranscriptStore.getState().playGlossaryEntryContext(id),
+        getCurrentMediaTranscripts: () => useTranscriptStore.getState().getCurrentMediaTranscripts(),
+
+        getCurrentMediaId: () => useMediaStore.getState().getCurrentMediaId(),
+
+        // ── History actions ──
+        addRecentYouTubeVideo: (video) =>
           set((state) => {
-            const updatedHistory = [...state.mediaHistory];
-            const existingItemIndex = updatedHistory.findIndex(
-              (item) => item.id === historyItemId
-            );
+            const exists = state.recentYouTubeVideos.some((v) => v.id === video.id);
+            if (exists) {
+              return { recentYouTubeVideos: [video, ...state.recentYouTubeVideos.filter((v) => v.id !== video.id)].slice(0, 10) };
+            }
+            return { recentYouTubeVideos: [video, ...state.recentYouTubeVideos].slice(0, 10) };
+          }),
+        clearRecentYouTubeVideos: () => set({ recentYouTubeVideos: [] }),
+
+        addToMediaHistory: (item) =>
+          set((state) => {
+            const id = `history-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+            const timestamp = Date.now();
+            let existingItemIndex = -1;
+
+            if (item.type === "file" && item.fileData) {
+              if (item.storageId) {
+                existingItemIndex = state.mediaHistory.findIndex((h) => h.type === "file" && h.storageId === item.storageId);
+              }
+              if (existingItemIndex === -1 && item.fileData.name) {
+                existingItemIndex = state.mediaHistory.findIndex(
+                  (h) => h.type === "file" && h.fileData?.name === item.fileData?.name && h.fileData?.size === item.fileData?.size
+                );
+              }
+            } else if (item.type === "youtube" && item.youtubeData) {
+              existingItemIndex = state.mediaHistory.findIndex(
+                (h) => h.type === "youtube" && h.youtubeData?.youtubeId === item.youtubeData?.youtubeId
+              );
+            }
 
             if (existingItemIndex >= 0) {
-              const existingItem = updatedHistory.splice(
-                existingItemIndex,
-                1
-              )[0];
+              const updatedHistory = [...state.mediaHistory];
+              const existingItem = updatedHistory.splice(existingItemIndex, 1)[0];
               return {
-                mediaHistory: [
-                  { ...existingItem, accessedAt: Date.now() },
-                  ...updatedHistory,
-                ].slice(0, state.historyLimit),
+                mediaHistory: [{
+                  ...existingItem, accessedAt: timestamp,
+                  name: existingItem.name || item.name,
+                  ...(item.storageId && !existingItem.storageId ? { storageId: item.storageId } : {}),
+                  ...(item.fileData ? { fileData: { ...existingItem.fileData, ...item.fileData } } : {}),
+                  folderId: existingItem.folderId ?? null,
+                }, ...updatedHistory].slice(0, state.historyLimit),
               };
             }
+            return { mediaHistory: [{ ...item, id, accessedAt: timestamp, folderId: null }, ...state.mediaHistory].slice(0, state.historyLimit) };
+          }),
 
-            return state; // No changes if item not found
+        updateHistoryPlaybackTime: (id, time) =>
+          set((state) => ({ mediaHistory: state.mediaHistory.map((h) => h.id === id ? { ...h, playbackTime: time } : h) })),
+
+        loadFromHistory: async (historyItemId) => {
+          useMediaStore.setState({ isLoadingMedia: true });
+          const historyItem = get().mediaHistory.find((h) => h.id === historyItemId);
+          if (!historyItem) { useMediaStore.setState({ isLoadingMedia: false }); return; }
+
+          try {
+            if (historyItem.type === "file" && historyItem.fileData) {
+              if (historyItem.nativePath) {
+                if (window.electronAPI?.approvePath) {
+                  await window.electronAPI.approvePath(historyItem.nativePath);
+                }
+                const url = nativePathToUrl(historyItem.nativePath);
+                const fd: MediaFile = { ...historyItem.fileData, url, nativePath: historyItem.nativePath };
+                useMediaStore.getState().setCurrentFile(fd);
+                const mediaId = fd.storageId || fd.id || `file-${fd.name}-${fd.size}`;
+                useTranscriptStore.getState().loadTranscriptForMedia(mediaId);
+                if (historyItem.playbackTime) useMediaStore.setState({ currentTime: historyItem.playbackTime });
+                useMediaStore.setState({ isLoadingMedia: false });
+                return;
+              }
+              if (historyItem.storageId) {
+                try {
+                  const file = await retrieveMediaFile(historyItem.storageId);
+                  if (file) {
+                    const url = URL.createObjectURL(file);
+                    const fd: MediaFile = { ...historyItem.fileData, url, storageId: historyItem.storageId };
+                    useMediaStore.getState().setCurrentFile(fd);
+                    const mediaId = fd.storageId || fd.id || `file-${fd.name}-${fd.size}`;
+                    useTranscriptStore.getState().loadTranscriptForMedia(mediaId);
+                    if (historyItem.playbackTime) useMediaStore.setState({ currentTime: historyItem.playbackTime });
+                    useMediaStore.setState({ isLoadingMedia: false });
+                    return;
+                  }
+                } catch (e) { console.error("Failed to load file from storage:", e); }
+                toast.error(i18n.t("player.couldNotRetrieveMedia"));
+                useMediaStore.setState({ isLoadingMedia: false });
+                return;
+              }
+              const savedUrl = historyItem.fileData.url;
+              if (!savedUrl || savedUrl.startsWith("blob:")) {
+                toast.error(i18n.t("player.couldNotRetrieveMedia"));
+                useMediaStore.setState({ isLoadingMedia: false });
+                return;
+              }
+              const fd: MediaFile = { ...historyItem.fileData };
+              useMediaStore.getState().setCurrentFile(fd);
+              const mediaId = fd.storageId || fd.id || `file-${fd.name}-${fd.size}`;
+              useTranscriptStore.getState().loadTranscriptForMedia(mediaId);
+              if (historyItem.playbackTime) useMediaStore.setState({ currentTime: historyItem.playbackTime });
+            } else if (historyItem.type === "youtube" && historyItem.youtubeData) {
+              const yid = historyItem.youtubeData.youtubeId;
+              if (!yid) { useMediaStore.setState({ isLoadingMedia: false }); return; }
+              useMediaStore.getState().setCurrentYouTube({ id: yid, title: historyItem.youtubeData.title });
+              useTranscriptStore.getState().loadTranscriptForMedia(`youtube-${yid}`);
+              if (historyItem.playbackTime) useMediaStore.setState({ currentTime: historyItem.playbackTime });
+            }
+
+            set((state) => {
+              const updated = [...state.mediaHistory];
+              const idx = updated.findIndex((h) => h.id === historyItemId);
+              if (idx >= 0) {
+                const existing = updated.splice(idx, 1)[0];
+                return { mediaHistory: [{ ...existing, accessedAt: Date.now() }, ...updated].slice(0, state.historyLimit) };
+              }
+              return state;
+            });
+          } finally {
+            useMediaStore.setState({ isLoadingMedia: false });
+          }
+        },
+
+        removeFromHistory: async (historyItemId) => {
+          const historyItem = get().mediaHistory.find((h) => h.id === historyItemId);
+          if (!historyItem) return;
+
+          const derivedMediaId =
+            historyItem.type === "file"
+              ? historyItem.storageId || (historyItem.fileData ? `file-${historyItem.fileData.name}-${historyItem.fileData.size}` : null)
+              : historyItem.youtubeData?.youtubeId ? `youtube-${historyItem.youtubeData.youtubeId}` : null;
+
+          const ms = useMediaStore.getState();
+          const isDeletingCurrent =
+            (historyItem.type === "file" && !!ms.currentFile &&
+              ((historyItem.storageId && ms.currentFile.storageId === historyItem.storageId) ||
+                (!!historyItem.fileData && ms.currentFile.name === historyItem.fileData.name && ms.currentFile.size === historyItem.fileData.size))) ||
+            (historyItem.type === "youtube" && !!ms.currentYouTube && ms.currentYouTube.id === historyItem.youtubeData?.youtubeId);
+
+          set((state) => {
+            const nextBm = { ...useBookmarkStore.getState().mediaBookmarks };
+            const nextTs = { ...useTranscriptStore.getState().mediaTranscripts };
+            const nextStudy = { ...useTranscriptStore.getState().mediaTranscriptStudy };
+            if (derivedMediaId) {
+              delete nextBm[derivedMediaId];
+              delete nextTs[derivedMediaId];
+              delete nextStudy[derivedMediaId];
+            }
+            useBookmarkStore.setState({ mediaBookmarks: nextBm });
+            useTranscriptStore.setState({ mediaTranscripts: nextTs, mediaTranscriptStudy: nextStudy });
+
+            if (isDeletingCurrent) {
+              revokeObjectUrlIfNeeded(ms.currentFile?.url);
+              useMediaStore.setState({
+                currentFile: null, currentYouTube: null, isPlaying: false,
+                currentTime: 0, duration: 0, loopStart: null, loopEnd: null, isLooping: false,
+              });
+              useBookmarkStore.setState({ selectedBookmarkId: null });
+            }
+            return { mediaHistory: state.mediaHistory.filter((h) => h.id !== historyItemId) };
           });
-        } finally {
-          // Always clear loading state when done
-          set({ isLoadingMedia: false });
-        }
-      },
-
-      removeFromHistory: async (historyItemId) => {
-        const { mediaHistory } = get();
-        const historyItem = mediaHistory.find(
-          (item) => item.id === historyItemId
-        );
-
-        if (!historyItem) return;
-
-        const derivedMediaId =
-          historyItem.type === "file"
-            ? historyItem.storageId ||
-              (historyItem.fileData
-                ? `file-${historyItem.fileData.name}-${historyItem.fileData.size}`
-                : null)
-            : historyItem.youtubeData?.youtubeId
-              ? `youtube-${historyItem.youtubeData.youtubeId}`
-              : null;
-
-        const { currentFile, currentYouTube } = get();
-        const isDeletingCurrentMedia =
-          (historyItem.type === "file" &&
-            !!currentFile &&
-            ((historyItem.storageId &&
-              currentFile.storageId === historyItem.storageId) ||
-              (!!historyItem.fileData &&
-                currentFile.name === historyItem.fileData.name &&
-                currentFile.size === historyItem.fileData.size))) ||
-          (historyItem.type === "youtube" &&
-            !!currentYouTube &&
-            currentYouTube.id === historyItem.youtubeData?.youtubeId);
-
-        // Remove references immediately so the library updates even if storage cleanup is slow.
-        set((state) => {
-          const nextBookmarks = { ...state.mediaBookmarks };
-          const nextTranscripts = { ...state.mediaTranscripts };
-          const nextTranscriptStudy = { ...state.mediaTranscriptStudy };
 
           if (derivedMediaId) {
-            delete nextBookmarks[derivedMediaId];
-            delete nextTranscripts[derivedMediaId];
-            delete nextTranscriptStudy[derivedMediaId];
+            const { deleteStoredTranscript } = await import("../utils/mediaStorage");
+            await deleteStoredTranscript(derivedMediaId);
+            try {
+              const { useShadowingStore } = await import("./shadowingStore");
+              await useShadowingStore.getState().deleteAllSegments(derivedMediaId);
+            } catch (e) { console.error("Failed to delete shadowing segments:", e); }
           }
+          if (historyItem.storageId) {
+            try { await deleteMediaFile(historyItem.storageId); } catch (e) { console.error("Failed to delete media file:", e); }
+          }
+        },
 
-          return {
-            mediaHistory: state.mediaHistory.filter(
-              (item) => item.id !== historyItemId
-            ),
-            mediaBookmarks: nextBookmarks,
-            mediaTranscripts: nextTranscripts,
-            mediaTranscriptStudy: nextTranscriptStudy,
-            ...(isDeletingCurrentMedia
-              ? {
-                  currentFile: null,
-                  currentYouTube: null,
-                  isPlaying: false,
-                  currentTime: 0,
-                  duration: 0,
-                  loopStart: null,
-                  loopEnd: null,
-                  isLooping: false,
-                  selectedBookmarkId: null,
-                }
-              : {}),
-          };
-        });
+        clearMediaHistory: async () => {
+          const mediaIds = get().mediaHistory
+            .map((h) =>
+              h.type === "file"
+                ? h.storageId || (h.fileData ? `file-${h.fileData.name}-${h.fileData.size}` : null)
+                : h.youtubeData?.youtubeId ? `youtube-${h.youtubeData.youtubeId}` : null
+            )
+            .filter(Boolean) as string[];
 
-        if (derivedMediaId) {
-          await deleteStoredTranscript(derivedMediaId);
+          revokeObjectUrlIfNeeded(useMediaStore.getState().currentFile?.url);
+          useMediaStore.setState({
+            currentFile: null, currentYouTube: null, isPlaying: false,
+            currentTime: 0, duration: 0, loopStart: null, loopEnd: null, isLooping: false, isLoadingMedia: false,
+          });
+          useBookmarkStore.setState({ mediaBookmarks: {}, selectedBookmarkId: null });
+          useTranscriptStore.setState({ mediaTranscripts: {}, mediaTranscriptStudy: {}, isTranscriptLoading: false });
+          set({ mediaHistory: [] });
 
           try {
+            await clearAllStoredTranscripts();
             const { useShadowingStore } = await import("./shadowingStore");
-            await useShadowingStore.getState().deleteAllSegments(derivedMediaId);
-          } catch (error) {
-            console.error("Failed to delete shadowing segments:", error);
-          }
-        }
-
-        // If this item has a storage ID, delete the file from IndexedDB
-        if (historyItem.storageId) {
+            await Promise.all(mediaIds.map((id) => useShadowingStore.getState().deleteAllSegments(id)));
+          } catch (e) { console.error("Failed to clear shadowing sessions:", e); }
           try {
-            await deleteMediaFile(historyItem.storageId);
-            console.log(
-              "Deleted media file from storage:",
-              historyItem.storageId
-            );
-          } catch (error) {
-            console.error("Failed to delete media file from storage:", error);
-          }
-        }
+            const { clearAllMediaFiles } = await import("../utils/mediaStorage");
+            await clearAllMediaFiles();
+          } catch (e) { console.error("Failed to clear media storage:", e); }
+        },
 
-      },
+        setHistoryLimit: (l) => set({ historyLimit: l }),
 
-      clearMediaHistory: async () => {
-        const mediaIds = get().mediaHistory
-          .map((item) =>
-            item.type === "file"
-              ? item.storageId ||
-                (item.fileData
-                  ? `file-${item.fileData.name}-${item.fileData.size}`
-                  : null)
-              : item.youtubeData?.youtubeId
-                ? `youtube-${item.youtubeData.youtubeId}`
-                : null
-          )
-          .filter((mediaId): mediaId is string => Boolean(mediaId));
-
-        set({
-          mediaHistory: [],
-          mediaBookmarks: {},
-          mediaTranscripts: {},
-          mediaTranscriptStudy: {},
-          currentFile: null,
-          currentYouTube: null,
-          isPlaying: false,
-          currentTime: 0,
-          duration: 0,
-          loopStart: null,
-          loopEnd: null,
-          isLooping: false,
-          selectedBookmarkId: null,
-          isTranscriptLoading: false,
-        });
-
-        try {
-          await clearAllStoredTranscripts();
-
-          const { useShadowingStore } = await import("./shadowingStore");
-          await Promise.all(
-            mediaIds.map((mediaId) =>
-              useShadowingStore.getState().deleteAllSegments(mediaId)
-            )
-          );
-        } catch (error) {
-          console.error("Failed to clear shadowing sessions:", error);
-        }
-
-        try {
-          // Clear all media files from IndexedDB
-          const { clearAllMediaFiles } = await import("../utils/mediaStorage");
-          await clearAllMediaFiles();
-          console.log("All media files cleared from storage");
-        } catch (error) {
-          console.error("Failed to clear media storage:", error);
-        }
-      },
-
-      setHistoryLimit(limit) {
-        set({ historyLimit: limit });
-      },
-
-      // Folder & item management
-      createMediaFolder: (name, parentId = null) => {
-        const id = `folder-${Date.now()}-${Math.random()
-          .toString(36)
-          .substring(2, 8)}`;
-        set((state) => ({
-          mediaFolders: {
-            ...state.mediaFolders,
-            [id]: {
-              id,
-              name,
-              createdAt: Date.now(),
-              parentId: parentId ?? null,
-            },
-          },
-        }));
-        return id;
-      },
-      renameMediaFolder: (folderId, newName) =>
-        set((state) => ({
-          mediaFolders: {
-            ...state.mediaFolders,
-            [folderId]: {
-              ...state.mediaFolders[folderId],
-              name: newName,
-            },
-          },
-        })),
-      deleteMediaFolder: (folderId) =>
-        set((state) => {
-          const removalSet = new Set<string>();
-          const stack = [folderId];
-
-          while (stack.length) {
-            const current = stack.pop()!;
-            removalSet.add(current);
-            Object.values(state.mediaFolders).forEach((folder) => {
-              if (folder.parentId === current) {
-                stack.push(folder.id);
-              }
-            });
-          }
-
-          const mediaFolders = Object.fromEntries(
-            Object.entries(state.mediaFolders).filter(
-              ([id]) => !removalSet.has(id)
-            )
-          );
-
-          const mediaHistory = state.mediaHistory.map((item) =>
-            item.folderId && removalSet.has(item.folderId)
-              ? { ...item, folderId: null }
-              : item
-          );
-
-          const shouldResetFilter =
-            state.historyFolderFilter !== "all" &&
-            state.historyFolderFilter !== "unfiled" &&
-            typeof state.historyFolderFilter === "string" &&
-            removalSet.has(state.historyFolderFilter);
-
-          const historyFolderFilter = shouldResetFilter
-            ? "unfiled"
-            : state.historyFolderFilter;
-
-          return { mediaFolders, mediaHistory, historyFolderFilter };
-        }),
-      moveHistoryItemToFolder: (historyItemId, folderId) =>
-        set((state) => ({
-          mediaHistory: state.mediaHistory.map((item) =>
-            item.id === historyItemId ? { ...item, folderId: folderId ?? null } : item
-          ),
-        })),
-      renameHistoryItem: (historyItemId, newName) =>
-        set((state) => ({
-          mediaHistory: state.mediaHistory.map((item) =>
-            item.id === historyItemId
-              ? {
-                ...item,
-                name: newName,
-                ...(item.type === "file" && item.fileData
-                  ? { fileData: { ...item.fileData, name: newName } }
-                  : {}),
-                ...(item.type === "youtube" && item.youtubeData
-                  ? { youtubeData: { ...item.youtubeData, title: newName } }
-                  : {}),
-              }
-              : item
-          ),
-        })),
-      setHistorySort: (by, order) => set({ historySortBy: by, historySortOrder: order }),
-      setHistoryFolderFilter: (filter) => set({ historyFolderFilter: filter }),
-      addSourceFolder: (path) =>
-        set((state) => ({
-          sourceFolders: state.sourceFolders.includes(path)
-            ? state.sourceFolders
-            : [...state.sourceFolders, path],
-        })),
-      removeSourceFolder: (path) =>
-        set((state) => ({
-          sourceFolders: state.sourceFolders.filter((f) => f !== path),
-        })),
-
-      // Transcript actions
-      startTranscribing() {
-        set({ isTranscribing: true });
-      },
-
-      stopTranscribing() {
-        set({ isTranscribing: false });
-      },
-
-      toggleTranscribing() {
-        const { isTranscribing } = get();
-        set({ isTranscribing: !isTranscribing });
-      },
-
-      addTranscriptSegment(segment) {
-        get().addTranscriptSegments([segment]);
-      },
-
-      addTranscriptSegments(segments) {
-        const { getCurrentMediaId } = get();
-        const mediaId = getCurrentMediaId();
-        if (!mediaId) return;
-        if (segments.length === 0) return;
-
-        let updatedSegments: TranscriptSegment[] | null = null;
-        let updatedStudyBySegment: MediaTranscriptStudy | null = null;
-
-        set((state) => {
-          const currentSegments = state.mediaTranscripts[mediaId] || [];
-          const nextSegments = [...currentSegments];
-          const acceptedSegments: TranscriptSegment[] = [];
-
-          segments.forEach((segment) => {
-            const newSegment = { ...segment, id: crypto.randomUUID() };
-            const isDuplicate = nextSegments.some(
-              (s) => Math.abs(s.startTime - newSegment.startTime) < 0.1 && s.text === newSegment.text
-            );
-
-            if (!isDuplicate) {
-              nextSegments.push(newSegment);
-              acceptedSegments.push(newSegment);
+        createMediaFolder: (name, parentId = null) => {
+          const id = `folder-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
+          set((s) => ({ mediaFolders: { ...s.mediaFolders, [id]: { id, name, createdAt: Date.now(), parentId: parentId ?? null } } }));
+          return id;
+        },
+        renameMediaFolder: (folderId, newName) =>
+          set((s) => ({ mediaFolders: { ...s.mediaFolders, [folderId]: { ...s.mediaFolders[folderId], name: newName } } })),
+        deleteMediaFolder: (folderId) =>
+          set((s) => {
+            const removalSet = new Set<string>();
+            const stack = [folderId];
+            while (stack.length) {
+              const cur = stack.pop()!;
+              removalSet.add(cur);
+              Object.values(s.mediaFolders).forEach((f) => { if (f.parentId === cur) stack.push(f.id); });
             }
-          });
-
-          if (acceptedSegments.length === 0) return state;
-
-          updatedSegments = nextSegments.sort(
-            (a, b) => a.startTime - b.startTime
-          );
-          updatedStudyBySegment = {
-            ...(state.mediaTranscriptStudy[mediaId] || {}),
-          };
-          const levelSystem = inferTranscriptLevelSystem(state.transcriptLanguage);
-
-          acceptedSegments.forEach((segment) => {
-            updatedStudyBySegment![segment.id] = buildSegmentTranscriptStudy(
-              segment.text,
-              levelSystem
-            );
-          });
-
-          return {
-            mediaTranscripts: {
-              ...state.mediaTranscripts,
-              [mediaId]: updatedSegments,
-            },
-            mediaTranscriptStudy: {
-              ...state.mediaTranscriptStudy,
-              [mediaId]: updatedStudyBySegment,
-            },
-          };
-        });
-
-        if (updatedSegments && updatedStudyBySegment) {
-          void setStoredTranscript(mediaId, updatedSegments, updatedStudyBySegment);
-        }
-      },
-
-      updateTranscriptSegment(id, changes) {
-        const { getCurrentMediaId } = get();
-        const mediaId = getCurrentMediaId();
-        if (!mediaId) return;
-
-        let updatedSegments: TranscriptSegment[] = [];
-        let updatedStudyBySegment: MediaTranscriptStudy = {};
-
-        set((state) => {
-          updatedSegments = (state.mediaTranscripts[mediaId] || []).map((segment) =>
-            segment.id === id ? { ...segment, ...changes } : segment
-          );
-          updatedStudyBySegment = {
-            ...(state.mediaTranscriptStudy[mediaId] || {}),
-          };
-
-          const updatedSegment = updatedSegments.find((segment) => segment.id === id);
-          if (updatedSegment) {
-            updatedStudyBySegment[id] = buildSegmentTranscriptStudy(
-              updatedSegment.text,
-              inferTranscriptLevelSystem(state.transcriptLanguage)
-            );
-          }
-
-          return {
-            mediaTranscripts: {
-              ...state.mediaTranscripts,
-              [mediaId]: updatedSegments,
-            },
-            mediaTranscriptStudy: {
-              ...state.mediaTranscriptStudy,
-              [mediaId]: updatedStudyBySegment,
-            },
-          };
-        });
-
-        void setStoredTranscript(mediaId, updatedSegments, updatedStudyBySegment);
-      },
-
-      clearTranscript() {
-        const { getCurrentMediaId } = get();
-        const mediaId = getCurrentMediaId();
-        if (!mediaId) return;
-
-        set((state) => ({
-          mediaTranscripts: {
-            ...state.mediaTranscripts,
-            [mediaId]: [],
-          },
-          mediaTranscriptStudy: {
-            ...state.mediaTranscriptStudy,
-            [mediaId]: {},
-          },
-        }));
-
-        void deleteStoredTranscript(mediaId);
-      },
-
-      setShowTranscript(show) {
-        set({ showTranscript: show });
-      },
-
-      toggleShowTranscript() {
-        const { showTranscript } = get();
-        set({ showTranscript: !showTranscript });
-      },
-
-      setTranscriptLanguage(language) {
-        set({ transcriptLanguage: language });
-      },
-
-      exportTranscript(format) {
-        const { mediaTranscripts, getCurrentMediaId } = get();
-        const mediaId = getCurrentMediaId();
-        const transcriptSegments = mediaId
-          ? mediaTranscripts[mediaId] || []
-          : [];
-
-        if (transcriptSegments.length === 0) {
-          toast.error(i18n.t("transcript.noDataToExport"));
-          return "";
-        }
-
-        // Helper functions for time formatting
-        function formatTime(seconds: number): string {
-          const mins = Math.floor(seconds / 60);
-          const secs = Math.floor(seconds % 60);
-          return `${mins}:${secs.toString().padStart(2, "0")}`;
-        }
-
-        function formatSrtTime(seconds: number): string {
-          const hrs = Math.floor(seconds / 3600);
-          const mins = Math.floor((seconds % 3600) / 60);
-          const secs = Math.floor(seconds % 60);
-          const ms = Math.floor((seconds - Math.floor(seconds)) * 1000);
-          return `${hrs.toString().padStart(2, "0")}:${mins
-            .toString()
-            .padStart(2, "0")}:${secs.toString().padStart(2, "0")},${ms
-              .toString()
-              .padStart(3, "0")}`;
-        }
-
-        function formatVttTime(seconds: number): string {
-          const hrs = Math.floor(seconds / 3600);
-          const mins = Math.floor((seconds % 3600) / 60);
-          const secs = Math.floor(seconds % 60);
-          const ms = Math.floor((seconds - Math.floor(seconds)) * 1000);
-          return `${hrs.toString().padStart(2, "0")}:${mins
-            .toString()
-            .padStart(2, "0")}:${secs.toString().padStart(2, "0")}.${ms
-              .toString()
-              .padStart(3, "0")}`;
-        }
-
-        // We can use media info for context if needed in the future
-
-        if (format === "txt") {
-          // Simple text format
-          const text = transcriptSegments
-            .map(
-              (segment) =>
-                `[${formatTime(segment.startTime)} - ${formatTime(
-                  segment.endTime
-                )}] ${segment.text}`
-            )
-            .join("\n");
-
-          return text;
-        } else if (format === "srt") {
-          // SubRip format
-          const srt = transcriptSegments
-            .map((segment, index) => {
-              const startTime = formatSrtTime(segment.startTime);
-              const endTime = formatSrtTime(segment.endTime);
-              return `${index + 1}\n${startTime} --> ${endTime}\n${segment.text
-                }\n`;
-            })
-            .join("\n");
-
-          return srt;
-        } else if (format === "vtt") {
-          // WebVTT format
-          const vtt = ["WEBVTT\n"];
-
-          transcriptSegments.forEach((segment, index) => {
-            const startTime = formatVttTime(segment.startTime);
-            const endTime = formatVttTime(segment.endTime);
-            vtt.push(
-              `${index + 1}\n${startTime} --> ${endTime}\n${segment.text}\n`
-            );
-          });
-
-          return vtt.join("\n");
-        }
-
-        return "";
-      },
-
-      async importTranscript(file) {
-        try {
-          const { getCurrentMediaId, clearTranscript, addTranscriptSegment } =
-            get();
-          const mediaId = getCurrentMediaId();
-
-          if (!mediaId) {
-            toast.error(i18n.t("player.noMediaLoadedSimple"));
-            return;
-          }
-
-          // Read file content
-          const content = await new Promise<string>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(reader.result as string);
-            reader.onerror = () => reject(reader.error);
-            reader.readAsText(file);
-          });
-
-          // Clear existing transcript
-          clearTranscript();
-
-          // Parse based on file extension
-          const fileName = file.name.toLowerCase();
-          let segments: Omit<TranscriptSegment, "id">[] = [];
-
-          if (fileName.endsWith(".srt")) {
-            segments = parseSrtContent(content);
-          } else if (fileName.endsWith(".vtt")) {
-            segments = parseVttContent(content);
-          } else if (fileName.endsWith(".txt")) {
-            segments = parseTxtContent(content);
-          } else {
-            // Try to auto-detect format
-            if (content.includes("WEBVTT")) {
-              segments = parseVttContent(content);
-            } else if (
-              content.includes("-->") &&
-              /^\d+$/.test(content.split("\n")[0]?.trim())
-            ) {
-              segments = parseSrtContent(content);
-            } else {
-              segments = parseTxtContent(content);
-            }
-          }
-
-          // Add all segments to the transcript
-          segments.forEach((segment) => {
-            addTranscriptSegment(segment);
-          });
-        } catch (error) {
-          console.error("Error importing transcript:", error);
-          toast.error(i18n.t("transcript.importError"));
-        }
-
-        // Helper functions for parsing different formats
-        function parseSrtContent(
-          content: string
-        ): Omit<TranscriptSegment, "id">[] {
-          const segments: Omit<TranscriptSegment, "id">[] = [];
-          const normalizedContent = normalizeTranscriptContent(content);
-          const blocks = normalizedContent
-            .split(/\n{2,}/)
-            .filter((block) => block.trim());
-
-          blocks.forEach((block) => {
-            const lines = block
-              .split("\n")
-              .map((line) => line.trim())
-              .filter(Boolean);
-
-            const timeLineIndex = lines.findIndex((line) => line.includes("-->"));
-            if (timeLineIndex === -1) {
-              return;
-            }
-
-            const timeMatch = lines[timeLineIndex].match(
-              /(\d{2}):(\d{2}):(\d{2})[,.](\d{3})\s+-->\s+(\d{2}):(\d{2}):(\d{2})[,.](\d{3})/
-            );
-
-            if (!timeMatch) {
-              return;
-            }
-
-            const textLines = lines.slice(timeLineIndex + 1);
-            if (textLines.length === 0) {
-              return;
-            }
-
-            const startTime = parseTimeToSeconds(
-              timeMatch[1],
-              timeMatch[2],
-              timeMatch[3],
-              timeMatch[4]
-            );
-            const endTime = parseTimeToSeconds(
-              timeMatch[5],
-              timeMatch[6],
-              timeMatch[7],
-              timeMatch[8]
-            );
-
-            segments.push({
-              text: textLines.join(" ").trim(),
-              startTime,
-              endTime,
-              confidence: 1.0,
-              isFinal: true,
-            });
-          });
-
-          return segments;
-        }
-
-        function parseVttContent(
-          content: string
-        ): Omit<TranscriptSegment, "id">[] {
-          const segments: Omit<TranscriptSegment, "id">[] = [];
-          const lines = normalizeTranscriptContent(content).split("\n");
-          let i = 0;
-
-          // Skip WEBVTT header
-          while (i < lines.length && !lines[i].includes("-->")) {
-            i++;
-          }
-
-          while (i < lines.length) {
-            const line = lines[i].trim();
-
-            if (line.includes("-->")) {
-              const timeMatch = line.match(
-                /(\d{2}):(\d{2}):(\d{2})\.(\d{3}) --> (\d{2}):(\d{2}):(\d{2})\.(\d{3})/
-              );
-              if (timeMatch) {
-                const startTime = parseTimeToSeconds(
-                  timeMatch[1],
-                  timeMatch[2],
-                  timeMatch[3],
-                  timeMatch[4]
-                );
-                const endTime = parseTimeToSeconds(
-                  timeMatch[5],
-                  timeMatch[6],
-                  timeMatch[7],
-                  timeMatch[8]
-                );
-
-                i++;
-                const textLines = [];
-                while (i < lines.length && lines[i].trim() !== "") {
-                  textLines.push(lines[i].trim());
-                  i++;
-                }
-
-                if (textLines.length > 0) {
-                  segments.push({
-                    text: textLines.join(" ").trim(),
-                    startTime,
-                    endTime,
-                    confidence: 1.0,
-                    isFinal: true,
-                  });
-                }
-              }
-            }
-            i++;
-          }
-
-          return segments;
-        }
-
-        function parseTxtContent(
-          content: string
-        ): Omit<TranscriptSegment, "id">[] {
-          const segments: Omit<TranscriptSegment, "id">[] = [];
-          const lines = normalizeTranscriptContent(content)
-            .split("\n")
-            .filter((line) => line.trim());
-
-          lines.forEach((line, index) => {
-            const trimmedLine = line.trim();
-            if (trimmedLine) {
-              // Try to extract timestamps if they exist in format [MM:SS - MM:SS] or [HH:MM:SS - HH:MM:SS]
-              const timeMatch = trimmedLine.match(
-                /\[(\d{1,2}):(\d{2})(?::(\d{2}))?\s*-\s*(\d{1,2}):(\d{2})(?::(\d{2}))?\]\s*(.+)/
-              );
-
-              if (timeMatch) {
-                const startHours = timeMatch[3] ? parseInt(timeMatch[1]) : 0;
-                const startMinutes = timeMatch[3]
-                  ? parseInt(timeMatch[2])
-                  : parseInt(timeMatch[1]);
-                const startSeconds = timeMatch[3]
-                  ? parseInt(timeMatch[3])
-                  : parseInt(timeMatch[2]);
-
-                const endHours = timeMatch[6] ? parseInt(timeMatch[4]) : 0;
-                const endMinutes = timeMatch[6]
-                  ? parseInt(timeMatch[5])
-                  : parseInt(timeMatch[4]);
-                const endSeconds = timeMatch[6]
-                  ? parseInt(timeMatch[6])
-                  : parseInt(timeMatch[5]);
-
-                const startTime =
-                  startHours * 3600 + startMinutes * 60 + startSeconds;
-                const endTime = endHours * 3600 + endMinutes * 60 + endSeconds;
-
-                segments.push({
-                  text: timeMatch[7].trim(),
-                  startTime,
-                  endTime,
-                  confidence: 1.0,
-                  isFinal: true,
-                });
-              } else {
-                // No timestamps, create segments with estimated timing (5 seconds each)
-                const startTime = index * 5;
-                const endTime = (index + 1) * 5;
-
-                segments.push({
-                  text: trimmedLine,
-                  startTime,
-                  endTime,
-                  confidence: 1.0,
-                  isFinal: true,
-                });
-              }
-            }
-          });
-
-          return segments;
-        }
-
-        function parseTimeToSeconds(
-          hours: string,
-          minutes: string,
-          seconds: string,
-          milliseconds: string
-        ): number {
-          return (
-            parseInt(hours) * 3600 +
-            parseInt(minutes) * 60 +
-            parseInt(seconds) +
-            parseInt(milliseconds) / 1000
-          );
-        }
-
-        function normalizeTranscriptContent(content: string): string {
-          return content.replace(/^\uFEFF/, "").replace(/\r\n?/g, "\n").trim();
-        }
-      },
-
-      createBookmarkFromTranscript(segmentId) {
-        const {
-          mediaTranscripts,
-          addBookmark,
-          currentFile,
-          currentYouTube,
-          playbackRate,
-          getCurrentMediaId,
-        } = get();
-        const mediaId = getCurrentMediaId();
-        if (!mediaId) return;
-
-        const segment = (mediaTranscripts[mediaId] || []).find(
-          (s) => s.id === segmentId
-        );
-
-        if (!segment) {
-          toast.error(i18n.t("transcript.segmentNotFound"));
-          return;
-        }
-
-        // Clean and format the text for a better bookmark title
-        const cleanText = segment.text
-          .trim()
-          .replace(/\s+/g, " ") // Replace multiple spaces with single space
-          .replace(/\n+/g, " "); // Replace line breaks with spaces
-
-        // Create a smart title that doesn't cut words in the middle
-        let title = cleanText;
-        const maxLength = 40; // Increased from 30 for better readability
-
-        if (cleanText.length > maxLength) {
-          // Find the last space before the max length to avoid cutting words
-          const truncateAt = cleanText.lastIndexOf(" ", maxLength);
-          if (truncateAt > 20) {
-            // Only use word boundary if it's not too short
-            title = cleanText.substring(0, truncateAt) + "...";
-          } else {
-            // Fallback to character limit if no good word boundary found
-            title = cleanText.substring(0, maxLength - 3) + "...";
-          }
-        }
-
-        // Create a bookmark from this transcript segment
-        addBookmark({
-          name: title,
-          start: segment.startTime,
-          end: segment.endTime,
-          mediaName: currentFile?.name,
-          mediaType: currentFile?.type,
-          youtubeId: currentYouTube?.id,
-          playbackRate,
-          annotation: segment.text, // Keep the full text as annotation
-        });
-      },
-
-      // New loading action
-      setIsLoadingMedia: (loading) => set({ isLoadingMedia: loading }),
-
-      // Helper functions for media-scoped bookmarks
-      getCurrentMediaId: () => {
-        const { currentFile, currentYouTube } = get();
-        if (currentFile) {
-          return (
-            currentFile.storageId ||
-            currentFile.id ||
-            `file-${currentFile.name}-${currentFile.size}`
-          );
-        }
-        if (currentYouTube) {
-          return `youtube-${currentYouTube.id}`;
-        }
-        return null;
-      },
-      getCurrentMediaBookmarks: () => {
-        const { mediaBookmarks, getCurrentMediaId } = get();
-        const mediaId = getCurrentMediaId();
-        return mediaId ? mediaBookmarks[mediaId] || [] : [];
-      },
-
-      // Helper functions for media-scoped transcripts
-      getCurrentMediaTranscripts: () => {
-        const { mediaTranscripts, getCurrentMediaId } = get();
-        const mediaId = getCurrentMediaId();
-        return mediaId ? mediaTranscripts[mediaId] || [] : [];
-      },
-
-      // Layout actions
-      setIsSidebarOpen: (isSidebarOpen) => set({ isSidebarOpen }),
-      setSidebarWidth: (sidebarWidth) => set({ sidebarWidth }),
-      setActiveSidebarTab: (activeSidebarTab) => set({ activeSidebarTab }),
-      toggleSidebarSection: (section) =>
-        set((state) => ({
-          sidebarSections: {
-            ...state.sidebarSections,
-            [section]: !state.sidebarSections[section],
-          },
-        })),
-    }),
+            const mf = Object.fromEntries(Object.entries(s.mediaFolders).filter(([id]) => !removalSet.has(id)));
+            const mh = s.mediaHistory.map((h) => h.folderId && removalSet.has(h.folderId) ? { ...h, folderId: null } : h);
+            const resetFilter = s.historyFolderFilter !== "all" && s.historyFolderFilter !== "unfiled" && typeof s.historyFolderFilter === "string" && removalSet.has(s.historyFolderFilter);
+            return { mediaFolders: mf, mediaHistory: mh, historyFolderFilter: resetFilter ? "unfiled" : s.historyFolderFilter };
+          }),
+        moveHistoryItemToFolder: (historyItemId, folderId) =>
+          set((s) => ({ mediaHistory: s.mediaHistory.map((h) => h.id === historyItemId ? { ...h, folderId: folderId ?? null } : h) })),
+        renameHistoryItem: (historyItemId, newName) =>
+          set((s) => ({
+            mediaHistory: s.mediaHistory.map((h) =>
+              h.id === historyItemId ? { ...h, name: newName, ...(h.type === "file" && h.fileData ? { fileData: { ...h.fileData, name: newName } } : {}), ...(h.type === "youtube" && h.youtubeData ? { youtubeData: { ...h.youtubeData, title: newName } } : {}) } : h
+            ),
+          })),
+        setHistorySort: (by, order) => set({ historySortBy: by, historySortOrder: order }),
+        setHistoryFolderFilter: (f) => set({ historyFolderFilter: f }),
+        addSourceFolder: (path) =>
+          set((s) => ({ sourceFolders: s.sourceFolders.includes(path) ? s.sourceFolders : [...s.sourceFolders, path] })),
+        removeSourceFolder: (path) =>
+          set((s) => ({ sourceFolders: s.sourceFolders.filter((f) => f !== path) })),
+
+        setIsSidebarOpen: (v) => set({ isSidebarOpen: v }),
+        setSidebarWidth: (v) => set({ sidebarWidth: v }),
+        setActiveSidebarTab: (v) => set({ activeSidebarTab: v }),
+        toggleSidebarSection: (section) =>
+          set((s) => ({ sidebarSections: { ...s.sidebarSections, [section]: !s.sidebarSections[section] } })),
+      };
+    },
     {
       name: "abloop-player-storage",
       storage: createJSONStorage(() => electronStorage),
       version: 3,
       migrate: (persistedState: unknown, version) => {
         const state = persistedState as PersistedPlayerStoreState | undefined;
-
         if (!state) return state;
 
         if (version < 2 && state.mediaFolders) {
           state.mediaFolders = Object.fromEntries(
             Object.entries(state.mediaFolders).map(([id, folder]) => [
-              id,
-              {
-                ...folder,
-                parentId:
-                  folder && "parentId" in folder ? folder.parentId ?? null : null,
-              },
+              id, { ...folder, parentId: folder?.parentId ?? null },
             ])
           );
         }
-
-        if (version < 2) {
-          if (state.historyFolderFilter === "all") {
-            state.historyFolderFilter = "unfiled";
-          }
+        if (version < 2 && state.historyFolderFilter === "all") {
+          state.historyFolderFilter = "unfiled";
         }
-
-        // v2 → v3: migrate single sourceFolder to sourceFolders array
         if (version < 3) {
           if (state.sourceFolder) {
             state.sourceFolders = [state.sourceFolder];
@@ -2077,38 +688,46 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()(
           }
           delete state.sourceFolder;
         }
-
         return state;
       },
       onRehydrateStorage: () => (state, error) => {
-        if (error || !state?.mediaTranscripts) {
-          return;
+        if (error || !state) return;
+        // Sync persisted data into sub-stores on app start
+        if (state.mediaBookmarks && Object.keys(state.mediaBookmarks).length > 0) {
+          useBookmarkStore.setState({ mediaBookmarks: state.mediaBookmarks });
+        }
+        if (state.glossaryEntries?.length > 0) {
+          useTranscriptStore.setState({ glossaryEntries: state.glossaryEntries });
+        }
+        if (state.showTranscript) {
+          useTranscriptStore.setState({ showTranscript: state.showTranscript });
+        }
+        if (state.transcriptLanguage && state.transcriptLanguage !== "en-US") {
+          useTranscriptStore.setState({ transcriptLanguage: state.transcriptLanguage });
         }
 
-        const legacyTranscripts = state.mediaTranscripts;
-
-        Object.entries(legacyTranscripts).forEach(([mediaId, segments]) => {
-          const studyBySegment =
-            state.mediaTranscriptStudy?.[mediaId] ||
-            buildTranscriptStudy(
-              segments,
-              inferTranscriptLevelSystem(state.transcriptLanguage)
-            );
-          void setStoredTranscript(mediaId, segments, studyBySegment);
-        });
+        // Auto-restore last session on app startup
+        if (state.mediaHistory?.length > 0) {
+          const latest = [...state.mediaHistory].sort((a, b) => b.accessedAt - a.accessedAt)[0];
+          if (latest) {
+            setTimeout(() => {
+              usePlayerStore.getState().loadFromHistory(latest.id);
+            }, 0);
+          }
+        }
       },
       partialize: (state) => ({
         volume: state.volume,
+        mediaVolume: state.mediaVolume,
         muted: state.muted,
         playbackRate: state.playbackRate,
-        theme: state.theme,
-        waveformZoom: state.waveformZoom,
-        showWaveform: state.showWaveform,
-        videoSize: state.videoSize,
         mediaBookmarks: state.mediaBookmarks,
         glossaryEntries: state.glossaryEntries,
         showTranscript: state.showTranscript,
         transcriptLanguage: state.transcriptLanguage,
+        seekStepSeconds: state.seekStepSeconds,
+        seekSmallStepSeconds: state.seekSmallStepSeconds,
+        seekMode: state.seekMode,
         recentYouTubeVideos: state.recentYouTubeVideos,
         mediaHistory: state.mediaHistory,
         historyLimit: state.historyLimit,
@@ -2116,9 +735,6 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()(
         historySortBy: state.historySortBy,
         historySortOrder: state.historySortOrder,
         historyFolderFilter: state.historyFolderFilter,
-        seekStepSeconds: state.seekStepSeconds,
-        seekSmallStepSeconds: state.seekSmallStepSeconds,
-        seekMode: state.seekMode,
         sourceFolders: state.sourceFolders,
         isSidebarOpen: state.isSidebarOpen,
         sidebarWidth: state.sidebarWidth,
@@ -2128,3 +744,118 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()(
     }
   )
 );
+
+// ─── Dual-write sync to new data directory (transitional) ───
+let _playerSaveTimer: ReturnType<typeof setTimeout>
+usePlayerStore.subscribe((state) => {
+  clearTimeout(_playerSaveTimer)
+  _playerSaveTimer = setTimeout(() => {
+    if (!window.electronAPI?.dataPut) return
+
+    // Bookmarks
+    const bookmarks: PersistedBookmark[] = []
+    if (state.mediaBookmarks) {
+      for (const key of Object.keys(state.mediaBookmarks)) {
+        const arr = state.mediaBookmarks[key]
+        if (Array.isArray(arr)) {
+          for (const b of arr) {
+            bookmarks.push({
+              id: b.id,
+              mediaId: key,
+              name: b.name,
+              start: b.start,
+              end: b.end,
+              createdAt: b.createdAt,
+              mediaName: b.mediaName,
+              mediaType: b.mediaType,
+              youtubeId: b.youtubeId,
+              playbackRate: b.playbackRate,
+              annotation: b.annotation,
+              segmentIds: b.segmentIds,
+              wordIds: b.wordIds,
+            })
+          }
+        }
+      }
+    }
+    bookmarkRepository.saveBookmarks(bookmarks).catch(() => {})
+
+    // Glossary
+    const glossary: PersistedGlossaryEntry[] = (state.glossaryEntries || []).map((e) => ({
+      id: e.id,
+      mediaId: e.mediaId,
+      mediaName: e.mediaName,
+      mediaType: e.mediaType || '',
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      youtubeId: (e as any).youtubeId,
+      segmentId: e.segmentId,
+      text: e.text,
+      contextText: e.contextText,
+      selectionStart: e.selectionStart,
+      selectionEnd: e.selectionEnd,
+      startTime: e.startTime,
+      endTime: e.endTime,
+      createdAt: e.createdAt,
+      updatedAt: e.updatedAt,
+    }))
+    glossaryRepository.saveGlossary(glossary).catch(() => {})
+
+    // Media history
+    if (Array.isArray(state.mediaHistory)) {
+      const items: Record<string, unknown>[] = state.mediaHistory.map((h) => ({
+        id: (h as unknown as Record<string, unknown>).id,
+        mediaId: (h as unknown as Record<string, unknown>).mediaId,
+        type: h.type,
+        name: h.name,
+        accessedAt: h.accessedAt,
+        playbackTime: h.playbackTime || 0,
+        folderId: h.folderId || null,
+        nativePath: h.nativePath,
+        storageId: h.storageId,
+        fileData: h.fileData,
+        youtubeData: h.youtubeData,
+      }))
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      libraryRepository.saveHistory(items as any).catch(() => {})
+    }
+
+    // Source folders
+    if (Array.isArray(state.sourceFolders)) {
+      libraryRepository.saveSourceFolders(state.sourceFolders).catch(() => {})
+    }
+
+    // Settings
+    settingsRepository.saveAppSettings({
+      version: 1,
+      volume: state.volume,
+      muted: state.muted,
+      playbackRate: state.playbackRate,
+      showTranscript: state.showTranscript,
+      transcriptLanguage: state.transcriptLanguage,
+      seekStepSeconds: state.seekStepSeconds,
+      seekSmallStepSeconds: state.seekSmallStepSeconds || 1,
+      seekMode: state.seekMode,
+      waveformZoom: 1,
+      showWaveform: true,
+      videoSize: 'md',
+    }).catch(() => {})
+
+    // Layout
+    settingsRepository.saveLayoutSettings({
+      version: 1,
+      showPlayer: true,
+      showWaveform: true,
+      showTranscript: true,
+      showControls: true,
+      transcriptPanelVisible: true,
+      transcriptPanelCollapsed: false,
+      videoPanelVisible: true,
+      videoPanelCollapsed: false,
+      timelinePanelVisible: true,
+      timelinePanelCollapsed: false,
+      isSidebarOpen: state.isSidebarOpen ?? true,
+      sidebarWidth: state.sidebarWidth ?? 320,
+      activeSidebarTab: state.activeSidebarTab || 'history',
+    }).catch(() => {})
+  }, 300)
+})

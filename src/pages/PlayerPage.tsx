@@ -6,24 +6,43 @@ import { usePlayerStore } from "../stores/playerStore";
 import { useShallow } from "zustand/react/shallow";
 import { MediaPreviewPanel } from "../components/player/MediaPreviewPanel";
 import { TimelinePanel } from "../components/player/TimelinePanel";
-import { PanelHeader } from "../components/player/PanelHeader";
-import { isElectron } from "../utils/platform";
-import { MediaHistory } from "../components/web/MediaHistory";
+import { PanelHeader, CollapsedHorizontalStrip, CollapsedVerticalStrip } from "../components/player/PanelHeader";
+import { PanelTop } from "lucide-react";
 import { TranscriptPanel } from "../components/transcript";
 import { useKeyboardShortcuts } from "../hooks/useKeyboardShortcuts";
 import { usePlaybackPersistence } from "../hooks/usePlaybackPersistence";
 import { AppLayout } from "../components/layout/AppLayout";
 import { useLayoutSettings } from "../contexts/layoutSettings";
-import { Panel, Group, Separator } from "react-resizable-panels";
+import { Panel, Group, Separator, PanelImperativeHandle, usePanelCallbackRef } from "react-resizable-panels";
 import { cn } from "../utils/cn";
 import { MediaPlayer } from "../components/player/MediaPlayer";
+import { PlayerWorkspace } from "../player/PlayerWorkspace";
+import { bumpRender } from "../utils/perfMonitor";
+
+type PanelKey = "transcript" | "video" | "timeline" | "outer";
+const DEFAULT_SIZES: Record<PanelKey, number> = { transcript: 60, video: 40, timeline: 30, outer: 70 };
+// Minimum size at which the panel's internal UI does not deform.
+// Used as the floor when restoring on expand; siblings shrink to honor this only if they still meet their own minSize.
+const MIN_SIZE: Record<PanelKey, number> = { transcript: 25, video: 22, timeline: 12, outer: 30 };
 
 export const PlayerPage = () => {
+  bumpRender("PlayerPage");
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { layoutSettings, setLayoutSettings } = useLayoutSettings();
   const layoutInitializedForRef = useRef<string | null>(null);
   const [activeResizeAxis, setActiveResizeAxis] = useState<"horizontal" | "vertical" | null>(null);
+
+  // Panel imperative handles for programmatic collapse/expand
+  const [upperAreaHandle, upperAreaCallbackRef] = usePanelCallbackRef();
+  const [transcriptPanelHandle, transcriptPanelCallbackRef] = usePanelCallbackRef();
+  const [videoPanelHandle, videoPanelCallbackRef] = usePanelCallbackRef();
+  const [timelinePanelHandle, timelinePanelCallbackRef] = usePanelCallbackRef();
+
+  // Sizes saved just before each panel collapses — used to restore on expand.
+  // Reads come from handle.getSize() at collapse time (no need to track during drag).
+  const savedSizesRef = useRef({ ...DEFAULT_SIZES });
+  const isOuterCollapsedRef = useRef(false);
 
   const { currentFile, currentYouTube, isLoadingMedia } = usePlayerStore(
     useShallow((state) => ({
@@ -36,14 +55,12 @@ export const PlayerPage = () => {
   useKeyboardShortcuts();
   usePlaybackPersistence();
 
-  // Redirect to home if no media
   useEffect(() => {
     if (!currentFile && !currentYouTube && !isLoadingMedia) {
       navigate("/");
     }
   }, [currentFile, currentYouTube, isLoadingMedia, navigate]);
 
-  // Auto-default player visibility based on media type
   useEffect(() => {
     if (currentFile) {
       const mediaKey = currentFile.storageId || currentFile.id || currentFile.name;
@@ -63,13 +80,10 @@ export const PlayerPage = () => {
 
   useEffect(() => {
     if (!activeResizeAxis) return;
-
     const stopResizing = () => setActiveResizeAxis(null);
-
     window.addEventListener("pointerup", stopResizing);
     window.addEventListener("pointercancel", stopResizing);
     window.addEventListener("blur", stopResizing);
-
     return () => {
       window.removeEventListener("pointerup", stopResizing);
       window.removeEventListener("pointercancel", stopResizing);
@@ -77,22 +91,108 @@ export const PlayerPage = () => {
     };
   }, [activeResizeAxis]);
 
-  // Auto-hide video panel for audio files
   const isAudioOnly = currentFile?.type.includes("audio") && !currentFile?.type.includes("video");
   const effectiveVideoVisible = layoutSettings.videoPanelVisible && !isAudioOnly;
-
   const hasMedia = !!(currentFile || currentYouTube?.id);
 
-  // Panel toggle helpers
-  const togglePanel = (panel: "transcript" | "video" | "timeline") => {
-    const key = `${panel}PanelVisible` as const;
-    setLayoutSettings((prev) => ({ ...prev, [key]: !prev[key] }));
-  };
+  // When only one panel occupies the upper area, collapse the outer vertical panel
+  // so the freed vertical space goes to the timeline (instead of leaving a blank area).
+  const transcriptIsAlone = layoutSettings.transcriptPanelVisible && !effectiveVideoVisible;
+  const videoIsAlone = effectiveVideoVisible && !layoutSettings.transcriptPanelVisible;
+  const bothUpperCollapsed =
+    layoutSettings.transcriptPanelVisible &&
+    effectiveVideoVisible &&
+    layoutSettings.transcriptPanelCollapsed &&
+    layoutSettings.videoPanelCollapsed;
+  const upperAreaCollapsed =
+    (layoutSettings.transcriptPanelCollapsed && transcriptIsAlone) ||
+    (layoutSettings.videoPanelCollapsed && videoIsAlone) ||
+    bothUpperCollapsed;
+
 
   const collapsePanel = (panel: "transcript" | "video" | "timeline", collapsed: boolean) => {
-    const key = `${panel}PanelCollapsed` as const;
-    setLayoutSettings((prev) => ({ ...prev, [key]: collapsed }));
+    if (collapsed) {
+      // Capture current sizes BEFORE the state update so the imperative useEffects
+      // (which run after re-render) can restore them later.
+      const handles: Record<typeof panel, PanelImperativeHandle | null> = {
+        transcript: transcriptPanelHandle,
+        video: videoPanelHandle,
+        timeline: timelinePanelHandle,
+      };
+      const cur = handles[panel]?.getSize().asPercentage;
+      if (cur !== undefined && cur > MIN_SIZE[panel]) {
+        savedSizesRef.current = { ...savedSizesRef.current, [panel]: cur };
+      }
+      // Always snapshot the outer size when it's expanded — covers every "alone in upper" case
+      // (collapsing transcript when video is hidden, collapsing video when transcript is hidden,
+      // or collapsing the second of two upper panels).
+      const outerCur = upperAreaHandle?.getSize().asPercentage;
+      if (outerCur !== undefined && outerCur > MIN_SIZE.outer) {
+        savedSizesRef.current = { ...savedSizesRef.current, outer: outerCur };
+      }
+    }
+    setLayoutSettings((prev) => ({ ...prev, [`${panel}PanelCollapsed`]: collapsed }));
   };
+
+  // Outer (upper area) collapse — driven by the combined visibility/collapsed state.
+  // Fires when a transcript/video collapse leaves the upper area effectively empty,
+  // and on remount after navigation.
+  useEffect(() => {
+    if (!upperAreaHandle) return;
+    if (upperAreaCollapsed && !isOuterCollapsedRef.current) {
+      upperAreaHandle.collapse();
+      isOuterCollapsedRef.current = true;
+    } else if (!upperAreaCollapsed && isOuterCollapsedRef.current) {
+      const target = Math.max(savedSizesRef.current.outer, MIN_SIZE.outer);
+      upperAreaHandle.resize(`${target}%`);
+      isOuterCollapsedRef.current = false;
+    }
+  }, [upperAreaHandle, upperAreaCollapsed]);
+
+  // Transcript collapse — skipped when transcript is the only thing in the upper area
+  // (the outer effect handles that case by collapsing the whole upper panel).
+  useEffect(() => {
+    if (!transcriptPanelHandle) return;
+    if (transcriptIsAlone) return;
+    if (layoutSettings.transcriptPanelCollapsed) {
+      transcriptPanelHandle.collapse();
+    } else {
+      const target = Math.max(savedSizesRef.current.transcript, MIN_SIZE.transcript);
+      transcriptPanelHandle.resize(`${target}%`);
+    }
+  }, [transcriptPanelHandle, layoutSettings.transcriptPanelCollapsed, transcriptIsAlone]);
+
+  // Video collapse — same skip rule as transcript.
+  useEffect(() => {
+    if (!videoPanelHandle) return;
+    if (videoIsAlone) return;
+    if (layoutSettings.videoPanelCollapsed) {
+      videoPanelHandle.collapse();
+    } else {
+      const target = Math.max(savedSizesRef.current.video, MIN_SIZE.video);
+      videoPanelHandle.resize(`${target}%`);
+    }
+  }, [videoPanelHandle, layoutSettings.videoPanelCollapsed, videoIsAlone]);
+
+  // Timeline collapse — react-resizable-panels auto-grows the upper area when timeline collapses,
+  // so no manual resize("100%") is needed. Removing that call was the key fix for the empty-area bug.
+  useEffect(() => {
+    if (!timelinePanelHandle) return;
+    if (layoutSettings.timelinePanelCollapsed) {
+      timelinePanelHandle.collapse();
+    } else {
+      const target = Math.max(savedSizesRef.current.timeline, MIN_SIZE.timeline);
+      timelinePanelHandle.resize(`${target}%`);
+    }
+  }, [timelinePanelHandle, layoutSettings.timelinePanelCollapsed]);
+
+  // When timeline is hidden entirely (visibility off, not just collapsed),
+  // explicitly fill the upper area — the lib needs a nudge in this case because
+  // the timeline Panel is unmounted rather than at collapsedSize.
+  useEffect(() => {
+    if (!upperAreaHandle || layoutSettings.timelinePanelVisible) return;
+    upperAreaHandle.resize("100%");
+  }, [upperAreaHandle, layoutSettings.timelinePanelVisible]);
 
   return (
     <AppLayout layoutSettings={layoutSettings} setLayoutSettings={setLayoutSettings} bottomPaddingClassName="pb-0">
@@ -107,8 +207,7 @@ export const PlayerPage = () => {
           />
         )}
 
-        {/* Loading / no media states */}
-        {isLoadingMedia && (
+        {!hasMedia && isLoadingMedia && (
           <div className="flex items-center justify-center py-12">
             <div className="text-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto mb-4" />
@@ -123,126 +222,187 @@ export const PlayerPage = () => {
         )}
 
         {hasMedia && (
-          <>
-            {/* Audio-only files need a hidden MediaPlayer since video panel is hidden */}
+          <PlayerWorkspace>
+            {isLoadingMedia && (
+              <div className="absolute inset-0 z-50 flex items-center justify-center bg-white/60 dark:bg-gray-900/60">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto mb-4" />
+                  <p className="text-lg text-gray-600 dark:text-gray-300">{t("common.loading")}</p>
+                </div>
+              </div>
+            )}
             {isAudioOnly && (
               <div className="sr-only" aria-hidden="true">
                 <MediaPlayer hiddenMode={true} />
               </div>
             )}
-            <Group orientation="vertical" className="flex-1 min-h-0 overflow-hidden">
+            <Group orientation="vertical" className="flex-1 min-h-0 min-w-0 overflow-hidden">
+
               {/* Upper area: Transcript + Video */}
               <Panel
                 id="player-main-panel"
                 defaultSize="70%"
-                minSize="20%"
-                maxSize="88%"
+                minSize={15}
                 collapsible
-                collapsedSize="0%"
-                className={cn(!layoutSettings.transcriptPanelVisible && !effectiveVideoVisible && "hidden")}
+                collapsedSize="36px"
+                className={cn("min-h-0 min-w-0", !layoutSettings.transcriptPanelVisible && !effectiveVideoVisible && "hidden")}
+                panelRef={upperAreaCallbackRef}
               >
-              <Group id="player-upper-layout" orientation="horizontal" className="h-full">
-                {/* Transcript Panel */}
-                {layoutSettings.transcriptPanelVisible && (
-                  <Panel
-                    id="player-transcript-panel"
-                    defaultSize="60%"
-                    minSize="25%"
-                    maxSize="80%"
-                    collapsible
-                    collapsedSize="5%"
-                    className="min-w-0"
-                  >
-                    <div className="flex flex-col h-full min-h-0 bg-white dark:bg-gray-950/40 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden overflow-x-hidden">
-                      <PanelHeader
-                        title={t("transcript.title")}
-                        collapsed={layoutSettings.transcriptPanelCollapsed}
-                        onCollapse={() => collapsePanel("transcript", true)}
-                        onExpand={() => collapsePanel("transcript", false)}
-                        onHide={() => togglePanel("transcript")}
-                      />
-                      {!layoutSettings.transcriptPanelCollapsed && (
-                        <div className="flex-1 min-h-0 overflow-hidden overflow-x-hidden">
-                          <TranscriptPanel />
-                        </div>
-                      )}
+                {upperAreaCollapsed ? (
+                  bothUpperCollapsed ? (
+                    <div className="flex items-center h-9 px-2 gap-2 bg-white dark:bg-gray-950/40 select-none shrink-0">
+                      <div className="flex items-center gap-1 flex-1 min-w-0">
+                        <button
+                          onClick={() => collapsePanel("transcript", false)}
+                          className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors shrink-0"
+                          title={t("common.expand")}
+                        >
+                          <PanelTop size={14} />
+                        </button>
+                        <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider flex-1 truncate px-1">
+                          {t("transcript.title")}
+                        </span>
+                      </div>
+                      <div className="w-px h-6 bg-gray-200 dark:bg-gray-800 shrink-0" />
+                      <div className="flex items-center gap-1 flex-1 min-w-0">
+                        <button
+                          onClick={() => collapsePanel("video", false)}
+                          className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors shrink-0"
+                          title={t("common.expand")}
+                        >
+                          <PanelTop size={14} />
+                        </button>
+                        <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider flex-1 truncate px-1">
+                          {t("player.video", { defaultValue: "Video" })}
+                        </span>
+                      </div>
                     </div>
-                  </Panel>
-                )}
-
-                {/* Horizontal resize handle */}
-                {layoutSettings.transcriptPanelVisible && effectiveVideoVisible && (
-                  <Separator
-                    id="player-transcript-video-resize"
-                    className="w-3 bg-gray-200 dark:bg-gray-700 hover:bg-primary-400 dark:hover:bg-primary-600 transition-colors cursor-col-resize flex items-center justify-center mx-[-4px]"
-                    onPointerDownCapture={() => setActiveResizeAxis("horizontal")}
-                  >
-                    <div className="w-0.5 h-6 bg-gray-400 dark:bg-gray-500 rounded-full pointer-events-none" />
-                  </Separator>
-                )}
-
-                {/* Video Panel */}
-                {effectiveVideoVisible && (
-                  <Panel
-                    id="player-video-panel"
-                    defaultSize="40%"
-                    minSize="20%"
-                    maxSize="75%"
-                    collapsible
-                    collapsedSize="5%"
-                    className="min-w-0"
-                  >
-                    <MediaPreviewPanel
-                      visible={true}
-                      collapsed={layoutSettings.videoPanelCollapsed}
-                      onCollapse={() => collapsePanel("video", true)}
-                      onExpand={() => collapsePanel("video", false)}
-                      onHide={() => togglePanel("video")}
-                      className="h-full overflow-hidden"
+                  ) : (
+                    <CollapsedHorizontalStrip
+                      title={
+                        layoutSettings.transcriptPanelCollapsed && transcriptIsAlone
+                          ? t("transcript.title")
+                          : t("player.video", { defaultValue: "Video" })
+                      }
+                      onExpand={() =>
+                        collapsePanel(
+                          layoutSettings.transcriptPanelCollapsed && transcriptIsAlone ? "transcript" : "video",
+                          false
+                        )
+                      }
+                      className="bg-white dark:bg-gray-950/40"
+                      expandIcon="top"
                     />
-                  </Panel>
+                  )
+                ) : (
+                  <Group id="player-upper-layout" orientation="horizontal" className="h-full min-h-0 min-w-0">
+                    {/* Transcript Panel */}
+                    {layoutSettings.transcriptPanelVisible && (
+                      <Panel
+                        id="player-transcript-panel"
+                        defaultSize="60%"
+                        minSize={15}
+                        collapsible
+                        collapsedSize="48px"
+                        className="min-w-0 min-h-0"
+                        panelRef={transcriptPanelCallbackRef}
+                      >
+                        <div className="flex flex-col h-full min-h-0 min-w-0 bg-white dark:bg-gray-950/40 overflow-hidden">
+                          {layoutSettings.transcriptPanelCollapsed ? (
+                            <CollapsedVerticalStrip
+                              title={t("transcript.title")}
+                              onExpand={() => collapsePanel("transcript", false)}
+                              expandIcon="left"
+                            />
+                          ) : (
+                            <>
+                              <PanelHeader
+                                title={t("transcript.title")}
+                                onCollapse={() => collapsePanel("transcript", true)}
+                                collapseIcon="left"
+                                buttonPosition="left"
+                              />
+                              <div className="flex-1 min-h-0 min-w-0 overflow-hidden overflow-x-hidden">
+                                <TranscriptPanel />
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </Panel>
+                    )}
+
+                    {/* Horizontal resize handle (hidden when both panels are collapsed strips) */}
+                    {layoutSettings.transcriptPanelVisible && effectiveVideoVisible &&
+                      !layoutSettings.transcriptPanelCollapsed && !layoutSettings.videoPanelCollapsed && (
+                        <Separator
+                          id="player-transcript-video-resize"
+                          className="w-px bg-gray-200 dark:bg-gray-800 hover:bg-primary-400 dark:hover:bg-primary-600 transition-colors cursor-col-resize flex items-center justify-center"
+                          onPointerDownCapture={() => setActiveResizeAxis("horizontal")}
+                        >
+                          <div className="w-px h-6 bg-gray-400 dark:bg-gray-600 rounded-full pointer-events-none" />
+                        </Separator>
+                    )}
+
+                    {/* Video Panel */}
+                    {effectiveVideoVisible && (
+                      <Panel
+                        id="player-video-panel"
+                        defaultSize="40%"
+                        minSize={15}
+                        collapsible
+                        collapsedSize="48px"
+                        className="min-w-0 min-h-0"
+                        panelRef={videoPanelCallbackRef}
+                      >
+                        <MediaPreviewPanel
+                          visible={true}
+                          collapsed={layoutSettings.videoPanelCollapsed}
+                          onCollapse={() => collapsePanel("video", true)}
+                          onExpand={() => collapsePanel("video", false)}
+                          className="h-full overflow-hidden"
+                        />
+                      </Panel>
+                    )}
+                  </Group>
                 )}
-              </Group>
-            </Panel>
-
-            {/* Vertical resize handle */}
-            {layoutSettings.timelinePanelVisible && (layoutSettings.transcriptPanelVisible || effectiveVideoVisible) && (
-              <Separator
-                id="player-main-timeline-resize"
-                className="h-3 bg-gray-200 dark:bg-gray-700 hover:bg-primary-400 dark:hover:bg-primary-600 transition-colors cursor-row-resize flex items-center justify-center my-[-2px]"
-                onPointerDownCapture={() => setActiveResizeAxis("vertical")}
-              >
-                <div className="w-6 h-0.5 bg-gray-400 dark:bg-gray-500 rounded-full pointer-events-none" />
-              </Separator>
-            )}
-
-            {/* Bottom: Timeline Panel */}
-            {layoutSettings.timelinePanelVisible && (
-              <Panel
-                id="player-timeline-panel"
-                defaultSize="30%"
-                minSize="12%"
-                maxSize="38%"
-                collapsible
-                collapsedSize="6%"
-                className="min-h-0 max-h-[380px] overflow-hidden"
-              >
-                <TimelinePanel
-                  visible={true}
-                  collapsed={layoutSettings.timelinePanelCollapsed}
-                  onCollapse={() => collapsePanel("timeline", true)}
-                  onExpand={() => collapsePanel("timeline", false)}
-                  onHide={() => togglePanel("timeline")}
-                  className="h-full"
-                />
               </Panel>
-            )}
-          </Group>
-          </>
-        )}
 
-        {/* Media History – web only */}
-        {!isElectron() && <MediaHistory />}
+              {/* Vertical resize handle */}
+              {layoutSettings.timelinePanelVisible && !layoutSettings.timelinePanelCollapsed &&
+                (layoutSettings.transcriptPanelVisible || effectiveVideoVisible) && !upperAreaCollapsed && (
+                <Separator
+                  id="player-main-timeline-resize"
+                  className="h-px bg-gray-200 dark:bg-gray-800 hover:bg-primary-400 dark:hover:bg-primary-600 transition-colors cursor-row-resize flex items-center justify-center"
+                  onPointerDownCapture={() => setActiveResizeAxis("vertical")}
+                >
+                  <div className="w-6 h-px bg-gray-400 dark:bg-gray-600 rounded-full pointer-events-none" />
+                </Separator>
+              )}
+
+              {/* Bottom: Timeline Panel */}
+              {layoutSettings.timelinePanelVisible && (
+                <Panel
+                  id="player-timeline-panel"
+                  defaultSize="30%"
+                  minSize={10}
+                  collapsible
+                  collapsedSize="48px"
+                  className="min-h-0 min-w-0 overflow-hidden"
+                  panelRef={timelinePanelCallbackRef}
+                >
+                  <TimelinePanel
+                    visible={true}
+                    collapsed={layoutSettings.timelinePanelCollapsed}
+                    onCollapse={() => collapsePanel("timeline", true)}
+                    onExpand={() => collapsePanel("timeline", false)}
+                    className="h-full min-h-0"
+                  />
+                </Panel>
+              )}
+
+            </Group>
+          </PlayerWorkspace>
+        )}
       </div>
     </AppLayout>
   );

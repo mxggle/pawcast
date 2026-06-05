@@ -1,11 +1,10 @@
-import { BrowserRouter, HashRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { HashRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { Suspense, lazy, memo } from "react";
 import { HomePage } from "../pages";
 import { usePlayerStore } from "../stores/playerStore";
 import { useShallow } from "zustand/react/shallow";
-import { isElectron } from "../utils/platform";
 
-const Router = isElectron() ? HashRouter : BrowserRouter;
+const Router = HashRouter;
 const PlayerPage = lazy(async () => {
   const module = await import("../pages/PlayerPage");
   return { default: module.PlayerPage };
@@ -21,6 +20,10 @@ const GlossaryPage = lazy(async () => {
 const SettingsWindowPage = lazy(async () => {
   const module = await import("../pages/ElectronSettingsWindowPage");
   return { default: module.ElectronSettingsWindowPage };
+});
+const GlossaryWindowPage = lazy(async () => {
+  const module = await import("../pages/ElectronGlossaryWindowPage");
+  return { default: module.ElectronGlossaryWindowPage };
 });
 const SentencePracticePage = lazy(async () => {
   const module = await import("../pages/SentencePracticePage");
@@ -59,6 +62,9 @@ const AppRouterInner = () => {
 
   const hasMedia = !!(currentFile || currentYouTube);
   const isOnPlayer = location.pathname === "/player";
+  const isPopupWindow =
+    location.pathname === "/glossary-window" ||
+    location.pathname === "/settings-window";
 
   return (
     <>
@@ -67,6 +73,7 @@ const AppRouterInner = () => {
           <Route path="/" element={<HomePage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/glossary" element={<GlossaryPage />} />
+          <Route path="/glossary-window" element={<GlossaryWindowPage />} />
           <Route path="/settings-window" element={<SettingsWindowPage />} />
           <Route path="/sentence-practice" element={<SentencePracticePage />} />
           {/* When media is loaded, player is rendered persistently below; otherwise redirect home */}
@@ -82,7 +89,7 @@ const AppRouterInner = () => {
       {/* Keep PlayerPage mounted while media is loaded so audio element and state persist.
           PersistentPlayer (memo) skips re-render on route change — only the wrapper div's
           style prop is updated (a fast direct DOM write, not a React subtree reconciliation). */}
-      {hasMedia && (
+      {hasMedia && !isPopupWindow && (
         <Suspense fallback={isOnPlayer ? ROUTE_FALLBACK : null}>
           <div style={isOnPlayer ? undefined : HIDDEN_STYLE}>
             <PersistentPlayer />

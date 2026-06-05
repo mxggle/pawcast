@@ -1,7 +1,0 @@
-{
-  "rewrites": [
-    { "source": "/api/opencode/:match*", "destination": "https://opencode.ai/:match*" },
-    { "source": "/api/deepseek/:match*", "destination": "https://api.deepseek.com/:match*" },
-    { "source": "/(.*)", "destination": "/index.html" }
-  ]
-}

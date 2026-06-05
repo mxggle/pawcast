@@ -19,6 +19,8 @@
     "back": "Back",
     "show": "Show",
     "hide": "Hide",
+    "expand": "Expand",
+    "collapse": "Collapse",
     "start": "Start",
     "end": "End",
     "remove": "Remove",
@@ -57,7 +59,9 @@
       "trackDeleted": "Shadow track deleted"
     },
     "recordingError": "Recording error: {{message}}",
-    "failedToSave": "Failed to save recording"
+    "failedToSave": "Failed to save recording",
+    "takeOf": "Take {{n}} of {{total}}",
+    "recordFirstTake": "Press REC to record your first take"
   },
   "sentencePractice": {
     "title": "Sentence Practice",
@@ -152,6 +156,42 @@
     "smallStep": "Small Step",
     "status": {
       "ready": "All Systems Ready"
+    },
+    "data": {
+      "title": "Data Management",
+      "description": "Manage your data directory, run health checks, and create backups.",
+      "directory": "Data Directory",
+      "currentDirectory": "Current Directory",
+      "changeDirectory": "Change Directory",
+      "changeDirectoryDescription": "Move your data to a new location. All existing data will be copied.",
+      "changeDirectoryConfirm": "This will copy all data to the new location and switch the active directory. Continue?",
+      "directorySize": "Directory Size",
+      "fileCount": "{{count}} files",
+      "healthCheck": "Data Health",
+      "runHealthCheck": "Run Health Check",
+      "healthStatus": "Status",
+      "healthy": "Healthy",
+      "degraded": "Degraded",
+      "damaged": "Damaged",
+      "manifestStatus": "Manifest",
+      "manifestOk": "Valid",
+      "manifestCorrupt": "Corrupt",
+      "failedChecksums": "Failed Checksums",
+      "orphanedReferences": "Orphaned References",
+      "corruptedFiles": "Corrupted Files",
+      "noIssues": "No issues found",
+      "recovery": "Recovery",
+      "replayJournal": "Replay Journal",
+      "restoreSnapshot": "Restore Snapshot",
+      "remigrate": "Re-migrate",
+      "recoverySuccess": "Recovery completed successfully",
+      "recoveryFailed": "Recovery failed: {{message}}",
+      "snapshots": "Snapshots",
+      "exportSnapshot": "Export Snapshot",
+      "importSnapshot": "Import Snapshot",
+      "exportSuccess": "Snapshot exported",
+      "importSuccess": "Snapshot imported",
+      "electronOnly": "Data management is available in the desktop app"
     },
     "footer": {
       "autoSaved": "Settings are auto-saved to your device",
@@ -350,6 +390,13 @@
     "couldNotRetrieveMedia": "File not found in storage. Please re-upload the file.",
     "noMediaLoadedSimple": "No media loaded"
   },
+  "track": {
+    "original": "Original",
+    "shadowing": "Shadowing",
+    "totalDuration": "Total {{time}}",
+    "originalVolume": "Original volume",
+    "shadowingVolume": "Shadowing volume"
+  },
   "upload": {
     "openFile": "Open File",
     "dragDrop": "Drag & drop audio/video files here",
@@ -438,7 +485,15 @@
       "japanese": "Japanese",
       "korean": "Korean"
     },
-    "mockExplanation": "This is a generated explanation for: \"{{snippet}}\""
+    "mockExplanation": "This is a generated explanation for: \"{{snippet}}\"",
+    "overview": "Overview",
+    "translation": "Translation",
+    "breakdown": "Deep-Dive Breakdown",
+    "grammarSpotlight": "Grammar Spotlight",
+    "form": "Form:",
+    "meaning": "Meaning:",
+    "examples": "Examples:",
+    "logicSummary": "Sentence Logic Summary"
   },
   "transcript": {
     "title": "Transcript",
@@ -752,6 +807,8 @@
     "recent": "RECENT",
     "addFolder": "Add folder",
     "clearHistory": "Clear history",
+    "clearHistoryConfirmTitle": "Clear history",
+    "clearHistoryConfirmMessage": "This will remove all recent files from the history. This action cannot be undone.",
     "searchPlaceholder": "Search files",
     "clearSearch": "Clear search",
     "scopeLabel": "Library scope",

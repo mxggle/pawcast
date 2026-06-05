@@ -1,8 +1,9 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { deleteMediaFile } from "../utils/mediaStorage";
+import { recordingRepository } from "../repositories/recordingRepository";
 
-interface ShadowingSegment {
+export interface ShadowingSegment {
     id: string;
     startTime: number;
     duration: number;
@@ -10,6 +11,7 @@ interface ShadowingSegment {
     fileOffset?: number;
     peaks?: number[];
     peakTimes?: number[];
+    segmentId?: string; // transcript segment ID for per-sentence recordings
 }
 
 interface ShadowingSession {
@@ -30,6 +32,8 @@ interface ShadowingState {
         peakTimes: number[];
     } | null;
     currentRecordingRevision: number;
+    recordingSegmentId?: string; // transcript segment ID for per-sentence recording
+    sentenceRecordings: Record<string, ShadowingSegment[]>; // keyed by transcript segmentId
 }
 
 interface ShadowingActions {
@@ -47,6 +51,10 @@ interface ShadowingActions {
     clearSegments: (mediaId: string) => void;
     deleteAllSegments: (mediaId: string) => Promise<void>;
     removeOverlappingSegments: (mediaId: string, startTime: number, endTime: number) => Promise<void>;
+    setRecordingSegmentId: (segmentId: string | undefined) => void;
+    addSentenceRecording: (segmentId: string, segment: ShadowingSegment) => void;
+    getSentenceRecordings: (segmentId: string) => ShadowingSegment[];
+    removeSentenceRecording: (segmentId: string, recordingId: string) => void;
 }
 
 const EMPTY_SESSION: ShadowingSession = { segments: [] };
@@ -86,6 +94,7 @@ export const useShadowingStore = create<ShadowingState & ShadowingActions>()(
             sessions: {},
             currentRecording: null,
             currentRecordingRevision: 0,
+            sentenceRecordings: {},
 
             setShadowingMode: (enabled) => set({ isShadowingMode: enabled }),
             setDelay: (seconds) => set({ delay: seconds }),
@@ -277,16 +286,47 @@ export const useShadowingStore = create<ShadowingState & ShadowingActions>()(
                     }
                 }
             },
+
+            setRecordingSegmentId: (segmentId) => set({ recordingSegmentId: segmentId }),
+
+            addSentenceRecording: (segmentId, segment) => set((state) => ({
+                sentenceRecordings: {
+                    ...state.sentenceRecordings,
+                    [segmentId]: [...(state.sentenceRecordings[segmentId] || []), segment],
+                },
+            })),
+
+            getSentenceRecordings: (segmentId) => {
+                return get().sentenceRecordings[segmentId] || [];
+            },
+
+            removeSentenceRecording: (segmentId, recordingId) => set((state) => {
+                const existing = state.sentenceRecordings[segmentId];
+                if (!existing) return state;
+                const filtered = existing.filter((s) => s.id !== recordingId);
+                if (filtered.length === 0) {
+                    const updated = { ...state.sentenceRecordings };
+                    delete updated[segmentId];
+                    return { sentenceRecordings: updated };
+                }
+                return {
+                    sentenceRecordings: {
+                        ...state.sentenceRecordings,
+                        [segmentId]: filtered,
+                    },
+                };
+            }),
         }),
         {
             name: "shadowing-store",
-            version: 3,
+            version: 4,
             partialize: (state) => ({
                 isShadowingMode: state.isShadowingMode,
                 delay: state.delay,
                 sessions: state.sessions,
                 volume: state.volume,
                 muted: state.muted,
+                sentenceRecordings: state.sentenceRecordings,
             }),
             migrate: (persistedState: unknown) => {
                 const state = (persistedState as Record<string, unknown>) || {};
@@ -314,3 +354,37 @@ export const useShadowingStore = create<ShadowingState & ShadowingActions>()(
         }
     )
 );
+
+// ─── Dual-write sync ───
+let _shadowingSaveTimer: ReturnType<typeof setTimeout>
+useShadowingStore.subscribe((state) => {
+  clearTimeout(_shadowingSaveTimer)
+  _shadowingSaveTimer = setTimeout(() => {
+    if (!window.electronAPI?.dataPut) return
+    const allSegments: Array<{ id: string; mediaId: string; startTime: number; duration: number; filePath: string; fileOffset: number; segmentId?: string; peaks: number[]; peakTimes: number[]; createdAt: number }> = []
+    if (state.sessions) {
+      for (const key of Object.keys(state.sessions)) {
+        const session = state.sessions[key]
+        if (Array.isArray(session.segments)) {
+          for (const seg of session.segments) {
+            allSegments.push({
+              id: seg.id,
+              mediaId: key,
+              startTime: seg.startTime,
+              duration: seg.duration,
+              filePath: `recordings/shadowing/files/${seg.storageId}`,
+              fileOffset: seg.fileOffset || 0,
+              segmentId: (seg as unknown as Record<string, unknown>).segmentId as string | undefined,
+              peaks: seg.peaks || [],
+              peakTimes: (seg as unknown as Record<string, unknown>).peakTimes as number[] || [],
+              createdAt: Date.now(),
+            })
+          }
+        }
+      }
+    }
+    if (allSegments.length > 0) {
+      recordingRepository.saveShadowingIndex(allSegments).catch(() => {})
+    }
+  }, 300)
+})

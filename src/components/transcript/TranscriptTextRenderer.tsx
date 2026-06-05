@@ -1,4 +1,4 @@
-import { memo, useMemo, useRef } from "react";
+import { memo, useEffect, useMemo, useRef } from "react";
 import type {
   SegmentTranscriptStudy,
   TranscriptStudyLevel,
@@ -38,6 +38,9 @@ export const TranscriptTextRenderer = memo(
     className,
   }: TranscriptTextRendererProps) => {
     const containerRef = useRef<HTMLParagraphElement | null>(null);
+    // Always-current ref so the document listener never captures a stale closure.
+    const captureRef = useRef<() => void>(() => {});
+
     const items = useMemo(
       () =>
         highlightsEnabled
@@ -61,7 +64,7 @@ export const TranscriptTextRenderer = memo(
       const range = selection.getRangeAt(0);
       const root = containerRef.current;
 
-      if (!root.contains(range.commonAncestorContainer)) {
+      if (!root.contains(range.commonAncestorContainer) && !root.contains(range.startContainer)) {
         return;
       }
 
@@ -104,12 +107,34 @@ export const TranscriptTextRenderer = memo(
       });
     };
 
+    // Keep the ref current so the document listener always calls the latest version.
+    captureRef.current = handleSelectionCapture;
+
+    // Catch selections whose mouseup fires outside the <p> (e.g. user drags
+    // across the segment boundary or into whitespace between segments).
+    useEffect(() => {
+      const handler = (e: MouseEvent) => {
+        const root = containerRef.current;
+        if (!root) return;
+        // Inside the element: the element's onMouseUp already handles this.
+        if (root.contains(e.target as Node)) return;
+        // Only capture if the selection actually started within this container.
+        const sel = window.getSelection();
+        if (!sel || sel.rangeCount === 0 || sel.isCollapsed) return;
+        const range = sel.getRangeAt(0);
+        if (root.contains(range.startContainer) || root.contains(range.commonAncestorContainer)) {
+          captureRef.current();
+        }
+      };
+      document.addEventListener("mouseup", handler);
+      return () => document.removeEventListener("mouseup", handler);
+    }, []);
+
     const handleDoubleClick = () => {
       if (!selectionEnabled || !containerRef.current) return;
 
-      // Allow the browser to create its default selection first, then snap
-      // to word boundaries for scripts like CJK where double-click word
-      // selection is unreliable.
+      // Give the browser a frame to expand its double-click word selection,
+      // then snap CJK boundaries and always re-capture the final result.
       requestAnimationFrame(() => {
         const selection = window.getSelection();
         if (!selection || selection.rangeCount === 0 || selection.isCollapsed) {
@@ -126,15 +151,19 @@ export const TranscriptTextRenderer = memo(
         if (!offsets) return;
 
         const snapped = snapToWordBoundaries(text, offsets.start, offsets.end);
-        if (snapped.start === offsets.start && snapped.end === offsets.end) {
-          return;
+
+        if (snapped.start !== offsets.start || snapped.end !== offsets.end) {
+          // CJK: update DOM selection, then re-capture in the next frame
+          // so the bounding rect reflects the new range.
+          if (setDomSelection(root, snapped.start, snapped.end)) {
+            requestAnimationFrame(() => captureRef.current());
+            return;
+          }
         }
 
-        if (setDomSelection(root, snapped.start, snapped.end)) {
-          // Re-capture after updating the DOM selection so the popover
-          // shows the snapped text and correct bounding rect.
-          requestAnimationFrame(() => handleSelectionCapture());
-        }
+        // Always re-capture to reflect the browser's final word selection —
+        // the first mouseup may have caught a partial selection.
+        captureRef.current();
       });
     };
 

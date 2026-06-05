@@ -287,7 +287,6 @@ export const FolderBrowser = ({
             item.historyItem ? getHistorySubtext(item.historyItem) : item.path ?? item.sourceLabel
           }
           className="h-auto py-1.5"
-          actionAreaClassName="bg-white/80 dark:bg-gray-950/80 backdrop-blur-sm rounded-md"
           actions={
             <>
               <span className="text-[10px] text-gray-400 dark:text-gray-500 tabular-nums group-hover:hidden group-focus-within:hidden mr-1">
@@ -367,7 +366,6 @@ export const FolderBrowser = ({
           primaryText={node.name}
           secondaryText={isDirectory ? node.path : undefined}
           className={isDirectory ? "h-auto py-1.5" : undefined}
-          actionAreaClassName="bg-white/80 dark:bg-gray-950/80 backdrop-blur-sm rounded-md"
           actions={
             <SidebarRowAction
               icon={<SquareArrowOutUpRight />}
@@ -412,7 +410,6 @@ export const FolderBrowser = ({
           className="h-auto py-1.5"
           contentClassName="text-gray-800 dark:text-gray-100"
           primaryTextClassName="font-semibold"
-          actionAreaClassName="bg-white/80 dark:bg-gray-950/80 backdrop-blur-sm rounded-md"
           actions={
             <>
               {loading && <Loader2 className="w-3 h-3 text-gray-400 animate-spin mr-1" />}
@@ -463,7 +460,6 @@ export const FolderBrowser = ({
                 className="h-auto py-1.5"
                 contentClassName="text-gray-800 dark:text-gray-100"
                 primaryTextClassName="font-semibold"
-                actionAreaClassName="bg-white/80 dark:bg-gray-950/80 backdrop-blur-sm rounded-md"
                 actions={
                   <>
                     {loading && <Loader2 className="w-3 h-3 text-gray-400 animate-spin mr-1" />}

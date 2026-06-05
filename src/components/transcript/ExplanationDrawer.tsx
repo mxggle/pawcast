@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { AI_PROMPTS } from "../../config/prompts";
 
 import { MarkdownRenderer } from "../ui/MarkdownRenderer";
-import { Loader, X } from "lucide-react";
+import { Loader } from "lucide-react";
 import { toast } from "react-hot-toast";
 import {
   AIProvider,
@@ -251,12 +251,6 @@ export const ExplanationDrawer: React.FC<ExplanationDrawerProps> = ({
         <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
           {t("explanation.title")}
         </span>
-        <button
-          onClick={onClose}
-          className="p-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-        >
-          <X size={14} />
-        </button>
       </div>
 
       {/* Content */}
@@ -279,7 +273,7 @@ export const ExplanationDrawer: React.FC<ExplanationDrawerProps> = ({
                 {/* Sensei Overview */}
                 <div className="bg-blue-50/50 dark:bg-blue-900/10 rounded-lg p-3 border-l-4 border-blue-400 dark:border-blue-500">
                   <h4 className="flex items-center gap-2 text-xs font-bold text-blue-700 dark:text-blue-300 uppercase tracking-wider mb-2">
-                    <span className="text-sm">👨‍🏫</span> Sensei’s Overview
+                    <span className="text-sm">👨‍🏫</span> {t("explanation.overview")}
                   </h4>
                   <p className="text-xs text-gray-700 dark:text-gray-300 italic leading-relaxed">
                     "{explanation.structuredExplanation.senseiOverview}"
@@ -289,7 +283,7 @@ export const ExplanationDrawer: React.FC<ExplanationDrawerProps> = ({
                 {/* Translation */}
                 <div>
                   <h4 className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
-                    Translation
+                    {t("explanation.translation")}
                   </h4>
                   <div className="space-y-1">
                     <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
@@ -306,7 +300,7 @@ export const ExplanationDrawer: React.FC<ExplanationDrawerProps> = ({
                 {/* Breakdown */}
                 <div className="grid gap-3">
                   <h4 className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Deep-Dive Breakdown
+                    {t("explanation.breakdown")}
                   </h4>
                   <div className="space-y-3">
                     {explanation.structuredExplanation.breakdown.map((item, idx) => (
@@ -326,7 +320,7 @@ export const ExplanationDrawer: React.FC<ExplanationDrawerProps> = ({
                 {explanation.structuredExplanation.grammarSpotlight && explanation.structuredExplanation.grammarSpotlight.length > 0 && (
                   <div className="space-y-4 pt-4 border-t border-gray-200 dark:border-gray-700">
                     <h4 className="flex items-center gap-2 text-xs font-bold text-purple-700 dark:text-purple-400 uppercase tracking-wider">
-                      <span className="text-sm">🎯</span> Grammar Spotlight
+                      <span className="text-sm">🎯</span> {t("explanation.grammarSpotlight")}
                     </h4>
                     {explanation.structuredExplanation.grammarSpotlight.map((gram, idx) => (
                       <div key={idx} className="bg-white dark:bg-gray-800/50 rounded-lg border border-gray-100 dark:border-gray-700 overflow-hidden">
@@ -335,15 +329,15 @@ export const ExplanationDrawer: React.FC<ExplanationDrawerProps> = ({
                         </div>
                         <div className="p-3 space-y-2 text-xs">
                           <div>
-                            <span className="text-[10px] font-semibold text-gray-400 uppercase mr-2">Form:</span>
+                            <span className="text-[10px] font-semibold text-gray-400 uppercase mr-2">{t("explanation.form")}</span>
                             <code className="text-gray-800 dark:text-gray-200">{gram.form}</code>
                           </div>
                           <div>
-                            <span className="text-[10px] font-semibold text-gray-400 uppercase mr-2">Meaning:</span>
+                            <span className="text-[10px] font-semibold text-gray-400 uppercase mr-2">{t("explanation.meaning")}</span>
                             <span className="text-gray-700 dark:text-gray-300">{gram.meaning}</span>
                           </div>
                           <div className="space-y-1">
-                            <span className="text-[10px] font-semibold text-gray-400 uppercase">Examples:</span>
+                            <span className="text-[10px] font-semibold text-gray-400 uppercase">{t("explanation.examples")}</span>
                             <ul className="list-disc list-inside text-gray-600 dark:text-gray-400 pl-1 space-y-1">
                               {gram.examples.map((ex, i) => (
                                 <li key={i}>{ex}</li>
@@ -360,7 +354,7 @@ export const ExplanationDrawer: React.FC<ExplanationDrawerProps> = ({
                 <div className="pt-4 border-t border-gray-200 dark:border-gray-700 space-y-3">
                   <div className="bg-green-50/30 dark:bg-green-900/10 rounded-lg p-3">
                     <h4 className="text-xs font-bold text-green-700 dark:text-green-400 uppercase tracking-wider mb-1">
-                      Sentence Logic Summary
+                      {t("explanation.logicSummary")}
                     </h4>
                     <p className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed font-medium">
                       {explanation.structuredExplanation.logicSummary}
@@ -381,7 +375,7 @@ export const ExplanationDrawer: React.FC<ExplanationDrawerProps> = ({
                 </div>
               </div>
             ) : (
-              <div className="prose perror-sm dark:perror-invert max-w-none [&_h1]:text-xs [&_h1]:font-bold [&_h1]:text-blue-700 dark:[&_h1]:text-blue-400 [&_h1]:mb-1 [&_h1]:mt-3 [&_h1]:border-0 [&_h2]:text-xs [&_h2]:font-bold [&_h2]:text-blue-700 dark:[&_h2]:text-blue-400 [&_h2]:mb-1 [&_h2]:mt-3 [&_h3]:text-xs [&_h3]:font-semibold [&_h3]:text-gray-700 dark:[&_h3]:text-gray-300 [&_h3]:mb-1 [&_h3]:mt-2 [&_h4]:text-xs [&_h4]:font-semibold [&_h4]:text-gray-600 dark:[&_h4]:text-gray-400 [&_h4]:mb-1 [&_p]:text-xs [&_p]:mb-2 [&_li]:text-xs">
+              <div className="prose prose-sm dark:prose-invert max-w-none [&_h1]:text-xs [&_h1]:font-bold [&_h1]:text-blue-700 dark:[&_h1]:text-blue-400 [&_h1]:mb-1 [&_h1]:mt-3 [&_h1]:border-0 [&_h2]:text-xs [&_h2]:font-bold [&_h2]:text-blue-700 dark:[&_h2]:text-blue-400 [&_h2]:mb-1 [&_h2]:mt-3 [&_h3]:text-xs [&_h3]:font-semibold [&_h3]:text-gray-700 dark:[&_h3]:text-gray-300 [&_h3]:mb-1 [&_h3]:mt-2 [&_h4]:text-xs [&_h4]:font-semibold [&_h4]:text-gray-600 dark:[&_h4]:text-gray-400 [&_h4]:mb-1 [&_p]:text-xs [&_p]:mb-2 [&_li]:text-xs">
                 <MarkdownRenderer content={explanation.explanation} />
               </div>
             )}

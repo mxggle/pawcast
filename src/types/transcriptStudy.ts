@@ -38,6 +38,7 @@ export interface TranscriptSelectionState {
   end: number;
   rect: TranscriptSelectionRect;
   matchedItem: TranscriptStudyItem | null;
+  timeRange?: { start: number; end: number };
 }
 
 export interface GlossaryEntry {

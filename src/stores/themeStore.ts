@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { electronStorage } from "./electronStorage";
+import { settingsRepository } from "../repositories/settingsRepository";
 
 export type ThemeColors = {
   primary: string; // Base color for primary (e.g., 500)
@@ -86,3 +87,17 @@ export const THEME_PRESETS: Record<string, ThemeColors> = {
     }
   )
 );
+
+// ─── Dual-write sync ───
+let _themeSaveTimer: ReturnType<typeof setTimeout>
+useThemeStore.subscribe((state) => {
+  clearTimeout(_themeSaveTimer)
+  _themeSaveTimer = setTimeout(() => {
+    if (!window.electronAPI?.dataPut) return
+    settingsRepository.saveThemeSettings({
+      version: 1,
+      theme: 'dark',
+      colors: state.colors,
+    }).catch(() => {})
+  }, 300)
+})

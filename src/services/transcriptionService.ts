@@ -28,6 +28,7 @@ export interface TranscriptionResult {
     language?: string;
     duration?: number;
     provider: TranscriptionProvider;
+    words?: Array<{ word: string; start: number; end: number }>;
 }
 
 export interface TranscriptionConfig {
@@ -538,6 +539,8 @@ Example: 2 minutes and 15.5 seconds = 135.5 (NOT 2:15.5, NOT 135, NOT "2m15s")`,
                 language: response.language,
                 duration: response.duration,
                 provider,
+                // Include words if available even in fallback
+                words: response.words ?? undefined,
             };
         }
 
@@ -557,6 +560,7 @@ Example: 2 minutes and 15.5 seconds = 135.5 (NOT 2:15.5, NOT 135, NOT "2m15s")`,
             language: response.language,
             duration: response.duration,
             provider,
+            words: response.words ?? undefined,
         };
     }
 

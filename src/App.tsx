@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { Theme } from "@radix-ui/themes";
 import { Toaster } from "react-hot-toast";
+import { useSettingsStore } from "./stores/settingsStore";
 import { usePlayerStore } from "./stores/playerStore";
 import { useThemeStore } from "./stores/themeStore";
 import { applyTheme } from "./utils/theme";
@@ -9,7 +10,7 @@ import "@radix-ui/themes/styles.css";
 import "./index.css";
 
 function App() {
-  const { theme } = usePlayerStore();
+  const theme = useSettingsStore((state) => state.theme);
   const { colors } = useThemeStore();
 
   useEffect(() => {
