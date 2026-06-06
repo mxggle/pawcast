@@ -7,7 +7,7 @@ import { pathToFileURL } from "node:url";
 import * as esbuild from "esbuild";
 
 const bundleModule = async (entryPoint) => {
-  const outdir = await mkdtemp(join(tmpdir(), "loopmate-ai-service-"));
+  const outdir = await mkdtemp(join(tmpdir(), "pawcast-ai-service-"));
   const outfile = join(outdir, "bundle.mjs");
 
   await esbuild.build({

@@ -12,11 +12,11 @@ import {
 import { appendJournal, generateOperationId } from './journalManager'
 import type { DataManifest } from '../src/types/persistence'
 
-const DATA_DIR_CONFIG_FILE = '.loopmate-datadir'
+const DATA_DIR_CONFIG_FILE = '.pawcast-datadir'
 const dataMutationQueues = new Map<string, Promise<void>>()
 
 function defaultDataDir(): string {
-  return path.join(app.getPath('userData'), 'LoopMateData')
+  return path.join(app.getPath('userData'), 'PawcastData')
 }
 
 export function getDataDir(): string {

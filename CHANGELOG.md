@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Rebranded from LoopMate to Pawcast across all files, configs, and identifiers.
+
 ## [1.0.0-beta.2] - 2026-06-05
 
 ### Added

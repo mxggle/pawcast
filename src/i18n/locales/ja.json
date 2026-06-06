@@ -91,7 +91,7 @@
     "recordingDeleted": "録音を削除しました"
   },
   "app": {
-    "logoLabel": "LoopMateロゴ"
+    "logoLabel": "Pawcastロゴ"
   },
   "navigation": {
     "home": "ホーム",
@@ -209,7 +209,7 @@
     },
     "footer": {
       "autoSaved": "設定はこのデバイスに自動保存されます",
-      "tagline": "LoopMate v1.2.0 • 言語学習者のために作られました"
+      "tagline": "Pawcast v1.2.0 • 言語学習者のために作られました"
     }
   },
   "aiSettingsPage": {

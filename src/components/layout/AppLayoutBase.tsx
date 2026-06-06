@@ -88,7 +88,7 @@ export const AppLayoutBase = ({
     <div className={cn(
       "flex h-screen w-full overflow-hidden transition-colors duration-300",
       desktopMode 
-        ? "bg-gray-50 dark:bg-[#020617]" 
+        ? "bg-gray-50 dark:bg-[#0a0a12]" 
         : "bg-white dark:bg-gray-900",
       containerClassName,
       "px-2 sm:px-4"

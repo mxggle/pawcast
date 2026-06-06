@@ -1,8 +1,8 @@
-# LoopMate
+# Pawcast
 
 A modern web-based audio/video loop player with A-B repeat & Shadowing Recorder.
 
-LoopMate is a sleek and intuitive web app designed for language learners, musicians, and content reviewers. It allows you to loop YouTube videos and local files with precision, and now features a powerful **Shadowing Mode** to record and compare your voice with the original audio.
+Pawcast is a sleek and intuitive web app designed for language learners, musicians, and content reviewers. It allows you to loop YouTube videos and local files with precision, and now features a powerful **Shadowing Mode** to record and compare your voice with the original audio.
 
 🎯 **Supports:** MP3, MP4, WebM, FLAC, YouTube links, and more.
 📼 **Input:** Drag & drop local files or paste a YouTube URL.
@@ -56,7 +56,7 @@ Designed for language learners to practice speaking:
 
 ## 🏗 Architecture
 
-LoopMate ships as both a **web app** (Vite SPA) and a **desktop app** (Electron) from a single TypeScript codebase. A 4-layer architecture keeps shared and platform-specific code strictly separated.
+Pawcast ships as both a **web app** (Vite SPA) and a **desktop app** (Electron) from a single TypeScript codebase. A 4-layer architecture keeps shared and platform-specific code strictly separated.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
@@ -136,8 +136,8 @@ LoopMate ships as both a **web app** (Vite SPA) and a **desktop app** (Electron)
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/modern-ab-loop.git
-   cd modern-ab-loop
+   git clone https://github.com/yourusername/pawcast.git
+   cd pawcast
    ```
 
 2. Install dependencies:

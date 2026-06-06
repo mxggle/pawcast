@@ -889,7 +889,7 @@ ipcMain.handle('data:recover', async (_event, strategy: string) => {
 
 
 ipcMain.handle('data:changeDirectory', async (_event, targetPath: string) => {
-  const newDir = join(normalize(targetPath), 'LoopMateData')
+  const newDir = join(normalize(targetPath), 'PawcastData')
   await ensureDataDir(newDir)
   await copyDataDir(dataDir, newDir)
   const health = await runHealthCheck(newDir)

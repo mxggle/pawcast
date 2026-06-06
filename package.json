@@ -1,5 +1,5 @@
 {
-  "name": "loopmate",
+  "name": "pawcast",
   "private": true,
   "description": "The ultimate A-B loop player for language learners & musicians. 🎯 Shadowing recorder 🎙️, YouTube & local media support 📼, precision waveforms 🌊, and AI-powered transcripts. Master any audio with auto-save & advanced volume controls.",
   "keywords": [
@@ -99,8 +99,9 @@
   },
   "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e",
   "build": {
-    "appId": "com.loopmate.app",
-    "productName": "LoopMate",
+    "appId": "com.pawcast.app",
+    "productName": "Pawcast",
+    "copyright": "Copyright © 2026 Pawcast",
     "directories": {
       "output": "release"
     },
@@ -108,16 +109,30 @@
       "out/**/*",
       "package.json"
     ],
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "category": "public.app-category.music",
+      "artifactName": "${productName}-${version}-mac-${arch}.${ext}"
+    },
     "win": {
       "target": [
         {
           "target": "nsis",
-          "arch": [
-            "x64"
-          ]
+          "arch": ["x64"]
         }
       ],
       "artifactName": "${productName}-${version}-win-${arch}.${ext}"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Audio",
+      "artifactName": "${productName}-${version}-linux-${arch}.${ext}"
     },
     "nsis": {
       "oneClick": false,

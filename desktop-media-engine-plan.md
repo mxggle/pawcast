@@ -8,7 +8,7 @@
 
 ---
 
-# LoopMate Electron-only Player 重构方案
+# Pawcast Electron-only Player 重构方案
 
 ## 1. 核心设计原则
 
@@ -64,7 +64,7 @@ Electron App
 │   └── IPC API
 │
 ├── Preload
-│   └── window.loopmate
+│   └── window.pawcast
 │
 └── Renderer
     ├── Player Workspace
@@ -691,27 +691,27 @@ Transcript active word:
 Electron-only 下可以设计更直接的 API。
 
 ```ts
-window.loopmate.media.probe(filePath)
+window.pawcast.media.probe(filePath)
 
-window.loopmate.waveform.analyze({
+window.pawcast.waveform.analyze({
   mediaId,
   filePath
 })
 
-window.loopmate.waveform.getLevel({
+window.pawcast.waveform.getLevel({
   mediaId,
   level,
   startTime,
   endTime
 })
 
-window.loopmate.transcript.save(document)
+window.pawcast.transcript.save(document)
 
-window.loopmate.transcript.load(mediaId)
+window.pawcast.transcript.load(mediaId)
 
-window.loopmate.project.save(project)
+window.pawcast.project.save(project)
 
-window.loopmate.project.load(projectId)
+window.pawcast.project.load(projectId)
 ```
 
 ---
@@ -720,8 +720,8 @@ window.loopmate.project.load(projectId)
 
 ```txt
 appData/
-└── LoopMate/
-    ├── loopmate.db
+└── Pawcast/
+    ├── pawcast.db
     ├── cache/
     │   ├── waveform/
     │   │   └── {mediaId}/

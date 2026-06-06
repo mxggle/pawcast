@@ -1,4 +1,4 @@
-export const SETTINGS_OPEN_INTENT_EVENT = "loopmate:open-settings";
+export const SETTINGS_OPEN_INTENT_EVENT = "pawcast:open-settings";
 
 export type SettingsIntentTab = "general" | "ai" | "data";
 

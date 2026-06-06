@@ -37,7 +37,7 @@
 第一版以 Electron 为主。默认数据目录：
 
 ```text
-<electron userData>/LoopMateData/
+<electron userData>/PawcastData/
 ```
 
 用户可以在设置中修改为指定文件夹。修改目录时必须迁移并校验现有数据，失败时保留旧目录并回滚。
@@ -45,7 +45,7 @@
 推荐目录结构：
 
 ```text
-LoopMateData/
+PawcastData/
   manifest.json
   settings/
     app-settings.json
@@ -99,7 +99,7 @@ LoopMateData/
   "deviceId": "uuid",
   "createdAt": 1710000000000,
   "updatedAt": 1710000000000,
-  "activeDataDir": "/absolute/path/to/LoopMateData",
+  "activeDataDir": "/absolute/path/to/PawcastData",
   "files": [
     {
       "path": "library/media-history.json",
@@ -592,7 +592,7 @@ cache 损坏时可以删除并重建；核心数据不得静默删除。
 
 - 第一版以 Electron 为主。
 - Web 端暂时保留 IndexedDB/localStorage，后续提供导出/导入适配。
-- 默认数据目录是 `<electron userData>/LoopMateData`。
+- 默认数据目录是 `<electron userData>/PawcastData`。
 - 用户可以在设置中改为指定文件夹。
 - 波形数据是 cache，不作为必须备份的核心用户数据。
 - 旧存储迁移成功后先保留，不立即删除。

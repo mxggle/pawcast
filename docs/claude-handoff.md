@@ -6,7 +6,7 @@
 
 ## 1. Goal
 
-Refactor LoopMate's player into a Descript-style media workspace per `desktop-media-engine-plan.md`. Core priorities: silky-smooth playback, Canvas-based rendering, transcript-first architecture, Electron-only.
+Refactor Pawcast's player into a Descript-style media workspace per `desktop-media-engine-plan.md`. Core priorities: silky-smooth playback, Canvas-based rendering, transcript-first architecture, Electron-only.
 
 ## 2. Subagent Work Summary
 

@@ -91,7 +91,7 @@
     "recordingDeleted": "Recording deleted"
   },
   "app": {
-    "logoLabel": "LoopMate logo"
+    "logoLabel": "Pawcast logo"
   },
   "navigation": {
     "home": "Home",
@@ -209,7 +209,7 @@
     },
     "footer": {
       "autoSaved": "Settings are auto-saved to your device",
-      "tagline": "LoopMate v1.2.0 • Made with ❤️ for Language Learners"
+      "tagline": "Pawcast v1.2.0 • Made with ❤️ for Language Learners"
     }
   },
   "aiSettingsPage": {

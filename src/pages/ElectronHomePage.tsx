@@ -7,6 +7,7 @@ import { DesktopCard } from "../components/ui/DesktopCard";
 import { usePlayerStore } from "../stores/playerStore";
 import { formatTime } from "../utils/formatTime";
 
+
 interface ElectronHomePageProps {
   handleVideoIdSubmit: (videoId: string) => void;
 }
@@ -25,17 +26,36 @@ export const ElectronHomePage = ({ handleVideoIdSubmit }: ElectronHomePageProps)
   const recentItems = mediaHistory.slice(0, 4);
 
   return (
-    <div className="flex-1 min-h-full bg-gray-50/30 dark:bg-gray-950/20 flex flex-col">
+    <div className="flex-1 min-h-full flex flex-col relative overflow-hidden">
+      {/* Radial gradient background */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute inset-0 bg-gradient-to-br from-amber-50/80 via-white to-amber-100/60 dark:from-amber-950/30 dark:via-[#0a0a1a] dark:to-amber-900/20" />
+        <div className="absolute top-[-20%] right-[-10%] w-[500px] h-[500px] rounded-full bg-amber-400/10 dark:bg-amber-500/5 blur-3xl" />
+        <div className="absolute bottom-[-10%] left-[-5%] w-[400px] h-[400px] rounded-full bg-orange-300/10 dark:bg-orange-600/5 blur-3xl" />
+      </div>
+
       {/* Main Canvas - Studio Hero */}
       <motion.main 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.2 }}
-        className="px-8 py-12 lg:px-12 flex-1 flex flex-col"
+        className="px-8 py-12 lg:px-12 flex-1 flex flex-col relative z-10"
       >
         <div className="max-w-6xl mx-auto w-full space-y-12">
-          {/* Minimalist Hero */}
-          <div className="space-y-2 text-center md:text-left">
+          {/* Logo + Hero */}
+          <div className="space-y-6 text-center">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.15, type: "spring", stiffness: 200 }}
+              className="flex justify-center"
+            >
+              <img
+                src="/logo.png"
+                alt="Pawcast"
+                className="w-24 h-24 md:w-28 md:h-28 object-contain drop-shadow-lg"
+              />
+            </motion.div>
             <motion.h1 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}

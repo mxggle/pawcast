@@ -2,7 +2,7 @@
 
 ## Goal
 
-Migrate from scattered storage (electron-store, localStorage, IndexedDB) to unified file-based `LoopMateData/` directory with atomic writes, journaling, snapshots, and repository-based access — per `docs/user-data-persistence-plan.md`.
+Migrate from scattered storage (electron-store, localStorage, IndexedDB) to unified file-based `PawcastData/` directory with atomic writes, journaling, snapshots, and repository-based access — per `docs/user-data-persistence-plan.md`.
 
 ## What Was Implemented (Phases 0–4)
 

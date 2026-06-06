@@ -91,7 +91,7 @@
     "recordingDeleted": "录音已删除"
   },
   "app": {
-    "logoLabel": "LoopMate 标志"
+    "logoLabel": "Pawcast 标志"
   },
   "navigation": {
     "home": "首页",
@@ -209,7 +209,7 @@
     },
     "footer": {
       "autoSaved": "设置会自动保存到此设备",
-      "tagline": "LoopMate v1.2.0 • 为语言学习者打造"
+      "tagline": "Pawcast v1.2.0 • 为语言学习者打造"
     }
   },
   "aiSettingsPage": {
