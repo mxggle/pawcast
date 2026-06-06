@@ -34,4 +34,8 @@ export const dataClient = {
     if (!window.electronAPI) return false
     return window.electronAPI.dataIsMigrated()
   },
+  approvePath: async (filePath: string): Promise<void> => {
+    if (!window.electronAPI?.approvePath) return
+    await window.electronAPI.approvePath(filePath)
+  },
 }

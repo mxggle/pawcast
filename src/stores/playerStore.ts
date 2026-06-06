@@ -21,6 +21,7 @@ import { bookmarkRepository } from "../repositories/bookmarkRepository";
 import { glossaryRepository } from "../repositories/glossaryRepository";
 import { libraryRepository } from "../repositories/libraryRepository";
 import { settingsRepository } from "../repositories/settingsRepository";
+import { dataClient } from "../repositories/dataClient";
 import type { PersistedBookmark, PersistedGlossaryEntry } from "../types/persistence";
 
 // Re-export sub-stores
@@ -281,8 +282,8 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()(
 
         // ── Enriched Media actions ──
         setCurrentFile: async (file) => {
-          if (file?.nativePath && window.electronAPI?.approvePath) {
-            await window.electronAPI.approvePath(file.nativePath);
+          if (file?.nativePath) {
+            await dataClient.approvePath(file.nativePath);
           }
           useMediaStore.getState().setCurrentFile(file);
           if (file) {
@@ -485,9 +486,7 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()(
           try {
             if (historyItem.type === "file" && historyItem.fileData) {
               if (historyItem.nativePath) {
-                if (window.electronAPI?.approvePath) {
-                  await window.electronAPI.approvePath(historyItem.nativePath);
-                }
+                await dataClient.approvePath(historyItem.nativePath);
                 const url = nativePathToUrl(historyItem.nativePath);
                 const fd: MediaFile = { ...historyItem.fileData, url, nativePath: historyItem.nativePath };
                 useMediaStore.getState().setCurrentFile(fd);
