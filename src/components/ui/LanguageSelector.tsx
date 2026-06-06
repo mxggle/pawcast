@@ -13,7 +13,8 @@ export const LanguageSelector: React.FC = () => {
   const { i18n } = useTranslation();
 
   const handleLanguageChange = (languageCode: string) => {
-    i18n.changeLanguage(languageCode);
+    void i18n.changeLanguage(languageCode);
+    void window.electronAPI?.configSet("i18nextLng", languageCode);
   };
 
   return (

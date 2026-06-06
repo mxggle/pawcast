@@ -71,6 +71,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
   configSet: (key: string, value: unknown) =>
     ipcRenderer.invoke('config:set', key, value),
   configGetAll: () => ipcRenderer.invoke('config:getAll'),
+  onConfigChanged: (callback: (payload: { key: string }) => void) => {
+    const listener = (_event: IpcRendererEvent, payload: { key: string }) => {
+      callback(payload)
+    }
+    ipcRenderer.on('config:changed', listener)
+    return () => { ipcRenderer.removeListener('config:changed', listener) }
+  },
   fetch: (url: string, options?: RequestInit) => ipcRenderer.invoke('net:fetch', url, options),
   waveformAnalyze: (filePath: string, mediaId: string) =>
     ipcRenderer.invoke('waveform:analyze', { filePath, mediaId }),

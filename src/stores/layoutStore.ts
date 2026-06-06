@@ -87,7 +87,6 @@ let _layoutSaveTimer: ReturnType<typeof setTimeout>
 useLayoutStore.subscribe((state) => {
   clearTimeout(_layoutSaveTimer)
   _layoutSaveTimer = setTimeout(() => {
-    if (!window.electronAPI?.dataPut) return
     settingsRepository.saveLayoutSettings({
       version: 1,
       ...state.layoutSettings,

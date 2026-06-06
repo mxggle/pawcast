@@ -360,7 +360,6 @@ let _shadowingSaveTimer: ReturnType<typeof setTimeout>
 useShadowingStore.subscribe((state) => {
   clearTimeout(_shadowingSaveTimer)
   _shadowingSaveTimer = setTimeout(() => {
-    if (!window.electronAPI?.dataPut) return
     const allSegments: Array<{ id: string; mediaId: string; startTime: number; duration: number; filePath: string; fileOffset: number; segmentId?: string; peaks: number[]; peakTimes: number[]; createdAt: number }> = []
     if (state.sessions) {
       for (const key of Object.keys(state.sessions)) {

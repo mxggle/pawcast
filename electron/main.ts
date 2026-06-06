@@ -738,8 +738,13 @@ ipcMain.handle('config:get', (_event, key: string) => {
   return configStore.get(key as any)
 })
 
-ipcMain.handle('config:set', (_event, key: string, value: unknown) => {
+ipcMain.handle('config:set', (event, key: string, value: unknown) => {
   configStore.set(key as any, value as any)
+  BrowserWindow.getAllWindows().forEach((window) => {
+    if (window.webContents.id !== event.sender.id && !window.webContents.isDestroyed()) {
+      window.webContents.send('config:changed', { key })
+    }
+  })
 })
 
 ipcMain.handle('config:getAll', () => {

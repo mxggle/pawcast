@@ -3,6 +3,7 @@ import { Toaster } from "react-hot-toast";
 import { useSettingsStore } from "./stores/settingsStore";
 import { usePlayerStore } from "./stores/playerStore";
 import { useThemeStore } from "./stores/themeStore";
+import { startPersistedStoreSync } from "./stores/persistedStoreSync";
 import { applyTheme } from "./utils/theme";
 import { AppRouter } from "./router/AppRouter";
 import "./index.css";
@@ -18,6 +19,10 @@ function App() {
   useEffect(() => {
     applyTheme(colors);
   }, [colors]);
+
+  useEffect(() => {
+    return startPersistedStoreSync();
+  }, []);
 
   // Parse URL parameters for shared loop settings
   useEffect(() => {

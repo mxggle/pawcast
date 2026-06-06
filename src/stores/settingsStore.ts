@@ -48,7 +48,6 @@ let _settingsSaveTimer: ReturnType<typeof setTimeout>
 useSettingsStore.subscribe((state) => {
   clearTimeout(_settingsSaveTimer)
   _settingsSaveTimer = setTimeout(() => {
-    if (!window.electronAPI?.dataPut) return
     settingsRepository.saveAppSettings({
       version: 1,
       volume: 1,

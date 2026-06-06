@@ -93,7 +93,6 @@ let _themeSaveTimer: ReturnType<typeof setTimeout>
 useThemeStore.subscribe((state) => {
   clearTimeout(_themeSaveTimer)
   _themeSaveTimer = setTimeout(() => {
-    if (!window.electronAPI?.dataPut) return
     settingsRepository.saveThemeSettings({
       version: 1,
       theme: 'dark',

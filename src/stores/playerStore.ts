@@ -227,6 +227,18 @@ const initialState: PlayerState = {
   sidebarSections: { explorer: true, recent: true },
 };
 
+const syncPersistedMediaSettings = (state: PlayerState & PlayerActions) => {
+  useMediaStore.setState({
+    volume: state.volume,
+    mediaVolume: state.mediaVolume,
+    muted: state.muted,
+    playbackRate: state.playbackRate,
+    seekStepSeconds: state.seekStepSeconds,
+    seekSmallStepSeconds: state.seekSmallStepSeconds,
+    seekMode: state.seekMode,
+  });
+};
+
 export const usePlayerStore = create<PlayerState & PlayerActions>()(
   persist(
     (set, get) => {
@@ -692,6 +704,7 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()(
       },
       onRehydrateStorage: () => (state, error) => {
         if (error || !state) return;
+        syncPersistedMediaSettings(state);
         // Sync persisted data into sub-stores on app start
         if (state.mediaBookmarks && Object.keys(state.mediaBookmarks).length > 0) {
           useBookmarkStore.setState({ mediaBookmarks: state.mediaBookmarks });
@@ -750,8 +763,6 @@ let _playerSaveTimer: ReturnType<typeof setTimeout>
 usePlayerStore.subscribe((state) => {
   clearTimeout(_playerSaveTimer)
   _playerSaveTimer = setTimeout(() => {
-    if (!window.electronAPI?.dataPut) return
-
     // Bookmarks
     const bookmarks: PersistedBookmark[] = []
     if (state.mediaBookmarks) {

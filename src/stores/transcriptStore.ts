@@ -311,8 +311,6 @@ let _transcriptSaveTimer: ReturnType<typeof setTimeout>
 useTranscriptStore.subscribe((state) => {
   clearTimeout(_transcriptSaveTimer)
   _transcriptSaveTimer = setTimeout(() => {
-    if (!window.electronAPI?.dataPut) return
-
     // Sync transcripts
     const mediaIds = Object.keys(state.mediaTranscripts || {})
     for (const mediaId of mediaIds) {

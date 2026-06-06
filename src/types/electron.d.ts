@@ -38,6 +38,7 @@ interface ElectronAPI {
   configGet: (key: string) => Promise<unknown>
   configSet: (key: string, value: unknown) => Promise<void>
   configGetAll: () => Promise<unknown>
+  onConfigChanged: (callback: (payload: { key: string }) => void) => () => void
   fetch: (url: string, options?: RequestInit) => Promise<{ ok: boolean, status: number, statusText: string, data: string, headers: Record<string, string> }>
   waveformAnalyze: (filePath: string, mediaId: string) => Promise<{
     mediaId: string

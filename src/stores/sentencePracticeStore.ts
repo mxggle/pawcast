@@ -104,7 +104,6 @@ let _sentenceSaveTimer: ReturnType<typeof setTimeout>
 useSentencePracticeStore.subscribe((state) => {
   clearTimeout(_sentenceSaveTimer)
   _sentenceSaveTimer = setTimeout(() => {
-    if (!window.electronAPI?.dataPut) return
     const allRecordings: Array<{ id: string; mediaId: string; sentenceIndex: number; filePath: string; duration: number; createdAt: number; peaks: number[] }> = []
     if (state.recordings) {
       for (const key of Object.keys(state.recordings)) {

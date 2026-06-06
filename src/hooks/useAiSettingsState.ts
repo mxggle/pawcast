@@ -546,6 +546,7 @@ export function useAiSettingsState(): UseAiSettingsStateResult {
       window.dispatchEvent(new CustomEvent("aiSettingsUpdated"));
       window.dispatchEvent(new CustomEvent("ai-settings-updated"));
       settingsBroadcastChannel?.postMessage({ type: "ai-settings-updated" });
+      void window.electronAPI?.configSet("ai-settings-storage", Date.now().toString());
     }, 400);
 
     return () => {
