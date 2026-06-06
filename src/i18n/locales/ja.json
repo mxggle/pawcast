@@ -140,7 +140,7 @@
   },
   "settingsPage": {
     "title": "設定",
-    "generalDescription": "言語、インターフェースレイアウト、テーマカラー、再生パラメータを設定します。",
+    "generalDescription": "言語、テーマカラー、再生パラメータを設定します。",
     "aiDescription": "AIサービスプロバイダー、APIキー、およびデフォルトの応答動作を設定します。",
     "tabs": {
       "general": "一般",
@@ -148,8 +148,6 @@
       "data": "データ"
     },
     "appearance": "外観",
-    "interfaceLayout": "インターフェースレイアウト",
-    "interfaceLayoutHelp": "プレーヤービューのセクションを表示または非表示にします。",
     "theme": "テーマカラー",
     "themeHelp": "インターフェースの色をカスタマイズします",
     "resetTheme": "デフォルトに戻す",

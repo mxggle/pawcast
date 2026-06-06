@@ -2,30 +2,22 @@ import type { CSSProperties } from "react";
 import {
   Check,
   Globe,
-  Layout,
   Palette,
   RotateCcw,
   Clock,
-  Waves,
-  FileText,
-  SlidersHorizontal,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { useLayoutSettings } from "../../contexts/layoutSettings";
 import { usePlayerStore } from "../../stores/playerStore";
 import { THEME_PRESETS, useThemeStore } from "../../stores/themeStore";
 import { cn } from "../../utils/cn";
 import { Card, CardContent } from "../ui/card";
 import { Input } from "../ui/input";
-import { Switch } from "../ui/switch";
 import { LanguageSelector } from "../ui/LanguageSelector";
 import { SettingsSection } from "./SettingsSection";
 import { SettingsRow } from "./SettingsRow";
-import { SettingsIconChip } from "./SettingsIconChip";
 
 export function GeneralSettingsPanel() {
   const { t } = useTranslation();
-  const { layoutSettings, setLayoutSettings } = useLayoutSettings();
   const { colors, setColors, resetColors } = useThemeStore();
   const {
     seekMode,
@@ -35,27 +27,6 @@ export function GeneralSettingsPanel() {
     setSeekStepSeconds,
     setSeekSmallStepSeconds,
   } = usePlayerStore();
-
-  const layoutOptions = [
-    {
-      key: "showWaveform" as const,
-      label: t("settings.waveformDisplay"),
-      description: "Display audio waveform visualization",
-      icon: <Waves className="h-[18px] w-[18px]" />,
-    },
-    {
-      key: "showTranscript" as const,
-      label: t("settings.transcriptPanel"),
-      description: "Show AI-generated transcript panel",
-      icon: <FileText className="h-[18px] w-[18px]" />,
-    },
-    {
-      key: "showControls" as const,
-      label: t("settings.playbackControls"),
-      description: "Display playback control buttons",
-      icon: <SlidersHorizontal className="h-[18px] w-[18px]" />,
-    },
-  ];
 
   return (
     <div className="space-y-10">
@@ -67,44 +38,6 @@ export function GeneralSettingsPanel() {
         <Card>
           <CardContent className="p-6">
             <LanguageSelector />
-          </CardContent>
-        </Card>
-      </SettingsSection>
-
-      {/* Interface Layout */}
-      <SettingsSection
-        title={t("settingsPage.interfaceLayout")}
-        description={t("settingsPage.interfaceLayoutHelp")}
-        icon={<Layout className="h-4 w-4 text-orange-500" />}
-      >
-        <Card>
-          <CardContent className="p-0">
-            {layoutOptions.map((option, index) => (
-              <SettingsRow
-                key={option.key}
-                label={
-                  <div className="flex items-center gap-3">
-                    <SettingsIconChip active={layoutSettings[option.key]}>
-                      {option.icon}
-                    </SettingsIconChip>
-                    <span>{option.label}</span>
-                  </div>
-                }
-                description={option.description}
-                noBorder={index === layoutOptions.length - 1}
-                className="px-6"
-              >
-                <Switch
-                  checked={layoutSettings[option.key]}
-                  onCheckedChange={(checked) =>
-                    setLayoutSettings((current) => ({
-                      ...current,
-                      [option.key]: checked,
-                    }))
-                  }
-                />
-              </SettingsRow>
-            ))}
           </CardContent>
         </Card>
       </SettingsSection>

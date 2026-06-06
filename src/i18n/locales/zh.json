@@ -140,7 +140,7 @@
   },
   "settingsPage": {
     "title": "设置",
-    "generalDescription": "配置语言、界面布局、主题颜色及播放参数。",
+    "generalDescription": "配置语言、主题颜色及播放参数。",
     "aiDescription": "设置 AI 服务提供商、API 密钥与默认响应行为。",
     "tabs": {
       "general": "通用",
@@ -148,8 +148,6 @@
       "data": "数据"
     },
     "appearance": "外观",
-    "interfaceLayout": "界面布局",
-    "interfaceLayoutHelp": "显示或隐藏播放器中的各个区域。",
     "theme": "主题颜色",
     "themeHelp": "自定义界面颜色",
     "resetTheme": "恢复默认",

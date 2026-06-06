@@ -140,7 +140,7 @@
   },
   "settingsPage": {
     "title": "Settings",
-    "generalDescription": "Configure language, interface layout, theme color, and playback parameters.",
+    "generalDescription": "Configure language, theme color, and playback parameters.",
     "aiDescription": "Configure AI service providers, API keys, and default response behaviors.",
     "tabs": {
       "general": "General",
@@ -148,8 +148,6 @@
       "data": "Data"
     },
     "appearance": "Appearance",
-    "interfaceLayout": "Interface Layout",
-    "interfaceLayoutHelp": "Show or hide sections in the player view.",
     "theme": "Theme",
     "themeHelp": "Customize your interface colors",
     "resetTheme": "Reset to default",
