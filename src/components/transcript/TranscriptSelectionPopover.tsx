@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import { AI_PROMPTS } from "../../config/prompts";
-import { BookmarkPlus, Loader, Sparkles, X } from "lucide-react";
+import { BookmarkPlus, Loader, RotateCcw, Sparkles, X } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { MarkdownRenderer } from "../ui/MarkdownRenderer";
 import { aiService } from "../../services/aiService";
@@ -44,6 +44,8 @@ export const TranscriptSelectionPopover = ({
     top: selection.rect.top + selection.rect.height + 10,
     left: selection.rect.left,
   }));
+  const [renderPosition, setRenderPosition] = useState(position);
+  const popoverRef = useRef<HTMLDivElement | null>(null);
   const dragOffsetRef = useRef({ x: 0, y: 0 });
   const currentFile = usePlayerStore((state) => state.currentFile);
   const currentYouTube = usePlayerStore((state) => state.currentYouTube);
@@ -99,6 +101,25 @@ export const TranscriptSelectionPopover = ({
       left: selection.rect.left,
     });
   }, [selection]);
+
+  // Clamp to the viewport using the measured size, so the popover never
+  // overflows the window even after the explanation expands it.
+  useLayoutEffect(() => {
+    const element = popoverRef.current;
+    if (!element) {
+      return;
+    }
+
+    const rect = element.getBoundingClientRect();
+    const next = {
+      top: Math.max(12, Math.min(position.top, window.innerHeight - rect.height - 12)),
+      left: Math.max(12, Math.min(position.left, window.innerWidth - rect.width - 12)),
+    };
+
+    setRenderPosition((previous) =>
+      previous.top === next.top && previous.left === next.left ? previous : next
+    );
+  }, [position, result, isLoading, error]);
 
   useEffect(() => {
     const handleEscape = (event: KeyboardEvent) => {
@@ -218,8 +239,8 @@ export const TranscriptSelectionPopover = ({
     }
 
     dragOffsetRef.current = {
-      x: event.clientX - position.left,
-      y: event.clientY - position.top,
+      x: event.clientX - renderPosition.left,
+      y: event.clientY - renderPosition.top,
     };
 
     const handlePointerMove = (moveEvent: PointerEvent) => {
@@ -238,53 +259,54 @@ export const TranscriptSelectionPopover = ({
     window.addEventListener("pointerup", handlePointerUp);
   };
 
+  const hasBody = isLoading || Boolean(error) || Boolean(result);
+
   const content = (
     <motion.div
-      className="transcript-selection-popover fixed z-[70] w-[min(22rem,calc(100vw-1.5rem))] rounded-xl border border-gray-200/80 bg-white/98 p-3 text-gray-900 shadow-lg shadow-black/8 backdrop-blur-sm dark:border-white/10 dark:bg-gray-900/98 dark:text-gray-100"
+      ref={popoverRef}
+      className="transcript-selection-popover fixed z-[70] flex w-[min(24rem,calc(100vw-1.5rem))] flex-col overflow-hidden rounded-xl border border-gray-200/80 bg-white/98 text-gray-900 shadow-xl shadow-black/10 backdrop-blur-sm dark:border-white/10 dark:bg-gray-900/98 dark:text-gray-100"
       initial={{ opacity: 0, scale: 0.96, y: -4 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
       transition={{ duration: 0.12, ease: "easeOut" }}
-      style={{
-        top: Math.min(position.top, window.innerHeight - 220),
-        left: Math.min(position.left, Math.max(12, window.innerWidth - 376)),
-      }}
+      style={{ top: renderPosition.top, left: renderPosition.left }}
       onMouseDown={(event) => event.stopPropagation()}
     >
       <div
-        className="mb-2.5 flex cursor-move items-start justify-between gap-2"
+        className="flex cursor-move items-start gap-2 px-3.5 pb-2 pt-3"
         onPointerDown={handleDragStart}
       >
         <div className="min-w-0 flex-1">
-          <div className="inline-flex max-w-full items-center rounded-md bg-gray-100 px-2 py-0.5 dark:bg-gray-800">
-            <span className="truncate text-sm font-semibold text-gray-900 dark:text-gray-100">
-              "{selection.text}"
-            </span>
-          </div>
+          <p
+            className="line-clamp-2 text-[13px] font-medium leading-snug text-gray-900 dark:text-gray-100"
+            title={selection.text}
+          >
+            “{selection.text}”
+          </p>
           {selection.matchedItem && (
-            <div className="mt-1 text-xs text-gray-400 dark:text-gray-500">
+            <p className="mt-0.5 text-[11px] text-gray-400 dark:text-gray-500">
               {t("transcript.selectionKnownItem", {
                 type: t(`transcript.studyType.${selection.matchedItem.type}`),
                 level: selection.matchedItem.level,
               })}
-            </div>
+            </p>
           )}
         </div>
 
         <button
           type="button"
           onClick={onClose}
-          className="shrink-0 rounded-md p-1 text-gray-300 transition-colors hover:bg-gray-100 hover:text-gray-500 dark:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+          className="-mr-1 -mt-0.5 shrink-0 rounded-md p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-300"
           aria-label={t("common.close")}
         >
-          <X size={13} />
+          <X size={14} />
         </button>
       </div>
 
-      <div className="flex flex-wrap items-center gap-1.5">
+      <div className="flex flex-wrap items-center gap-1.5 px-3.5 pb-3">
         <button
           type="button"
           onClick={handleSaveToGlossary}
-          className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-2.5 py-1.5 text-xs font-medium text-white transition-colors hover:bg-emerald-500 active:bg-emerald-700"
+          className="inline-flex items-center gap-1.5 rounded-md bg-emerald-600/10 px-2.5 py-1.5 text-xs font-medium text-emerald-700 transition-colors hover:bg-emerald-600/15 active:bg-emerald-600/20 dark:bg-emerald-400/10 dark:text-emerald-300 dark:hover:bg-emerald-400/15"
         >
           <BookmarkPlus size={12} />
           {t("glossary.saveSelection")}
@@ -295,7 +317,7 @@ export const TranscriptSelectionPopover = ({
             type="button"
             onClick={generateExplanation}
             disabled={isLoading}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-2.5 py-1.5 text-xs font-medium text-white transition-colors hover:bg-blue-500 active:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex items-center gap-1.5 rounded-md bg-blue-600/10 px-2.5 py-1.5 text-xs font-medium text-blue-700 transition-colors hover:bg-blue-600/15 active:bg-blue-600/20 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-blue-400/10 dark:text-blue-300 dark:hover:bg-blue-400/15"
           >
             {isLoading ? (
               <Loader size={12} className="animate-spin" />
@@ -307,22 +329,58 @@ export const TranscriptSelectionPopover = ({
         )}
       </div>
 
-      {error && (
-        <div className="mt-2.5 text-xs text-red-500 dark:text-red-400">{error}</div>
-      )}
+      {hasBody && (
+        <div className="border-t border-gray-100 dark:border-white/5">
+          <div className="thin-scrollbar max-h-[min(48vh,22rem)] overflow-y-auto overscroll-contain px-3.5 py-3">
+            {isLoading && (
+              <div className="space-y-2" aria-hidden>
+                <div className="h-3 w-1/3 animate-pulse rounded bg-gray-200/80 dark:bg-gray-700/60" />
+                <div className="h-3 w-full animate-pulse rounded bg-gray-200/80 dark:bg-gray-700/60" />
+                <div className="h-3 w-5/6 animate-pulse rounded bg-gray-200/80 dark:bg-gray-700/60" />
+                <div className="h-3 w-2/3 animate-pulse rounded bg-gray-200/80 dark:bg-gray-700/60" />
+              </div>
+            )}
 
-      {result && (
-        <div className="mt-2.5 space-y-1.5">
-          <div className="prose prose-sm max-w-none text-sm dark:prose-invert [&_p]:my-1 [&_ul]:my-1 [&_li]:my-0">
-            <MarkdownRenderer content={result.explanation} />
+            {!isLoading && error && (
+              <div className="flex flex-col items-start gap-2">
+                <p className="text-xs leading-relaxed text-red-500 dark:text-red-400">
+                  {error}
+                </p>
+                <button
+                  type="button"
+                  onClick={generateExplanation}
+                  className="inline-flex items-center gap-1 rounded-md bg-gray-100 px-2 py-1 text-[11px] font-medium text-gray-600 transition-colors hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                >
+                  <RotateCcw size={11} />
+                  {t("explanation.regenerate")}
+                </button>
+              </div>
+            )}
+
+            {!isLoading && !error && result && (
+              <MarkdownRenderer content={result.explanation} />
+            )}
           </div>
-          <div className="text-[10px] text-gray-400 dark:text-gray-500">
-            {t("explanation.providerInfo", {
-              provider: result.provider,
-              model: result.model,
-              tokens: result.usage?.totalTokens ?? 0,
-            })}
-          </div>
+
+          {!isLoading && !error && result && (
+            <div className="flex items-center justify-between gap-2 border-t border-gray-100 px-3.5 py-1.5 dark:border-white/5">
+              <span className="truncate text-[10px] text-gray-400 dark:text-gray-500">
+                {t("explanation.providerInfo", {
+                  provider: result.provider,
+                  model: result.model,
+                  tokens: result.usage?.totalTokens ?? 0,
+                })}
+              </span>
+              <button
+                type="button"
+                onClick={generateExplanation}
+                className="inline-flex shrink-0 items-center gap-1 rounded-md px-1.5 py-1 text-[10px] font-medium text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+              >
+                <RotateCcw size={10} />
+                {t("explanation.regenerate")}
+              </button>
+            </div>
+          )}
         </div>
       )}
     </motion.div>

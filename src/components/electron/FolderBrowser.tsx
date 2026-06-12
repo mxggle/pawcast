@@ -58,7 +58,7 @@ const ACTIVE_ROW =
 
 /** Calm two-line secondary styling: sans, muted, full opacity. */
 const SUBTITLE_CLASS =
-  "font-sans not-italic text-[11px] leading-tight opacity-100 text-gray-400 dark:text-gray-500";
+  "font-sans not-italic text-[10px] leading-tight opacity-100 text-gray-400 dark:text-gray-500";
 
 /** Soft, type-tinted media icon tile used in the curated (All/Recent) list. */
 const MediaTile = ({ kind }: { kind: LibraryMediaKind }) => {
@@ -69,7 +69,7 @@ const MediaTile = ({ kind }: { kind: LibraryMediaKind }) => {
   };
   const Icon = kind === "youtube" ? Youtube : kind === "video" ? FileVideo : Music;
   return (
-    <span className={cn("flex h-7 w-7 items-center justify-center rounded-lg", styles[kind])}>
+    <span className={cn("flex h-6 w-6 items-center justify-center rounded-md", styles[kind])}>
       <Icon className="h-3.5 w-3.5" />
     </span>
   );
@@ -77,8 +77,8 @@ const MediaTile = ({ kind }: { kind: LibraryMediaKind }) => {
 
 /** Placeholder row shown while a source folder loads for the first time. */
 const SkeletonRow = () => (
-  <div className="flex items-center gap-2.5 px-3 py-2">
-    <span className="h-7 w-7 shrink-0 rounded-lg bg-black/5 dark:bg-white/5 animate-pulse" />
+  <div className="flex items-center gap-2 px-3 py-1.5">
+    <span className="h-6 w-6 shrink-0 rounded-md bg-black/5 dark:bg-white/5 animate-pulse" />
     <div className="flex-1 space-y-1.5">
       <span className="block h-2.5 w-3/4 rounded bg-black/5 dark:bg-white/5 animate-pulse" />
       <span className="block h-2 w-2/5 rounded bg-black/5 dark:bg-white/5 animate-pulse" />
@@ -329,11 +329,11 @@ export const FolderBrowser = ({
           isActive={isActive}
           title={nativePath ?? item.name}
           icon={<MediaTile kind={item.mediaKind} />}
-          iconClassName="w-7 h-7"
+          iconClassName="w-6 h-6"
           primaryText={item.name}
           secondaryText={subtitle || undefined}
-          className={cn("h-auto rounded-xl py-2", isActive && ACTIVE_ROW)}
-          primaryTextClassName={cn("text-[13px]", isActive ? "font-semibold" : "font-medium")}
+          className={cn("h-auto rounded-lg py-1.5", isActive && ACTIVE_ROW)}
+          primaryTextClassName={cn("text-xs", isActive ? "font-semibold" : "font-medium")}
           secondaryTextClassName={SUBTITLE_CLASS}
           actions={
             <>
@@ -508,16 +508,16 @@ export const FolderBrowser = ({
                     onClick={() => void revealInFileManager(folderPath)}
                     title={folderPath}
                     icon={
-                      <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-accent-500/10 text-accent-600 dark:text-accent-400">
+                      <span className="flex h-6 w-6 items-center justify-center rounded-md bg-accent-500/10 text-accent-600 dark:text-accent-400">
                         <Folder className="h-3.5 w-3.5" />
                       </span>
                     }
-                    iconClassName="w-7 h-7"
+                    iconClassName="w-6 h-6"
                     primaryText={getPathBaseName(folderPath)}
                     secondaryText={folderPath}
-                    className="h-auto rounded-xl py-2"
+                    className="h-auto rounded-lg py-1.5"
                     contentClassName="text-gray-800 dark:text-gray-100"
-                    primaryTextClassName="text-[13px] font-medium"
+                    primaryTextClassName="text-xs font-medium"
                     secondaryTextClassName={SUBTITLE_CLASS}
                     actions={
                       <>
@@ -549,23 +549,28 @@ export const FolderBrowser = ({
         </div>
       )}
 
-      <SectionLabel
-        label={
-          scope === "folders"
-            ? t("sidebar.scopeFolders", "Folders")
-            : scope === "recent"
-              ? t("sidebar.recent", "Recent")
-              : t("sidebar.libraryItems", "Files")
-        }
-        count={isFolderTreeVisible ? undefined : libraryItems.length}
-      />
+      {/* The scope tab already names the list; only label search results
+          or the Files block when it sits below the Sources section. */}
+      {query.trim() ? (
+        <SectionLabel
+          label={t("sidebar.searchResults", "Results")}
+          count={isFolderTreeVisible ? undefined : libraryItems.length}
+        />
+      ) : (
+        scope === "all" && (
+          <SectionLabel
+            label={t("sidebar.libraryItems", "Files")}
+            count={libraryItems.length}
+          />
+        )
+      )}
 
       {isFolderTreeVisible && (
-        <div className="px-1.5 pb-1.5">
+        <div className="px-1.5 pb-1.5 pt-1">
           <button
             type="button"
             onClick={addFolder}
-            className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-black/15 px-3 py-2.5 text-xs font-medium text-gray-500 transition-colors hover:border-primary-400/60 hover:bg-primary-500/[0.06] hover:text-primary-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/30 dark:border-white/15 dark:text-gray-400 dark:hover:border-primary-400/50 dark:hover:text-primary-400"
+            className="flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-black/15 px-3 py-2 text-xs font-medium text-gray-500 transition-colors hover:border-primary-400/60 hover:bg-primary-500/[0.06] hover:text-primary-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/30 dark:border-white/15 dark:text-gray-400 dark:hover:border-primary-400/50 dark:hover:text-primary-400"
           >
             <FolderPlus className="h-4 w-4" />
             {t("sidebar.addFolder", "Add folder")}

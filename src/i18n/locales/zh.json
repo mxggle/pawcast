@@ -850,6 +850,7 @@
     "sources": "来源",
     "libraryItems": "文件",
     "sourceRecent": "最近",
+    "searchResults": "结果",
     "noSearchResults": "没有匹配的文件。",
     "noFolders": "尚未添加文件夹。",
     "noHistory": "暂无最近文件。",
