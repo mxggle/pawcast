@@ -25,7 +25,8 @@
       "WebFetch(domain:www.aifreeapi.com)",
       "WebFetch(domain:devtk.ai)",
       "WebFetch(domain:mem0.ai)",
-      "Bash(wc -l /Users/szy/CascadeProjects/modern-ab-loop/local/*.md)"
+      "Bash(wc -l /Users/szy/CascadeProjects/modern-ab-loop/local/*.md)",
+      "PowerShell(npm run lint)"
     ]
   }
 }

@@ -850,6 +850,7 @@
     "sources": "ソース",
     "libraryItems": "ファイル",
     "sourceRecent": "最近",
+    "searchResults": "検索結果",
     "noSearchResults": "一致するファイルがありません。",
     "noFolders": "フォルダーがまだ追加されていません。",
     "noHistory": "最近のファイルはありません。",

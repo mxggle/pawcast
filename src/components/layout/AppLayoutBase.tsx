@@ -5,13 +5,13 @@ import { usePlayerStore } from "../../stores/playerStore";
 import { useSettingsStore } from "../../stores/settingsStore";
 import { useShallow } from "zustand/react/shallow";
 import {
-  Moon, Sun, Info, Settings, Layout, Eye, EyeOff,
+  Moon, Sun, Settings, Layout, Eye, EyeOff,
   Music, Video, Youtube, BookOpen,
 } from "lucide-react";
-import * as Dialog from "@radix-ui/react-dialog";
 import * as Popover from "@radix-ui/react-popover";
 import { cn } from "../../utils/cn";
 import { ScrollLock } from "../../hooks/useScrollLock";
+import { KeyboardShortcutsDialog } from "./KeyboardShortcutsDialog";
 
 import { LayoutSettings } from "../../stores/layoutStore";
 
@@ -37,6 +37,10 @@ export interface AppLayoutBaseProps {
   hideThemeToggle?: boolean;
   /** Hides the settings button from the header (useful when moved to sidebar) */
   hideSettings?: boolean;
+  /** Hides the glossary button from the header (useful when moved to sidebar) */
+  hideGlossary?: boolean;
+  /** Hides the keyboard-shortcuts/help button from the header (useful when moved to sidebar) */
+  hideHelp?: boolean;
   /** Opens settings using the active platform shell behavior */
   onOpenSettings?: () => void;
 }
@@ -54,25 +58,23 @@ export const AppLayoutBase = ({
   desktopMode = false,
   hideThemeToggle = false,
   hideSettings = false,
+  hideGlossary = false,
+  hideHelp = false,
   onOpenSettings,
 }: AppLayoutBaseProps) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
   const [isLayoutPopoverOpen, setIsLayoutPopoverOpen] = useState(false);
   const isMac = typeof window !== "undefined" && navigator.userAgent.includes("Mac OS X");
+  const isWindows = typeof window !== "undefined" && navigator.userAgent.includes("Windows");
 
   const {
     currentFile,
     currentYouTube,
-    seekStepSeconds,
-    seekSmallStepSeconds,
   } = usePlayerStore(
     useShallow((state) => ({
       currentFile: state.currentFile,
       currentYouTube: state.currentYouTube,
-      seekStepSeconds: state.seekStepSeconds,
-      seekSmallStepSeconds: state.seekSmallStepSeconds,
     }))
   );
 
@@ -106,9 +108,12 @@ export const AppLayoutBase = ({
           className={`flex items-center h-[52px] sm:h-[56px] justify-between px-2 sm:px-4 border-b border-black/5 dark:border-white/5 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl fixed top-0 right-0 z-[55] transition-[left,padding-left] duration-300 ease-in-out ${
             desktopMode ? "[-webkit-app-region:drag] select-none [&_button]:[-webkit-app-region:no-drag] [&_input]:[-webkit-app-region:no-drag] [&_a]:[-webkit-app-region:no-drag] [&_[role='dialog']]:[-webkit-app-region:no-drag]" : ""
           }`}
-          style={{ 
+          style={{
             left: headerOffsetLeft,
-            paddingLeft: desktopMode && isMac && headerOffsetLeft === 0 ? "80px" : undefined
+            paddingLeft: desktopMode && isMac && headerOffsetLeft === 0 ? "80px" : undefined,
+            // Reserve space for the native Windows caption buttons (top-right) so
+            // header controls aren't covered by minimize/maximize/close.
+            paddingRight: desktopMode && isWindows ? "140px" : undefined,
           }}
         >
           {headerLeadingSlot}
@@ -203,19 +208,15 @@ export const AppLayoutBase = ({
               </Popover.Root>
             )}
 
-            <button
-              onClick={() => {
-                if (window.electronAPI?.openGlossaryWindow) {
-                  window.electronAPI.openGlossaryWindow()
-                } else {
-                  navigate("/glossary")
-                }
-              }}
-              className="p-1.5 sm:p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300 transition-colors"
-              aria-label={t("glossary.openGlossary")}
-            >
-              <BookOpen className="h-4 w-4 sm:h-5 sm:w-5" />
-            </button>
+            {!hideGlossary && (
+              <button
+                onClick={() => navigate("/glossary")}
+                className="p-1.5 sm:p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300 transition-colors"
+                aria-label={t("glossary.openGlossary")}
+              >
+                <BookOpen className="h-4 w-4 sm:h-5 sm:w-5" />
+              </button>
+            )}
 
             {/* Theme toggle */}
             {!hideThemeToggle && (
@@ -248,56 +249,7 @@ export const AppLayoutBase = ({
             )}
 
             {/* Keyboard shortcuts dialog */}
-            <Dialog.Root open={showKeyboardShortcuts} onOpenChange={setShowKeyboardShortcuts}>
-              <Dialog.Trigger asChild>
-                <button
-                  className="p-1.5 sm:p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300 transition-colors"
-                  aria-label={t("layout.showKeyboardShortcuts")}
-                >
-                  <Info className="h-4 w-4 sm:h-5 sm:w-5" />
-                </button>
-              </Dialog.Trigger>
-              <Dialog.Portal>
-                <Dialog.Overlay className="fixed inset-0 bg-black/50 backdrop-blur-sm" />
-                <Dialog.Content className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-gray-800 p-6 rounded-xl shadow-xl max-w-md w-full border border-gray-100 dark:border-gray-700">
-                  <ScrollLock />
-                  <Dialog.Title className="text-xl font-bold mb-4 text-gray-900 dark:text-white">
-                    {t("layout.keyboardShortcuts")}
-                  </Dialog.Title>
-                  <div className="space-y-2">
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="font-medium text-gray-800 dark:text-gray-200">Spacebar</div>
-                      <div className="text-gray-600 dark:text-gray-400">{t("layout.playPause")}</div>
-                      <div className="font-medium text-gray-800 dark:text-gray-200">A</div>
-                      <div className="text-gray-600 dark:text-gray-400">{t("layout.setAPoint")}</div>
-                      <div className="font-medium text-gray-800 dark:text-gray-200">B</div>
-                      <div className="text-gray-600 dark:text-gray-400">{t("layout.setBPoint")}</div>
-                      <div className="font-medium text-gray-800 dark:text-gray-200">L</div>
-                      <div className="text-gray-600 dark:text-gray-400">{t("layout.toggleLoop")}</div>
-                      <div className="font-medium text-gray-800 dark:text-gray-200">C</div>
-                      <div className="text-gray-600 dark:text-gray-400">{t("layout.clearLoopPoints")}</div>
-                      <div className="font-medium text-gray-800 dark:text-gray-200">←/→</div>
-                      <div className="text-gray-600 dark:text-gray-400">
-                        {t("layout.seekBackwardForward", { seconds: seekStepSeconds })}
-                      </div>
-                      <div className="font-medium text-gray-800 dark:text-gray-200">Shift + ←/→</div>
-                      <div className="text-gray-600 dark:text-gray-400">
-                        {t("layout.seekBackwardForwardSmall", { seconds: seekSmallStepSeconds })}
-                      </div>
-                      <div className="font-medium text-gray-800 dark:text-gray-200">↑/↓</div>
-                      <div className="text-gray-600 dark:text-gray-400">{t("layout.volumeUpDown")}</div>
-                      <div className="font-medium text-gray-800 dark:text-gray-200">0-9</div>
-                      <div className="text-gray-600 dark:text-gray-400">{t("layout.jumpToPercent")}</div>
-                    </div>
-                  </div>
-                  <Dialog.Close asChild>
-                    <button className="mt-6 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 w-full font-medium shadow-sm transition-colors">
-                      {t("common.close")}
-                    </button>
-                  </Dialog.Close>
-                </Dialog.Content>
-              </Dialog.Portal>
-            </Dialog.Root>
+            {!hideHelp && <KeyboardShortcutsDialog />}
           </div>
         </header>
 

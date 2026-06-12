@@ -850,6 +850,7 @@
     "sources": "Sources",
     "libraryItems": "Files",
     "sourceRecent": "Recent",
+    "searchResults": "Results",
     "noSearchResults": "No matching files.",
     "noFolders": "No folders added yet.",
     "noHistory": "No recent files.",

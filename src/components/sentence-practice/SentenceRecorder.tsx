@@ -107,13 +107,24 @@ export const SentenceRecorder = ({ mediaId, sentenceIndex }: SentenceRecorderPro
         }
 
         try {
-          const arrayBuffer = await blob.arrayBuffer();
-          const AudioContextClass =
-            window.AudioContext || (window as WindowWithWebkitAudioContext).webkitAudioContext;
-          const audioContext = new AudioContextClass();
-          const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-          const actualDuration = audioBuffer.duration;
-          audioContext.close();
+          // Fallback duration from the recording wall-clock, used if decoding fails.
+          const fallbackDuration = Math.max(0, (performance.now() - startTimeRef.current) / 1000);
+          let actualDuration = fallbackDuration;
+          try {
+            const arrayBuffer = await blob.arrayBuffer();
+            const AudioContextClass =
+              window.AudioContext || (window as WindowWithWebkitAudioContext).webkitAudioContext;
+            const audioContext = new AudioContextClass();
+            const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+            actualDuration = audioBuffer.duration;
+            audioContext.close();
+          } catch (decodeError) {
+            console.warn(
+              "[SentenceRecorder] Failed to decode audio for duration, using fallback:",
+              fallbackDuration,
+              decodeError
+            );
+          }
 
           const extension = blob.type.includes("wav") ? "wav" : "webm";
           const fileName = `sentence-practice-${Date.now()}.${extension}`;

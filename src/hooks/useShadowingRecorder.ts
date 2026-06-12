@@ -197,16 +197,30 @@ export const useShadowingRecorder = () => {
                         console.log("🎙️ [ShadowingRecorder] Created file:", { name: file.name, size: file.size, type: file.type });
 
                         try {
-                            const arrayBuffer = await file.arrayBuffer();
-                            const AudioContextClass =
-                                window.AudioContext ||
-                                (window as WindowWithWebkitAudioContext).webkitAudioContext;
-                            const audioContext = new AudioContextClass();
-                            const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-                            const actualDuration = audioBuffer.duration;
-                            audioContext.close();
+                            // Fallback duration from the recording wall-clock, used if decoding fails.
+                            const fallbackDuration = Math.max(
+                                0,
+                                (performance.now() - recordingClockStartRef.current) / 1000
+                            );
+                            let actualDuration = fallbackDuration;
+                            try {
+                                const arrayBuffer = await file.arrayBuffer();
+                                const AudioContextClass =
+                                    window.AudioContext ||
+                                    (window as WindowWithWebkitAudioContext).webkitAudioContext;
+                                const audioContext = new AudioContextClass();
+                                const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+                                actualDuration = audioBuffer.duration;
+                                audioContext.close();
+                            } catch (decodeError) {
+                                console.warn(
+                                    "🎙️ [ShadowingRecorder] Failed to decode audio for duration, using fallback:",
+                                    fallbackDuration,
+                                    decodeError
+                                );
+                            }
 
-                            console.log("🎙️ [ShadowingRecorder] Decoded audio duration:", actualDuration);
+                            console.log("🎙️ [ShadowingRecorder] Audio duration:", actualDuration);
 
                             console.log("🎙️ [ShadowingRecorder] Storing file to IndexedDB...");
                             const storageId = await storeMediaFile(file);

@@ -73,6 +73,9 @@ Desktop.ini
 .vercel
 /local
 .worktrees/
+.codex-electron-cache/
+.codex-npm-cache/
+.codex-tmp/
 
 # Test coverage
 coverage
