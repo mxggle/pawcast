@@ -1,0 +1,4 @@
+{
+  "abloop-player-storage": "{\"state\":{\"mediaHistory\":[{\"id\":\"legacy\",\"mediaId\":\"m1\",\"type\":\"file\",\"name\":\"Legacy\",\"accessedAt\":1,\"playbackTime\":0,\"folderId\":null}],\"sourceFolders\":[\"/legacy/media\"]},\"version\":0}",
+  "theme-storage": "{\"state\":{\"theme\":\"light\"},\"version\":0}"
+}

@@ -1,0 +1,20 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Least-privilege permissions for Pawcast desktop windows",
+  "windows": ["main", "settings", "glossary"],
+  "permissions": [
+    "core:default",
+    "core:event:default",
+    "core:window:default",
+    "dialog:allow-open",
+    "opener:allow-reveal-item-in-dir",
+    {
+      "identifier": "shell:allow-execute",
+      "allow": [
+        { "name": "ffmpeg", "cmd": "ffmpeg", "sidecar": true },
+        { "name": "ffprobe", "cmd": "ffprobe", "sidecar": true }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "appVersion": "1.0.0-beta.3",
+  "deviceId": "fixture-device",
+  "createdAt": 0,
+  "updatedAt": 0,
+  "activeDataDir": "PawcastData",
+  "files": [],
+  "migrationStatus": "pending"
+}
