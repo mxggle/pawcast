@@ -1,8 +1,8 @@
 # Pawcast
 
-A modern web-based audio/video loop player with A-B repeat & Shadowing Recorder.
+A modern desktop audio/video loop player with A-B repeat & Shadowing Recorder.
 
-Pawcast is a sleek and intuitive web app designed for language learners, musicians, and content reviewers. It allows you to loop YouTube videos and local files with precision, and now features a powerful **Shadowing Mode** to record and compare your voice with the original audio.
+Pawcast is a sleek and intuitive desktop app (Tauri 2) designed for language learners, musicians, and content reviewers. It allows you to loop YouTube videos and local files with precision, and now features a powerful **Shadowing Mode** to record and compare your voice with the original audio.
 
 🎯 **Supports:** MP3, MP4, WebM, FLAC, YouTube links, and more.
 📼 **Input:** Drag & drop local files or paste a YouTube URL.
@@ -28,7 +28,6 @@ Designed for language learners to practice speaking:
 - **Smart Overwrite**: Automatically trims or splits existing recordings if you re-record a section (non-destructive punch-in).
 - **Dual Waveforms**: Visualize your recorded audio overlaid on the original track in real time.
 - **Auto-Mute**: Automatically mutes previous takes while recording to prevent echo.
-- **Mobile Support**: Fully functional recording controls on mobile devices.
 
 ### 🤖 AI-Powered Transcription
 - **Multi-Provider Support**: OpenAI Whisper, Groq Whisper, Google Gemini, and local Whisper (via Ollama) for offline transcription.
@@ -47,16 +46,15 @@ Designed for language learners to practice speaking:
 - **Glossary**: Build a personal vocabulary list from transcript selections.
 
 ### User Experience
-- **Responsive Design**: Optimized for desktop, tablet, and mobile.
-- **Touch Controls**: Mobile-friendly seek and loop controls.
+- **Resizable Workspace**: Free-form panel layout — resize, collapse, and arrange transcript, video, and timeline panels.
 - **Dark/Light Theme**: Automatic or manual theme switching.
 - **Keyboard Shortcuts**: Comprehensive hotkeys for mouse-free operation.
-- **Privacy First**: The web build stores local data in browser storage. The Tauri desktop build uses the local `PawcastData` directory with journaled, checksum-verified writes.
+- **Privacy First**: All data stays on your machine in the local `PawcastData` directory with journaled, checksum-verified writes.
 - **Internationalization**: Full UI translations in English, 日本語, and 中文.
 
 ## 🏗 Architecture
 
-Pawcast ships as both a **web app** (Vite SPA) and a **desktop app** (Tauri 2) from one React codebase. A typed `DesktopAPI` boundary keeps shared components, stores, repositories, and services independent from Tauri transport details.
+Pawcast is a **desktop app** (Tauri 2) built from a Vite + React codebase. A typed `DesktopAPI` boundary keeps shared components, stores, repositories, and services independent from Tauri transport details, and lets the app run in a plain browser during development. See [docs/platform-architecture.md](docs/platform-architecture.md).
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
@@ -67,27 +65,23 @@ Pawcast ships as both a **web app** (Vite SPA) and a **desktop app** (Tauri 2) f
 └───────────────┬─────────────────────────┬───────────────────────────┘
                 │                         │
                 ▼                         ▼
-┌───────────────────────┐   ┌─────────────────────────┐
-│  Layer 3 · Web UI     │   │  Layer 3 · Desktop UI   │
-│                       │   │                         │
-│  components/web/      │   │  components/desktop/    │
-│  └ WebAppLayout       │   │  ├ DesktopAppLayout     │
-│                       │   │  ├ DesktopFileOpener    │
-│                       │   │  ├ FolderBrowser        │
-│                       │   │  └ PlayHistory          │
-│                       │   │                         │
-│  Web APIs only        │   │  DesktopAPI only        │
-└───────────┬───────────┘   └────────────┬────────────┘
-            │                            │
-            └──────────┬─────────────────┘
-                       ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                   Layer 3 · Desktop UI                              │
+│                                                                     │
+│   components/desktop/                                               │
+│   ├ DesktopAppLayout   ├ DesktopFileOpener                          │
+│   ├ FolderBrowser      └ PlayHistory                                │
+│                                                                     │
+│   DesktopAPI only   (components/web/ holds the browser dev shell)   │
+└───────────────────────────────┬─────────────────────────────────────┘
+                                ▼
 ┌─────────────────────────────────────────────────────────────────────┐
 │                   Layer 2 · Shared UI & State                       │
 │                                                                     │
 │   components/layout/AppLayoutBase.tsx   (shared chrome)             │
 │   components/ui/         Radix UI primitives                        │
-│   components/controls/   Playback & A-B loop controls               │
-│   components/transcript/ components/waveform/ components/bookmarks/ │
+│   components/player/     Playback, timeline & A-B loop controls     │
+│   components/transcript/ components/waveform/                       │
 │   stores/playerStore.ts  hooks/                                     │
 │                                                                     │
 │   No Tauri imports · No platform UI imports                         │
@@ -106,11 +100,11 @@ Pawcast ships as both a **web app** (Vite SPA) and a **desktop app** (Tauri 2) f
 
 **How it works at runtime:**
 
-- `AppLayout.tsx` selects `DesktopAppLayout` or `WebAppLayout` through `isDesktop()`.
+- `AppLayout.tsx` selects `DesktopAppLayout` (or the `WebAppLayout` dev fallback) through `isDesktop()`.
 - All pages use `<AppLayout>` and remain platform-neutral.
 - `src/platform/desktop/tauriDesktop.ts` is the only frontend Tauri adapter.
 - Rust commands provide persistence, migration, filesystem watching, seekable local media, provider HTTP requests, waveform analysis, and auxiliary windows.
-- Zustand uses `desktopStorage` on Tauri and `localStorage` on web.
+- Zustand uses `desktopStorage` on Tauri (`localStorage` in browser dev).
 
 ## 🛠 Tech Stack
 
@@ -123,7 +117,6 @@ Pawcast ships as both a **web app** (Vite SPA) and a **desktop app** (Tauri 2) f
 - **Desktop**: Tauri 2.11, Rust 1.92+, FFmpeg/FFprobe sidecars
 - **AI SDKs**: OpenAI, Google GenAI, `@ai-sdk/xai` (Grok), custom adapters for DeepSeek / OpenCode / Ollama
 - **i18n**: i18next + react-i18next + browser language detector
-- **Deployment**: Vercel ready (SPA + API proxy for CORS-free AI requests)
 
 ## 🚀 Getting Started
 
@@ -131,34 +124,20 @@ Pawcast ships as both a **web app** (Vite SPA) and a **desktop app** (Tauri 2) f
 
 - Node.js 20+
 - npm 10+
-- Browser with Web Audio API support (Chrome, Firefox, Safari, Edge)
-- Rust 1.92+ and the [Tauri platform prerequisites](https://v2.tauri.app/start/prerequisites/) for desktop development
-
-### Web App
-
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/yourusername/pawcast.git
-   cd pawcast
-   ```
-
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-
-3. Start the Vite dev server:
-   ```bash
-   npm run dev:web
-   ```
-
-4. Open `http://localhost:3000`
+- Rust 1.92+ and the [Tauri platform prerequisites](https://v2.tauri.app/start/prerequisites/)
 
 ### Desktop App (Tauri)
 
 ```bash
+git clone https://github.com/yourusername/pawcast.git
+cd pawcast
+npm install
+
 # Dev mode with hot reload
 npm run dev:tauri
+
+# Browser-only dev server (no native features; for quick UI iteration)
+npm run dev
 
 # Build and package for the current platform
 npm run build:tauri

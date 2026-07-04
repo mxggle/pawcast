@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-This repository is a Vite + React 18 + TypeScript application for A-B looping, shadowing recording, transcripts, and AI-assisted language-learning workflows.
+This repository is Pawcast, a Tauri 2 desktop application (Vite + React 18 + TypeScript) for A-B looping, shadowing recording, transcripts, and AI-assisted language-learning workflows.
 
 ## Scope
 
@@ -25,14 +25,15 @@ This repository is a Vite + React 18 + TypeScript application for A-B looping, s
 
 ## Platform Architecture
 
-This project builds for both Tauri and web. A strict layered architecture is
+This project ships desktop-only on Tauri; the Vite dev server can still run it
+in a plain browser for development. A strict layered architecture is
 enforced — read **[docs/platform-architecture.md](docs/platform-architecture.md)**
 before adding any feature that touches platform-specific behavior.
 
 Key rules (full details in the doc):
 - Tauri imports and runtime detection are only allowed under `src/platform/desktop/` and `src/platform/runtime.ts`.
 - Shared code consumes the typed `DesktopAPI`; it must not invoke Rust commands directly.
-- Platform-specific components live in `src/components/desktop/` or `src/components/web/`, never in shared directories.
+- Desktop-specific components live in `src/components/desktop/`, never in shared directories (`src/components/web/` holds only the browser dev-fallback shell).
 - Pages always use `<AppLayout>` (the facade) — never `DesktopAppLayout` or `WebAppLayout` directly.
 
 ## Project Conventions

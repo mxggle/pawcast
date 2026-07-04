@@ -1,3 +1,5 @@
+// Fallback shell for running the app in a plain browser (`npm run dev` without
+// Tauri). Pawcast ships desktop-only; this exists for development convenience.
 import type { Dispatch, SetStateAction } from "react";
 
 import type { LayoutSettings } from "../../stores/layoutStore";

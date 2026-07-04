@@ -1,8 +1,9 @@
-# Platform Architecture: Tauri + Web
+# Platform Architecture: Tauri Desktop
 
-The React application supports both the Tauri desktop runtime and the Vite web
-build. Platform capabilities are exposed through a typed boundary so shared
-code never depends on Tauri globals or packages.
+Pawcast ships desktop-only on the Tauri runtime. The Vite dev server can still
+run the app in a plain browser for development convenience, so platform
+capabilities are exposed through a typed boundary and shared code never
+depends on Tauri globals or packages.
 
 ## Layers
 
@@ -10,7 +11,7 @@ code never depends on Tauri globals or packages.
 |---|---|---|
 | 4 – Entry points | `src/pages/`, `src/components/layout/AppLayout.tsx`, `src-tauri/` | May compose any lower layer |
 | 3 – Platform UI | `src/components/desktop/`, `src/components/web/` | May import Layers 1–2 only |
-| 2 – Shared UI/state | `src/components/ui/`, `src/components/controls/`, `src/stores/`, `src/hooks/` | Must not import platform UI or entry points |
+| 2 – Shared UI/state | `src/components/ui/`, `src/stores/`, `src/hooks/` | Must not import platform UI or entry points |
 | 1 – Core/contracts | `src/utils/`, `src/services/`, `src/types/`, `src/i18n/` | Must not depend on a platform UI |
 
 The desktop boundary lives under `src/platform/desktop/`:
@@ -31,7 +32,7 @@ src/
 │   │   ├── DesktopAppLayout.tsx
 │   │   ├── DesktopFileOpener.tsx
 │   │   └── FolderBrowser.tsx
-│   ├── web/                 # Browser UI (Layer 3)
+│   ├── web/                 # Browser dev fallback (Layer 3)
 │   │   └── WebAppLayout.tsx
 │   └── layout/
 │       ├── AppLayout.tsx    # The platform selector
@@ -55,9 +56,9 @@ src/
 ### Runtime selection
 
 `isDesktop()` is defined in `src/platform/runtime.ts`. `AppLayout` uses it to
-select `DesktopAppLayout` or `WebAppLayout`; other shared consumers use the
-nullable `desktopApi` capability rather than performing their own runtime
-detection.
+select `DesktopAppLayout` or the `WebAppLayout` dev fallback; other shared
+consumers use the nullable `desktopApi` capability rather than performing
+their own runtime detection.
 
 ### Tauri isolation
 
@@ -76,7 +77,6 @@ provided to each platform implementation.
 
 ```text
 Requires a native desktop capability?  → src/components/desktop/
-Requires a browser-only UI behavior?   → src/components/web/
 Pure logic or a transport contract?    → src/utils/, src/services/, src/types/
 Shared UI?                              → src/components/<domain>/
 ```
