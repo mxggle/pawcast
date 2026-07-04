@@ -16,6 +16,7 @@ import {
   Brain,
 } from "lucide-react";
 import { usePlayerStore } from "../../stores/playerStore";
+import { useTranscriptStore } from "../../stores/transcriptStore";
 import { useSentencePracticeStore } from "../../stores/sentencePracticeStore";
 import { useShallow } from "zustand/react/shallow";
 import { formatTime } from "../../utils/formatTime";
@@ -67,7 +68,7 @@ export const SentencePracticeView = () => {
   );
 
   const mediaId = getCurrentMediaId();
-  const transcriptSegments = usePlayerStore(
+  const transcriptSegments = useTranscriptStore(
     useShallow((state) => (mediaId ? state.mediaTranscripts[mediaId] ?? EMPTY_SEGMENTS : EMPTY_SEGMENTS))
   );
 

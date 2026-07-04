@@ -1,7 +1,10 @@
 import { create } from "zustand";
+import { persist, createJSONStorage } from "zustand/middleware";
 import { toast } from "react-hot-toast";
 import i18n from "../i18n";
-import { useMediaStore } from "./mediaStore";
+import { desktopStorage } from "./desktopStorage";
+import { seedFromLegacyPlayerStorage } from "./legacyPlayerStorage";
+import { usePlayerStore } from "./playerStore";
 import type { LoopBookmark, MediaBookmarks } from "../types/bookmark";
 
 let lastDuplicateToastAt = 0;
@@ -22,12 +25,16 @@ export interface BookmarkActions {
   getCurrentMediaBookmarks: () => LoopBookmark[];
 }
 
-export const useBookmarkStore = create<BookmarkState & BookmarkActions>()((set, get) => ({
+export const BOOKMARKS_STORAGE_KEY = "pawcast-bookmarks";
+
+export const useBookmarkStore = create<BookmarkState & BookmarkActions>()(
+  persist(
+    (set, get) => ({
   mediaBookmarks: {},
   selectedBookmarkId: null,
 
   addBookmark: (bookmark) => {
-    const mediaId = useMediaStore.getState().getCurrentMediaId();
+    const mediaId = usePlayerStore.getState().getCurrentMediaId();
     if (!mediaId) return false;
 
     const TOL = 0.05;
@@ -57,7 +64,7 @@ export const useBookmarkStore = create<BookmarkState & BookmarkActions>()((set, 
   },
 
   updateBookmark: (id, changes) => {
-    const mediaId = useMediaStore.getState().getCurrentMediaId();
+    const mediaId = usePlayerStore.getState().getCurrentMediaId();
     if (!mediaId) return;
     set((state) => ({
       mediaBookmarks: {
@@ -70,7 +77,7 @@ export const useBookmarkStore = create<BookmarkState & BookmarkActions>()((set, 
   },
 
   deleteBookmark: (id) => {
-    const mediaId = useMediaStore.getState().getCurrentMediaId();
+    const mediaId = usePlayerStore.getState().getCurrentMediaId();
     if (!mediaId) return;
     set((state) => ({
       mediaBookmarks: {
@@ -85,7 +92,7 @@ export const useBookmarkStore = create<BookmarkState & BookmarkActions>()((set, 
     const bookmarks = get().getCurrentMediaBookmarks();
     const bookmark = bookmarks.find((b) => b.id === id);
     if (bookmark) {
-      useMediaStore.setState({
+      usePlayerStore.setState({
         loopStart: bookmark.start,
         loopEnd: bookmark.end,
         isLooping: true,
@@ -99,7 +106,7 @@ export const useBookmarkStore = create<BookmarkState & BookmarkActions>()((set, 
   setSelectedBookmarkId: (id) => set({ selectedBookmarkId: id }),
 
   importBookmarks: (bookmarks) => {
-    const mediaId = useMediaStore.getState().getCurrentMediaId();
+    const mediaId = usePlayerStore.getState().getCurrentMediaId();
     if (!mediaId) return;
     const TOL = 0.05;
     const current = get().mediaBookmarks[mediaId] || [];
@@ -115,7 +122,22 @@ export const useBookmarkStore = create<BookmarkState & BookmarkActions>()((set, 
   },
 
   getCurrentMediaBookmarks: () => {
-    const mediaId = useMediaStore.getState().getCurrentMediaId();
+    const mediaId = usePlayerStore.getState().getCurrentMediaId();
     return mediaId ? get().mediaBookmarks[mediaId] || [] : [];
   },
-}));
+    }),
+    {
+      name: BOOKMARKS_STORAGE_KEY,
+      storage: createJSONStorage(() => desktopStorage),
+      version: 1,
+      partialize: (state) => ({ mediaBookmarks: state.mediaBookmarks }),
+    }
+  )
+);
+
+void seedFromLegacyPlayerStorage(useBookmarkStore, BOOKMARKS_STORAGE_KEY, (legacy) => {
+  if (legacy.mediaBookmarks && typeof legacy.mediaBookmarks === "object" && Object.keys(legacy.mediaBookmarks).length > 0) {
+    return { mediaBookmarks: legacy.mediaBookmarks as MediaBookmarks };
+  }
+  return null;
+});

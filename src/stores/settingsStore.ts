@@ -1,7 +1,6 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { desktopStorage } from "./desktopStorage";
-import { settingsRepository } from "../repositories/settingsRepository";
 
 export interface SettingsState {
   theme: "light" | "dark";
@@ -42,25 +41,3 @@ export const useSettingsStore = create<SettingsState & SettingsActions>()(
     }
   )
 );
-
-// ─── Dual-write sync ───
-let _settingsSaveTimer: ReturnType<typeof setTimeout>
-useSettingsStore.subscribe((state) => {
-  clearTimeout(_settingsSaveTimer)
-  _settingsSaveTimer = setTimeout(() => {
-    settingsRepository.saveAppSettings({
-      version: 1,
-      volume: 1,
-      muted: false,
-      playbackRate: 1,
-      showTranscript: true,
-      transcriptLanguage: 'en',
-      seekStepSeconds: 5,
-      seekSmallStepSeconds: 1,
-      seekMode: 'relative',
-      waveformZoom: state.waveformZoom ?? 1,
-      showWaveform: state.showWaveform ?? true,
-      videoSize: state.videoSize ?? 'md',
-    }).catch(() => {})
-  }, 300)
-})

@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
 import { usePlayerStore, type LoopBookmark } from "../../stores/playerStore";
+import { useBookmarkStore } from "../../stores/bookmarkStore";
 import { toast } from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 import { formatTime } from "../../utils/formatTime";
@@ -47,15 +48,16 @@ export const BookmarkManager = () => {
     loopStart,
     loopEnd,
     playbackRate,
+  } = usePlayerStore();
+  const {
     getCurrentMediaBookmarks,
     selectedBookmarkId,
     addBookmark: storeAddBookmark,
     updateBookmark,
     deleteBookmark: storeDeleteBookmark,
     loadBookmark: storeLoadBookmark,
-    // setSelectedBookmarkId, // Unused variable
     importBookmarks: storeImportBookmarks,
-  } = usePlayerStore();
+  } = useBookmarkStore();
 
   // Get current media bookmarks
   const bookmarks = getCurrentMediaBookmarks();

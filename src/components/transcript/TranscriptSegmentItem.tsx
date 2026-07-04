@@ -6,6 +6,8 @@ import {
   TranscriptSegment as TranscriptSegmentType,
   usePlayerStore,
 } from "../../stores/playerStore";
+import { useBookmarkStore } from "../../stores/bookmarkStore";
+import { useTranscriptStore } from "../../stores/transcriptStore";
 import type {
   SegmentTranscriptStudy,
   TranscriptStudyLevel,
@@ -46,21 +48,19 @@ export const TranscriptSegmentItem = memo(
 
     const {
       setCurrentTime,
-      createBookmarkFromTranscript,
-      deleteBookmark,
       setIsPlaying,
       setIsLooping,
       setLoopPoints,
     } = usePlayerStore(
       useShallow((state) => ({
         setCurrentTime: state.setCurrentTime,
-        createBookmarkFromTranscript: state.createBookmarkFromTranscript,
-        deleteBookmark: state.deleteBookmark,
         setIsPlaying: state.setIsPlaying,
         setIsLooping: state.setIsLooping,
         setLoopPoints: state.setLoopPoints,
       }))
     );
+    const createBookmarkFromTranscript = useTranscriptStore((state) => state.createBookmarkFromTranscript);
+    const deleteBookmark = useBookmarkStore((state) => state.deleteBookmark);
 
     const { isActive, isPlaying, isCurrentlyLooping } = useSegmentState(segment);
     const isBookmarked = matchedBookmarkId !== null;

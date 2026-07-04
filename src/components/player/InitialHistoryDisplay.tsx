@@ -1,7 +1,4 @@
-import {
-  usePlayerStore,
-  type MediaHistoryItem,
-} from "../../stores/playerStore";
+import { useHistoryStore, type MediaHistoryItem } from "../../stores/historyStore";
 import { formatDistanceToNow } from "date-fns";
 import { FileAudio, Youtube, Clock, History, Play } from "lucide-react";
 import { Button } from "../ui/button";
@@ -10,7 +7,7 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 
 export const InitialHistoryDisplay = () => {
-  const { mediaHistory } = usePlayerStore();
+  const { mediaHistory } = useHistoryStore();
   const navigate = useNavigate();
   const { t } = useTranslation();
 
@@ -32,7 +29,7 @@ export const InitialHistoryDisplay = () => {
   const handleLoadFromHistory = async (item: MediaHistoryItem) => {
     try {
       // First load the media into the store
-      const { loadFromHistory } = usePlayerStore.getState();
+      const { loadFromHistory } = useHistoryStore.getState();
       await loadFromHistory(item.id);
 
       // Navigate to player

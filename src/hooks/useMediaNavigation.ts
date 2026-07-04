@@ -1,9 +1,9 @@
 import { useNavigate } from "react-router-dom";
-import { usePlayerStore, type MediaHistoryItem } from "../stores/playerStore";
+import { useHistoryStore, type MediaHistoryItem } from "../stores/historyStore";
 
 export const useMediaNavigation = () => {
   const navigate = useNavigate();
-  const { loadFromHistory } = usePlayerStore();
+  const { loadFromHistory } = useHistoryStore();
 
   const navigateToMedia = async (item: MediaHistoryItem) => {
     // Load the media first and wait for it to complete

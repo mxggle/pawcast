@@ -1,7 +1,6 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { desktopStorage } from "./desktopStorage";
-import { settingsRepository } from "../repositories/settingsRepository";
 
 export interface LayoutSettings {
   showPlayer: boolean;
@@ -81,18 +80,3 @@ export const useLayoutStore = create<LayoutState>()(
     }
   )
 );
-
-// ─── Dual-write sync ───
-let _layoutSaveTimer: ReturnType<typeof setTimeout>
-useLayoutStore.subscribe((state) => {
-  clearTimeout(_layoutSaveTimer)
-  _layoutSaveTimer = setTimeout(() => {
-    settingsRepository.saveLayoutSettings({
-      version: 1,
-      ...state.layoutSettings,
-      isSidebarOpen: true,
-      sidebarWidth: 320,
-      activeSidebarTab: 'history',
-    }).catch(() => {})
-  }, 300)
-})

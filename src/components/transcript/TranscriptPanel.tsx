@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { usePlayerStore } from "../../stores/playerStore";
+import { useBookmarkStore } from "../../stores/bookmarkStore";
+import { useTranscriptStore } from "../../stores/transcriptStore";
 import { useShallow } from "zustand/react/shallow";
 import { useVirtualizer, type VirtualItem } from "@tanstack/react-virtual";
 import {
@@ -163,59 +165,69 @@ export const TranscriptPanel = () => {
   const {
     currentFile,
     currentYouTube,
+    setCurrentTime,
+    setIsPlaying,
+    loopStart,
+    loopEnd,
+    isPlaying,
+    duration,
+  } = usePlayerStore(
+    useShallow((state) => ({
+      currentFile: state.currentFile,
+      currentYouTube: state.currentYouTube,
+      setCurrentTime: state.setCurrentTime,
+      setIsPlaying: state.setIsPlaying,
+      loopStart: state.loopStart,
+      loopEnd: state.loopEnd,
+      isPlaying: state.isPlaying,
+      duration: state.duration,
+    }))
+  );
+  const {
     startTranscribing,
     stopTranscribing,
     addTranscriptSegment,
     addTranscriptSegments,
     clearTranscript,
     exportTranscript,
-    updateBookmark,
-    selectedBookmarkId,
-    loadBookmark,
-    setSelectedBookmarkId,
-    setCurrentTime,
-    setIsPlaying,
-    loopStart,
-    loopEnd,
-    importBookmarks: storeImportBookmarks,
     isTranscriptLoading,
-    isPlaying,
     transcriptLanguage,
     setTranscriptLanguage,
-    duration,
-  } = usePlayerStore(
+  } = useTranscriptStore(
     useShallow((state) => ({
-      currentFile: state.currentFile,
-      currentYouTube: state.currentYouTube,
       startTranscribing: state.startTranscribing,
       stopTranscribing: state.stopTranscribing,
       addTranscriptSegment: state.addTranscriptSegment,
       addTranscriptSegments: state.addTranscriptSegments,
       clearTranscript: state.clearTranscript,
       exportTranscript: state.exportTranscript,
+      isTranscriptLoading: state.isTranscriptLoading,
+      transcriptLanguage: state.transcriptLanguage,
+      setTranscriptLanguage: state.setTranscriptLanguage,
+    }))
+  );
+  const {
+    updateBookmark,
+    selectedBookmarkId,
+    loadBookmark,
+    setSelectedBookmarkId,
+    importBookmarks: storeImportBookmarks,
+  } = useBookmarkStore(
+    useShallow((state) => ({
       updateBookmark: state.updateBookmark,
       selectedBookmarkId: state.selectedBookmarkId,
       loadBookmark: state.loadBookmark,
       setSelectedBookmarkId: state.setSelectedBookmarkId,
-      setCurrentTime: state.setCurrentTime,
-      setIsPlaying: state.setIsPlaying,
-      loopStart: state.loopStart,
-      loopEnd: state.loopEnd,
       importBookmarks: state.importBookmarks,
-      isTranscriptLoading: state.isTranscriptLoading,
-      isPlaying: state.isPlaying,
-      transcriptLanguage: state.transcriptLanguage,
-      setTranscriptLanguage: state.setTranscriptLanguage,
-      duration: state.duration,
     }))
   );
-  const transcriptSegments = usePlayerStore(
+  const transcriptSegments = useTranscriptStore(
     (state) => (mediaId ? state.mediaTranscripts[mediaId] ?? EMPTY_SEGMENTS : EMPTY_SEGMENTS)
   );
-  const bookmarks = usePlayerStore(
+  const bookmarks = useBookmarkStore(
     (state) => (mediaId ? state.mediaBookmarks[mediaId] ?? EMPTY_BOOKMARKS : EMPTY_BOOKMARKS)
   );
-  const transcriptStudy = usePlayerStore((state) =>
+  const transcriptStudy = useTranscriptStore((state) =>
     mediaId ? state.mediaTranscriptStudy[mediaId] ?? EMPTY_STUDY : EMPTY_STUDY
   );
 
@@ -1430,7 +1442,7 @@ export const TranscriptPanel = () => {
   const handleDeleteBookmark = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
     if (confirm(t("bookmarks.deleteConfirmation"))) {
-      usePlayerStore.getState().deleteBookmark(id);
+      useBookmarkStore.getState().deleteBookmark(id);
       toast.success(t("bookmarks.bookmarkDeleted"));
     }
   };

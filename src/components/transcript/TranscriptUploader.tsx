@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { usePlayerStore } from "../../stores/playerStore";
+import { useTranscriptStore } from "../../stores/transcriptStore";
 import { toast } from "react-hot-toast";
 import { Upload } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -13,7 +13,7 @@ export const TranscriptUploader = ({
 }: TranscriptUploaderProps) => {
   const { t } = useTranslation();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { importTranscript } = usePlayerStore();
+  const { importTranscript } = useTranscriptStore();
 
   const handleUploadClick = () => {
     fileInputRef.current?.click();

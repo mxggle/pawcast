@@ -1,6 +1,8 @@
 import { useState, useCallback, useEffect, useMemo, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { usePlayerStore } from "../../stores/playerStore";
+import { useHistoryStore } from "../../stores/historyStore";
+import { openFile } from "../../stores/playerActions";
 import { nativePathToUrl } from "../../utils/platform";
 import { formatRelativeTime } from "../../utils/relativeTime";
 import { cn } from "../../utils/cn";
@@ -119,17 +121,15 @@ export const FolderBrowser = ({
   sortOrder = "desc",
 }: FolderBrowserProps) => {
   const { t, i18n } = useTranslation();
+  const { currentFile, currentYouTube } = usePlayerStore();
   const {
-    setCurrentFile,
     sourceFolders,
     addSourceFolder,
     removeSourceFolder,
-    currentFile,
-    currentYouTube,
     mediaHistory,
     loadFromHistory,
     removeFromHistory,
-  } = usePlayerStore();
+  } = useHistoryStore();
   const [sourceTrees, setSourceTrees] = useState<Record<string, SourceTreeState>>({});
   const [expandedPaths, setExpandedPaths] = useState<Set<string>>(new Set());
   const showInFileManagerLabel = getShowInFileManagerLabel(t);
@@ -245,7 +245,7 @@ export const FolderBrowser = ({
     (node: FolderTreeNode | LibraryItem) => {
       if (!node.path) return;
 
-      setCurrentFile({
+      void openFile({
         name: node.name,
         type: getMimeType(node.name),
         size: 0,
@@ -253,7 +253,7 @@ export const FolderBrowser = ({
         nativePath: node.path,
       });
     },
-    [setCurrentFile]
+    []
   );
 
   const activeFilePath = currentFile?.nativePath ?? null;

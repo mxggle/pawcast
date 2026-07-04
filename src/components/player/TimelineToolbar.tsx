@@ -1,4 +1,9 @@
 import { usePlayerStore } from "../../stores/playerStore";
+import { useBookmarkStore } from "../../stores/bookmarkStore";
+import {
+  seekForward as playerSeekForward,
+  seekBackward as playerSeekBackward,
+} from "../../stores/playerActions";
 import { useShadowingStore } from "../../stores/shadowingStore";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
@@ -55,14 +60,12 @@ export const TimelineToolbar = ({
     setPlaybackRate,
     setIsLooping,
     setLoopPoints,
-    addBookmark,
-    seekForward: storeSeekForward,
-    seekBackward: storeSeekBackward,
   } = usePlayerStore();
+  const addBookmark = useBookmarkStore((state) => state.addBookmark);
 
   const togglePlayPause = () => setIsPlaying(!isPlaying);
-  const seekForward = () => storeSeekForward(seekStepSeconds);
-  const seekBackward = () => storeSeekBackward(seekStepSeconds);
+  const seekForward = () => playerSeekForward(seekStepSeconds);
+  const seekBackward = () => playerSeekBackward(seekStepSeconds);
 
   const toggleMute = () => {
     if (muted) {

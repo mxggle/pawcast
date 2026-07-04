@@ -8,6 +8,7 @@ import { toast } from "react-hot-toast";
 import { MarkdownRenderer } from "../ui/MarkdownRenderer";
 import { aiService } from "../../services/aiService";
 import { usePlayerStore, type TranscriptSegment } from "../../stores/playerStore";
+import { useTranscriptStore } from "../../stores/transcriptStore";
 import {
   AIProvider,
   AIServiceConfig,
@@ -49,7 +50,7 @@ export const TranscriptSelectionPopover = ({
   const dragOffsetRef = useRef({ x: 0, y: 0 });
   const currentFile = usePlayerStore((state) => state.currentFile);
   const currentYouTube = usePlayerStore((state) => state.currentYouTube);
-  const addGlossaryEntry = usePlayerStore((state) => state.addGlossaryEntry);
+  const addGlossaryEntry = useTranscriptStore((state) => state.addGlossaryEntry);
   const getCurrentMediaId = usePlayerStore((state) => state.getCurrentMediaId);
 
   const key = useMemo(() => buildTranscriptSelectionKey(selection), [selection]);

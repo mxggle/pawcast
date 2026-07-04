@@ -1,7 +1,7 @@
 import { useCallback, useEffect } from "react";
 import { useDropzone } from "react-dropzone";
 import { useTranslation } from "react-i18next";
-import { usePlayerStore } from "../../stores/playerStore";
+import { openFile } from "../../stores/playerActions";
 import { UploadCloud } from "lucide-react";
 import { nativePathToUrl } from "../../utils/platform";
 import { cn } from "../../utils/cn";
@@ -21,18 +21,17 @@ const getMimeType = (fileName: string): string => {
  */
 export const DesktopFileOpener = () => {
   const { t } = useTranslation();
-  const { setCurrentFile } = usePlayerStore();
 
   const openNativePath = useCallback((filePath: string) => {
     const fileName = filePath.split(/[\\/]/).pop() ?? filePath;
-    setCurrentFile({
+    void openFile({
       name: fileName,
       type: getMimeType(fileName),
       size: 0,
       url: nativePathToUrl(filePath),
       nativePath: filePath,
     });
-  }, [setCurrentFile]);
+  }, []);
 
   const handleOpenFile = useCallback(async () => {
     const filePath = await desktopApi?.openFile();
@@ -50,14 +49,14 @@ export const DesktopFileOpener = () => {
     (acceptedFiles: File[]) => {
       if (acceptedFiles.length === 0) return;
       const file = acceptedFiles[0];
-      setCurrentFile({
+      void openFile({
         name: file.name,
         type: file.type,
         size: file.size,
         url: URL.createObjectURL(file),
       });
     },
-    [setCurrentFile]
+    []
   );
 
   // noClick: we trigger the native dialog ourselves on click instead of the

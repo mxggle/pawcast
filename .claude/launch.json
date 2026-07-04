@@ -4,13 +4,7 @@
     {
       "name": "web",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev:web"],
-      "port": 3000
-    },
-    {
-      "name": "electron",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev:electron"],
+      "runtimeArgs": ["run", "dev"],
       "port": 3000
     }
   ]

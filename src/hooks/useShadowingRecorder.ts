@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { usePlayerStore } from "../stores/playerStore";
+import { useTranscriptStore } from "../stores/transcriptStore";
 import { useShadowingStore } from "../stores/shadowingStore";
 import type { ShadowingSegment } from "../stores/shadowingStore";
 import { storeMediaFile } from "../utils/mediaStorage";
@@ -147,7 +148,8 @@ export const useShadowingRecorder = () => {
 
             // Look up the transcript segment to determine auto-stop time
             if (targetSegmentId) {
-                const { mediaTranscripts, getCurrentMediaId: getMediaId } = usePlayerStore.getState();
+                const { getCurrentMediaId: getMediaId } = usePlayerStore.getState();
+                const { mediaTranscripts } = useTranscriptStore.getState();
                 const currentMediaId = getMediaId();
                 const allSegments = currentMediaId ? (mediaTranscripts[currentMediaId] || []) : [];
                 const targetSeg = allSegments.find((s) => s.id === targetSegmentId);

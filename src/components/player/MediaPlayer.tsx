@@ -1,5 +1,6 @@
 import { useRef, useEffect, useCallback } from "react";
 import { usePlayerStore } from "../../stores/playerStore";
+import { useBookmarkStore } from "../../stores/bookmarkStore";
 import { setCurrentTime as setCurrentTimeExternal } from "../../stores/currentTimeStore";
 import { MediaController } from "../../player/MediaController";
 import { playbackClock } from "../../player/PlaybackClock";
@@ -282,9 +283,10 @@ export const MediaPlayer = ({ hiddenMode = false }: MediaPlayerProps) => {
 
         const state = usePlayerStore.getState();
         const {
-          autoAdvanceBookmarks, selectedBookmarkId, getCurrentMediaBookmarks, loadBookmark,
+          autoAdvanceBookmarks,
           maxLoops, loopCount, setLoopCount, setIsLooping: storeSetIsLooping, loopDelay
         } = state;
+        const { selectedBookmarkId, getCurrentMediaBookmarks, loadBookmark } = useBookmarkStore.getState();
 
         const nextCount = (loopCount || 0) + 1;
         setLoopCount(nextCount);

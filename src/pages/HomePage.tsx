@@ -1,12 +1,13 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { usePlayerStore } from "../stores/playerStore";
+import { openYouTube } from "../stores/playerActions";
 import { AppLayout } from "../components/layout/AppLayout";
 import { DesktopHomePage } from "./DesktopHomePage";
 
 export const HomePage = () => {
   const navigate = useNavigate();
-  const { currentFile, currentYouTube, setCurrentYouTube } = usePlayerStore();
+  const { currentFile, currentYouTube } = usePlayerStore();
 
   // Navigate to player when media is loaded
   useEffect(() => {
@@ -17,7 +18,7 @@ export const HomePage = () => {
 
   // Handle YouTube video ID submission
   const handleVideoIdSubmit = (videoId: string) => {
-    setCurrentYouTube({ id: videoId });
+    openYouTube({ id: videoId });
   };
 
   return (

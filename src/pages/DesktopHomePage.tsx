@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { Youtube, FolderOpen, Film, Music, ChevronRight } from "lucide-react";
 import { YouTubeInput } from "../components/player/YouTubeInput";
 import { DesktopFileOpener } from "../components/desktop/DesktopFileOpener";
-import { usePlayerStore } from "../stores/playerStore";
+import { useHistoryStore } from "../stores/historyStore";
 import { formatTime } from "../utils/formatTime";
 import { formatRelativeTime } from "../utils/relativeTime";
 import { desktopApi } from "../platform/runtime";
@@ -14,7 +14,7 @@ interface DesktopHomePageProps {
 
 export const DesktopHomePage = ({ handleVideoIdSubmit }: DesktopHomePageProps) => {
   const { t, i18n } = useTranslation();
-  const { mediaHistory, loadFromHistory, addSourceFolder } = usePlayerStore();
+  const { mediaHistory, loadFromHistory, addSourceFolder } = useHistoryStore();
 
   const handleOpenFolder = async () => {
     const api = desktopApi;

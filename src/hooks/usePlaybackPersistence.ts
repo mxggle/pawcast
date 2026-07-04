@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { usePlayerStore } from "../stores/playerStore";
+import { useHistoryStore } from "../stores/historyStore";
 import { useShallow } from "zustand/react/shallow";
 
 /**
@@ -7,15 +8,18 @@ import { useShallow } from "zustand/react/shallow";
  * It debounces the update to avoid frequent store writes/re-renders.
  */
 export const usePlaybackPersistence = () => {
-  const { currentFile, currentYouTube, mediaHistory, updateHistoryPlaybackTime } =
-    usePlayerStore(
-      useShallow((state) => ({
-        currentFile: state.currentFile,
-        currentYouTube: state.currentYouTube,
-        mediaHistory: state.mediaHistory,
-        updateHistoryPlaybackTime: state.updateHistoryPlaybackTime,
-      }))
-    );
+  const { currentFile, currentYouTube } = usePlayerStore(
+    useShallow((state) => ({
+      currentFile: state.currentFile,
+      currentYouTube: state.currentYouTube,
+    }))
+  );
+  const { mediaHistory, updateHistoryPlaybackTime } = useHistoryStore(
+    useShallow((state) => ({
+      mediaHistory: state.mediaHistory,
+      updateHistoryPlaybackTime: state.updateHistoryPlaybackTime,
+    }))
+  );
   const currentTime = usePlayerStore((state) => state.currentTime);
   const lastSavedTime = useRef<number>(currentTime);
   const latestTimeRef = useRef<number>(currentTime);

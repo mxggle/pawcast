@@ -4,6 +4,7 @@ import { useSettingsStore } from "./stores/settingsStore";
 import { usePlayerStore } from "./stores/playerStore";
 import { useThemeStore } from "./stores/themeStore";
 import { startPersistedStoreSync } from "./stores/persistedStoreSync";
+import { startCanonicalSync } from "./stores/canonicalSync";
 import { applyTheme } from "./utils/theme";
 import { AppRouter } from "./router/AppRouter";
 import "./index.css";
@@ -22,6 +23,10 @@ function App() {
 
   useEffect(() => {
     return startPersistedStoreSync();
+  }, []);
+
+  useEffect(() => {
+    return startCanonicalSync();
   }, []);
 
   // Parse URL parameters for shared loop settings

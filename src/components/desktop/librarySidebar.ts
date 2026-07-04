@@ -1,4 +1,4 @@
-import type { MediaHistoryItem } from "../../stores/playerStore";
+import type { MediaHistoryItem } from "../../stores/historyStore";
 import type { FolderTreeNode } from "../../types/desktop";
 
 export type LibraryScope = "all" | "folders" | "recent";

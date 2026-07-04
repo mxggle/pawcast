@@ -2,13 +2,13 @@ import { useTranslation } from "react-i18next";
 import { ArrowLeft, BookOpen } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { AppLayout } from "../components/layout/AppLayout";
-import { usePlayerStore } from "../stores/playerStore";
+import { useTranscriptStore } from "../stores/transcriptStore";
 import { GlossaryContent } from "../components/glossary/GlossaryContent";
 
 export const GlossaryPage = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const glossaryEntries = usePlayerStore((state) => state.glossaryEntries);
+  const glossaryEntries = useTranscriptStore((state) => state.glossaryEntries);
 
   return (
     <AppLayout bottomPaddingClassName="pb-8">

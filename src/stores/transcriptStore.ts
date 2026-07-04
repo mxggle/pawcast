@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { persist, createJSONStorage } from "zustand/middleware";
 import { toast } from "react-hot-toast";
 import i18n from "../i18n";
 import {
@@ -6,7 +7,9 @@ import {
   setStoredTranscript,
   deleteStoredTranscript,
 } from "../utils/mediaStorage";
-import { useMediaStore } from "./mediaStore";
+import { desktopStorage } from "./desktopStorage";
+import { seedFromLegacyPlayerStorage } from "./legacyPlayerStorage";
+import { usePlayerStore } from "./playerStore";
 import { useBookmarkStore } from "./bookmarkStore";
 import type { TranscriptSegment, MediaTranscripts, MediaTranscriptStudies } from "../types/transcript";
 import type { CreateGlossaryEntryInput, GlossaryEntry, MediaTranscriptStudy } from "../types/transcriptStudy";
@@ -16,9 +19,6 @@ import {
   inferTranscriptLevelSystem,
 } from "../utils/transcriptStudy";
 import { createGlossaryEntry, isDuplicateGlossaryEntry } from "../utils/glossary";
-import { transcriptRepository } from "../repositories/transcriptRepository";
-import { transcriptStudyRepository } from "../repositories/transcriptStudyRepository";
-import type { PersistedSegmentStudy, PersistedTranscriptSegment } from "../types/persistence";
 
 export interface TranscriptState {
   mediaTranscripts: MediaTranscripts;
@@ -52,10 +52,14 @@ export interface TranscriptActions {
 }
 
 function getMediaId(): string | null {
-  return useMediaStore.getState().getCurrentMediaId();
+  return usePlayerStore.getState().getCurrentMediaId();
 }
 
-export const useTranscriptStore = create<TranscriptState & TranscriptActions>()((set, get) => ({
+export const STUDY_STORAGE_KEY = "pawcast-study";
+
+export const useTranscriptStore = create<TranscriptState & TranscriptActions>()(
+  persist(
+    (set, get) => ({
   mediaTranscripts: {},
   mediaTranscriptStudy: {},
   glossaryEntries: [],
@@ -276,7 +280,7 @@ export const useTranscriptStore = create<TranscriptState & TranscriptActions>()(
       const truncateAt = cleanText.lastIndexOf(" ", 40);
       title = truncateAt > 20 ? cleanText.substring(0, truncateAt) + "..." : cleanText.substring(0, 37) + "...";
     }
-    const ms = useMediaStore.getState();
+    const ms = usePlayerStore.getState();
     useBookmarkStore.getState().addBookmark({
       name: title, start: segment.startTime, end: segment.endTime,
       mediaName: ms.currentFile?.name, mediaType: ms.currentFile?.type,
@@ -296,7 +300,7 @@ export const useTranscriptStore = create<TranscriptState & TranscriptActions>()(
     const currentMediaId = getMediaId();
     if (!entry || !currentMediaId || entry.mediaId !== currentMediaId) return false;
     const startTime = Math.max(0, entry.startTime - 0.15);
-    useMediaStore.setState({ currentTime: startTime, loopStart: startTime, loopEnd: entry.endTime, isLooping: true, isPlaying: true, loopCount: 0 });
+    usePlayerStore.setState({ currentTime: startTime, loopStart: startTime, loopEnd: entry.endTime, isLooping: true, isPlaying: true, loopCount: 0 });
     useBookmarkStore.setState({ selectedBookmarkId: null });
     return true;
   },
@@ -304,44 +308,28 @@ export const useTranscriptStore = create<TranscriptState & TranscriptActions>()(
     const mediaId = getMediaId();
     return mediaId ? get().mediaTranscripts[mediaId] || [] : [];
   },
-}));
-
-// ─── Dual-write sync ───
-let _transcriptSaveTimer: ReturnType<typeof setTimeout>
-useTranscriptStore.subscribe((state) => {
-  clearTimeout(_transcriptSaveTimer)
-  _transcriptSaveTimer = setTimeout(() => {
-    // Sync transcripts
-    const mediaIds = Object.keys(state.mediaTranscripts || {})
-    for (const mediaId of mediaIds) {
-      const segments = state.mediaTranscripts[mediaId]
-      if (Array.isArray(segments) && segments.length > 0) {
-        transcriptRepository.saveTranscript(mediaId, segments as PersistedTranscriptSegment[]).catch(() => {})
-      }
+    }),
+    {
+      name: STUDY_STORAGE_KEY,
+      storage: createJSONStorage(() => desktopStorage),
+      version: 1,
+      // Transcripts themselves persist per-media via mediaStorage; only the
+      // glossary and study preferences live in this key.
+      partialize: (state) => ({
+        glossaryEntries: state.glossaryEntries,
+        showTranscript: state.showTranscript,
+        transcriptLanguage: state.transcriptLanguage,
+      }),
     }
+  )
+);
 
-    // Sync study data
-    const studyIds = Object.keys(state.mediaTranscriptStudy || {})
-    for (const mediaId of studyIds) {
-      const study = state.mediaTranscriptStudy[mediaId]
-      if (study && typeof study === 'object') {
-        const segmentStudies: PersistedSegmentStudy[] = []
-        for (const segId of Object.keys(study)) {
-          const s = study[segId]
-          if (s) {
-            segmentStudies.push({
-              segmentId: segId,
-              levelSystem: s.levelSystem || 'cefr',
-              updatedAt: s.updatedAt || Date.now(),
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              items: (s.items || []) as any,
-            })
-          }
-        }
-        if (segmentStudies.length > 0) {
-          transcriptStudyRepository.saveStudy(mediaId, segmentStudies).catch(() => {})
-        }
-      }
-    }
-  }, 300)
-})
+void seedFromLegacyPlayerStorage(useTranscriptStore, STUDY_STORAGE_KEY, (legacy) => {
+  const picked: Partial<TranscriptState> = {};
+  if (Array.isArray(legacy.glossaryEntries) && legacy.glossaryEntries.length > 0) {
+    picked.glossaryEntries = legacy.glossaryEntries as GlossaryEntry[];
+  }
+  if (typeof legacy.showTranscript === "boolean") picked.showTranscript = legacy.showTranscript;
+  if (typeof legacy.transcriptLanguage === "string") picked.transcriptLanguage = legacy.transcriptLanguage;
+  return picked;
+});

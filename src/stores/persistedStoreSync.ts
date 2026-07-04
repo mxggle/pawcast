@@ -1,17 +1,31 @@
-import { desktopStorage, subscribeDesktopStorageChanges } from "./desktopStorage";
+import { subscribeDesktopStorageChanges } from "./desktopStorage";
 import i18n from "../i18n";
+import { desktopStorage } from "./desktopStorage";
 import { useLayoutStore } from "./layoutStore";
-import { useMediaStore } from "./mediaStore";
-import { usePlayerStore } from "./playerStore";
+import { usePlayerStore, PLAYER_SETTINGS_STORAGE_KEY } from "./playerStore";
+import { useBookmarkStore, BOOKMARKS_STORAGE_KEY } from "./bookmarkStore";
+import { useTranscriptStore, STUDY_STORAGE_KEY } from "./transcriptStore";
+import { useHistoryStore, LIBRARY_STORAGE_KEY } from "./historyStore";
 import { useSettingsStore } from "./settingsStore";
 import { useThemeStore } from "./themeStore";
 
+/**
+ * Cross-window persisted-store sync.
+ *
+ * Auxiliary windows (settings, glossary) run their own store instances and
+ * persist through the same desktop config storage. When another window writes
+ * a key, this module rehydrates the matching store so the current window
+ * reflects the change. Rehydration only touches each store's partialized
+ * (persisted) fields, so live playback state is never disturbed.
+ */
 export type PersistedStoreSyncTarget =
   | "settings"
   | "layout"
   | "theme"
-  | "player"
-  | "mediaSettings"
+  | "playerSettings"
+  | "bookmarks"
+  | "study"
+  | "library"
   | "language"
   | "aiSettings";
 
@@ -19,7 +33,10 @@ const PERSISTED_STORE_TARGETS: Record<string, PersistedStoreSyncTarget[]> = {
   "abloop-settings-storage": ["settings"],
   "layout-storage": ["layout"],
   "theme-storage": ["theme"],
-  "abloop-player-storage": ["player", "mediaSettings"],
+  [PLAYER_SETTINGS_STORAGE_KEY]: ["playerSettings"],
+  [BOOKMARKS_STORAGE_KEY]: ["bookmarks"],
+  [STUDY_STORAGE_KEY]: ["study"],
+  [LIBRARY_STORAGE_KEY]: ["library"],
   i18nextLng: ["language"],
   "ai-settings-storage": ["aiSettings"],
 };
@@ -27,88 +44,6 @@ const PERSISTED_STORE_TARGETS: Record<string, PersistedStoreSyncTarget[]> = {
 export const getPersistedStoreSyncTargets = (
   key: string,
 ): PersistedStoreSyncTarget[] => PERSISTED_STORE_TARGETS[key] ?? [];
-
-const syncMediaSettingsFromPlayerStore = () => {
-  const {
-    volume,
-    mediaVolume,
-    muted,
-    playbackRate,
-    seekStepSeconds,
-    seekSmallStepSeconds,
-    seekMode,
-  } = usePlayerStore.getState();
-
-  useMediaStore.setState({
-    volume,
-    mediaVolume,
-    muted,
-    playbackRate,
-    seekStepSeconds,
-    seekSmallStepSeconds,
-    seekMode,
-  });
-};
-
-const syncPlayerSettingsFromStorage = async () => {
-  const persistedValue = await desktopStorage.getItem("abloop-player-storage");
-  if (!persistedValue) return;
-
-  let persisted: {
-    state?: Partial<{
-      volume: number;
-      mediaVolume: number;
-      muted: boolean;
-      playbackRate: number;
-      seekStepSeconds: number;
-      seekSmallStepSeconds: number;
-      seekMode: "seconds" | "sentence";
-    }>;
-  };
-
-  try {
-    persisted = JSON.parse(persistedValue) as typeof persisted;
-  } catch {
-    return;
-  }
-  const state = persisted.state;
-  if (!state) return;
-
-  const current = usePlayerStore.getState();
-  const nextSettings = {
-    volume: typeof state.volume === "number" ? state.volume : current.volume,
-    mediaVolume:
-      typeof state.mediaVolume === "number" ? state.mediaVolume : current.mediaVolume,
-    muted: typeof state.muted === "boolean" ? state.muted : current.muted,
-    playbackRate:
-      typeof state.playbackRate === "number" ? state.playbackRate : current.playbackRate,
-    seekStepSeconds:
-      typeof state.seekStepSeconds === "number"
-        ? state.seekStepSeconds
-        : current.seekStepSeconds,
-    seekSmallStepSeconds:
-      typeof state.seekSmallStepSeconds === "number"
-        ? state.seekSmallStepSeconds
-        : current.seekSmallStepSeconds,
-    seekMode:
-      state.seekMode === "seconds" || state.seekMode === "sentence"
-        ? state.seekMode
-        : current.seekMode,
-  };
-
-  const didChange =
-    current.volume !== nextSettings.volume ||
-    current.mediaVolume !== nextSettings.mediaVolume ||
-    current.muted !== nextSettings.muted ||
-    current.playbackRate !== nextSettings.playbackRate ||
-    current.seekStepSeconds !== nextSettings.seekStepSeconds ||
-    current.seekSmallStepSeconds !== nextSettings.seekSmallStepSeconds ||
-    current.seekMode !== nextSettings.seekMode;
-
-  if (didChange) {
-    usePlayerStore.setState(nextSettings);
-  }
-};
 
 const syncLanguageFromStorage = async () => {
   const language = await desktopStorage.getItem("i18nextLng");
@@ -133,10 +68,14 @@ export const syncPersistedStoreForConfigKey = async (key: string) => {
       await useLayoutStore.persist.rehydrate();
     } else if (target === "theme") {
       await useThemeStore.persist.rehydrate();
-    } else if (target === "player") {
-      await syncPlayerSettingsFromStorage();
-    } else if (target === "mediaSettings") {
-      syncMediaSettingsFromPlayerStore();
+    } else if (target === "playerSettings") {
+      await usePlayerStore.persist.rehydrate();
+    } else if (target === "bookmarks") {
+      await useBookmarkStore.persist.rehydrate();
+    } else if (target === "study") {
+      await useTranscriptStore.persist.rehydrate();
+    } else if (target === "library") {
+      await useHistoryStore.persist.rehydrate();
     } else if (target === "language") {
       await syncLanguageFromStorage();
     } else if (target === "aiSettings") {

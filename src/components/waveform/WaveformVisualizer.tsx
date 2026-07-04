@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useState, useCallback, useMemo } from "react";
 import { usePlayerStore } from "../../stores/playerStore";
+import { useBookmarkStore } from "../../stores/bookmarkStore";
 import { useSettingsStore } from "../../stores/settingsStore";
 import type { LoopBookmark } from "../../stores/playerStore";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
@@ -157,14 +158,11 @@ export const WaveformVisualizer = ({ className }: WaveformVisualizerProps) => {
     loopStart,
     loopEnd,
     isLooping,
-    selectedBookmarkId,
     setCurrentTime,
     setLoopPoints,
     setIsLooping,
-    loadBookmark,
     setIsPlaying,
     isPlaying,
-    updateBookmark,
   } = usePlayerStore(
     useShallow((state) => ({
       currentTime: state.currentTime,
@@ -172,13 +170,17 @@ export const WaveformVisualizer = ({ className }: WaveformVisualizerProps) => {
       loopStart: state.loopStart,
       loopEnd: state.loopEnd,
       isLooping: state.isLooping,
-      selectedBookmarkId: state.selectedBookmarkId,
       setCurrentTime: state.setCurrentTime,
       setLoopPoints: state.setLoopPoints,
       setIsLooping: state.setIsLooping,
-      loadBookmark: state.loadBookmark,
       setIsPlaying: state.setIsPlaying,
       isPlaying: state.isPlaying,
+    }))
+  );
+  const { selectedBookmarkId, loadBookmark, updateBookmark } = useBookmarkStore(
+    useShallow((state) => ({
+      selectedBookmarkId: state.selectedBookmarkId,
+      loadBookmark: state.loadBookmark,
       updateBookmark: state.updateBookmark,
     }))
   );
@@ -348,7 +350,7 @@ export const WaveformVisualizer = ({ className }: WaveformVisualizerProps) => {
   }, [fadingRecording]);
 
   // Subscribe to bookmarks
-  const bookmarks = usePlayerStore((state) => {
+  const bookmarks = useBookmarkStore((state) => {
     return mediaId && state.mediaBookmarks[mediaId]
       ? state.mediaBookmarks[mediaId]
       : EMPTY_BOOKMARKS;

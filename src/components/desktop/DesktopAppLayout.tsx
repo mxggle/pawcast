@@ -2,6 +2,8 @@ import { useState, useCallback, useEffect, useRef, Dispatch, SetStateAction } fr
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { usePlayerStore } from "../../stores/playerStore";
+import { useHistoryStore } from "../../stores/historyStore";
+import { useTranscriptStore } from "../../stores/transcriptStore";
 import { useSettingsStore } from "../../stores/settingsStore";
 import { useShallow } from "zustand/react/shallow";
 import { desktopApi } from "../../platform/runtime";
@@ -157,7 +159,7 @@ export const DesktopAppLayout = ({
     setIsSidebarOpen,
     setSidebarWidth,
     addSourceFolder,
-  } = usePlayerStore(
+  } = useHistoryStore(
     useShallow((state) => ({
       isSidebarOpen: state.isSidebarOpen,
       sidebarWidth: state.sidebarWidth,
@@ -247,16 +249,17 @@ export const DesktopAppLayout = ({
         return;
       }
 
-      const playerStore = usePlayerStore.getState();
-      const entry = playerStore.glossaryEntries.find((e) => e.id === entryId);
+      const transcriptStore = useTranscriptStore.getState();
+      const entry = transcriptStore.glossaryEntries.find((e) => e.id === entryId);
       if (!entry) return;
 
-      if (playerStore.playGlossaryEntryContext(entryId)) {
+      if (transcriptStore.playGlossaryEntryContext(entryId)) {
         navigate(route);
         return;
       }
 
-      const historyItem = playerStore.mediaHistory.find((h) => {
+      const historyStore = useHistoryStore.getState();
+      const historyItem = historyStore.mediaHistory.find((h) => {
         if (h.type === "youtube" && h.youtubeData?.youtubeId) {
           return `youtube-${h.youtubeData.youtubeId}` === entry.mediaId;
         }
@@ -268,9 +271,9 @@ export const DesktopAppLayout = ({
 
       if (!historyItem) return;
 
-      await playerStore.loadFromHistory(historyItem.id);
+      await historyStore.loadFromHistory(historyItem.id);
 
-      if (playerStore.playGlossaryEntryContext(entryId)) {
+      if (transcriptStore.playGlossaryEntryContext(entryId)) {
         navigate(route);
       }
     });

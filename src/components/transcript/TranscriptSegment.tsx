@@ -3,6 +3,7 @@ import {
   TranscriptSegment as TranscriptSegmentType,
   LoopBookmark,
 } from "../../stores/playerStore";
+import { useBookmarkStore } from "../../stores/bookmarkStore";
 import { useShallow } from "zustand/react/shallow";
 import {
   Bookmark,
@@ -37,15 +38,16 @@ export const TranscriptSegment = ({ segment }: TranscriptSegmentProps) => {
     setIsPlaying,
     setLoopPoints,
     setIsLooping,
-    addBookmark,
-    deleteBookmark,
-    getCurrentMediaBookmarks,
   } = usePlayerStore(
     useShallow((state) => ({
       setCurrentTime: state.setCurrentTime,
       setIsPlaying: state.setIsPlaying,
       setLoopPoints: state.setLoopPoints,
       setIsLooping: state.setIsLooping,
+    }))
+  );
+  const { addBookmark, deleteBookmark, getCurrentMediaBookmarks } = useBookmarkStore(
+    useShallow((state) => ({
       addBookmark: state.addBookmark,
       deleteBookmark: state.deleteBookmark,
       getCurrentMediaBookmarks: state.getCurrentMediaBookmarks,
@@ -56,7 +58,7 @@ export const TranscriptSegment = ({ segment }: TranscriptSegmentProps) => {
   const { isActive: isCurrentSegment, isPlaying, isCurrentlyLooping } = useSegmentState(segment);
 
   // Reactive bookmark check (only re-renders when isBookmarked changes)
-  const isBookmarked = usePlayerStore((state) => {
+  const isBookmarked = useBookmarkStore((state) => {
     const bks = state.getCurrentMediaBookmarks();
     return bks.some(
       (b: LoopBookmark) =>

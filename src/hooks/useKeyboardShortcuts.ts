@@ -1,6 +1,8 @@
 import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { usePlayerStore } from '@/stores/playerStore'
+import { useBookmarkStore } from '@/stores/bookmarkStore'
+import { seekForward, seekBackward, toggleLooping } from '@/stores/playerActions'
 import { toast } from 'react-hot-toast'
 import { requestOpenSettings } from '@/utils/settingsIntents'
 
@@ -38,15 +40,14 @@ export const useKeyboardShortcuts = () => {
     setVolume,
     setLoopPoints,
     setIsLooping,
+    seekStepSeconds,
+    seekSmallStepSeconds,
+  } = usePlayerStore()
+  const {
     addBookmark: storeAddBookmark,
     deleteBookmark,
     getCurrentMediaBookmarks,
-    seekStepSeconds,
-    seekSmallStepSeconds,
-    seekForward,
-    seekBackward,
-    toggleLooping,
-  } = usePlayerStore()
+  } = useBookmarkStore()
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -252,9 +253,6 @@ export const useKeyboardShortcuts = () => {
     deleteBookmark,
     seekSmallStepSeconds,
     seekStepSeconds,
-    seekForward,
-    seekBackward,
     t,
-    toggleLooping
   ])
 }

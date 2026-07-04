@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { usePlayerStore, type MediaHistoryItem } from "../../stores/playerStore";
+import { usePlayerStore } from "../../stores/playerStore";
+import { useHistoryStore, type MediaHistoryItem } from "../../stores/historyStore";
 import { Music, Youtube, X, SquareArrowOutUpRight } from "lucide-react";
 import {
   getShowInFileManagerLabel,
@@ -54,8 +55,8 @@ const isActive = (
 /* ── Exported component ─────────────────────────────────────────── */
 export const PlayHistory = () => {
   const { t } = useTranslation();
-  const { mediaHistory, loadFromHistory, removeFromHistory, currentFile, currentYouTube } =
-    usePlayerStore();
+  const { mediaHistory, loadFromHistory, removeFromHistory } = useHistoryStore();
+  const { currentFile, currentYouTube } = usePlayerStore();
   const showInFileManagerLabel = getShowInFileManagerLabel(t);
 
   const sorted = [...mediaHistory].sort((a, b) => b.accessedAt - a.accessedAt);

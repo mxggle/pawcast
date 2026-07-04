@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { BookOpen, PlayCircle, Trash } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { toast } from "react-hot-toast";
-import { usePlayerStore } from "../../stores/playerStore";
+import { useTranscriptStore } from "../../stores/transcriptStore";
 import { formatTime } from "../../utils/formatTime";
 import { desktopApi } from "../../platform/runtime";
 
@@ -11,11 +11,9 @@ export const GlossaryContent = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
-  const glossaryEntries = usePlayerStore((state) => state.glossaryEntries);
-  const deleteGlossaryEntry = usePlayerStore((state) => state.deleteGlossaryEntry);
-  const playGlossaryEntryContext = usePlayerStore(
-    (state) => state.playGlossaryEntryContext
-  );
+  const glossaryEntries = useTranscriptStore((state) => state.glossaryEntries);
+  const deleteGlossaryEntry = useTranscriptStore((state) => state.deleteGlossaryEntry);
+  const playGlossaryEntryContext = useTranscriptStore((state) => state.playGlossaryEntryContext);
 
   const isGlossaryWindow = location.pathname === "/glossary-window";
 

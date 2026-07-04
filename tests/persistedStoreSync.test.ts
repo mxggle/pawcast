@@ -9,11 +9,15 @@ test("config changes rehydrate the matching persisted store only", () => {
   assert.deepEqual(getPersistedStoreSyncTargets("abloop-settings-storage"), ["settings"]);
 });
 
-test("player config changes rehydrate player state and mirrored media settings", () => {
-  assert.deepEqual(getPersistedStoreSyncTargets("abloop-player-storage"), [
-    "player",
-    "mediaSettings",
-  ]);
+test("per-domain config changes rehydrate their matching stores", () => {
+  assert.deepEqual(getPersistedStoreSyncTargets("pawcast-player-settings"), ["playerSettings"]);
+  assert.deepEqual(getPersistedStoreSyncTargets("pawcast-bookmarks"), ["bookmarks"]);
+  assert.deepEqual(getPersistedStoreSyncTargets("pawcast-study"), ["study"]);
+  assert.deepEqual(getPersistedStoreSyncTargets("pawcast-library"), ["library"]);
+});
+
+test("the legacy monolithic player key no longer triggers rehydration", () => {
+  assert.deepEqual(getPersistedStoreSyncTargets("abloop-player-storage"), []);
 });
 
 test("unknown config changes do not trigger app store rehydration", () => {
