@@ -24,12 +24,16 @@ import {
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { transcriptionService } from "../../services/transcriptionService";
-import { TranscriptionProvider } from "../../types/aiService";
 import { TranscriptUploader } from "./TranscriptUploader";
 import { TranscriptSegmentItem } from "./TranscriptSegmentItem";
-import { breakIntoSentences as utilBreakIntoSentences } from "../../utils/sentenceBreaker";
 import { getCurrentTime, subscribeCurrentTime } from "../../stores/currentTimeStore";
 import { usePlayerSelection } from "../../player/hooks";
+import { useTranscriptionRunner } from "../../hooks/useTranscriptionRunner";
+import { useBookmarkIO } from "../../hooks/useBookmarkIO";
+import {
+  findMatchingBookmarkId,
+  findSegmentIndexAtTime,
+} from "../../utils/transcriptSegments";
 
 import { TranscriptSegment as TranscriptSegmentType, LoopBookmark } from "../../stores/playerStore";
 import type {
@@ -43,7 +47,6 @@ import {
   getLevelOptionsForSystem,
   inferTranscriptLevelSystem,
 } from "../../utils/transcriptStudy";
-import { encodeWAV } from "../../utils/wavEncoder";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Textarea } from "../ui/textarea";
@@ -61,104 +64,8 @@ const EMPTY_SEGMENTS: TranscriptSegmentType[] = [];
 const EMPTY_BOOKMARKS: LoopBookmark[] = [];
 const EMPTY_STUDY: MediaTranscriptStudy = {};
 const SEGMENT_SCROLL_OFFSET_RATIO = 0.15;
-const BOOKMARK_MATCH_TOLERANCE_SECONDS = 0.5;
-
-// WhisperSegment/WhisperResponse types moved to transcriptionService.ts
-
-/**
- * Map word-level timing data from the API response to the segments they
- * belong to, based on time overlap. Each word is assigned to the segment
- * whose [start, end) range contains the word's start time.
- */
-function assignWordsToSegments(
-  words: Array<{ word: string; start: number; end: number }> | undefined,
-  segments: Array<{ id: number; start: number; end: number }>
-): Map<number, Array<{ word: string; start: number; end: number }>> {
-  const map = new Map<number, Array<{ word: string; start: number; end: number }>>();
-  if (!words || words.length === 0) return map;
-
-  let segIdx = 0;
-  for (const word of words) {
-    // Advance to the segment that contains this word's start time
-    while (segIdx < segments.length && segments[segIdx].end <= word.start) {
-      segIdx++;
-    }
-    if (segIdx < segments.length) {
-      const seg = segments[segIdx];
-      if (word.start >= seg.start && word.end <= seg.end) {
-        if (!map.has(seg.id)) map.set(seg.id, []);
-        map.get(seg.id)!.push(word);
-      }
-    }
-  }
-
-  return map;
-}
-
-const isTimeWithinSegment = (time: number, segment: TranscriptSegmentType) =>
-  time >= segment.startTime && time <= segment.endTime;
-
-const findMatchingBookmarkId = (
-  segment: TranscriptSegmentType,
-  bookmarks: LoopBookmark[]
-) =>
-  bookmarks.find(
-    (bookmark) =>
-      Math.abs(bookmark.start - segment.startTime) < BOOKMARK_MATCH_TOLERANCE_SECONDS &&
-      Math.abs(bookmark.end - segment.endTime) < BOOKMARK_MATCH_TOLERANCE_SECONDS
-  )?.id ?? null;
-
-const findSegmentIndexAtTime = (
-  segments: TranscriptSegmentType[],
-  time: number,
-  hintIndex = -1
-) => {
-  if (segments.length === 0) {
-    return -1;
-  }
-
-  if (hintIndex >= 0 && hintIndex < segments.length) {
-    if (isTimeWithinSegment(time, segments[hintIndex])) {
-      return hintIndex;
-    }
-
-    const nextIndex = hintIndex + 1;
-    if (nextIndex < segments.length && isTimeWithinSegment(time, segments[nextIndex])) {
-      return nextIndex;
-    }
-
-    const previousIndex = hintIndex - 1;
-    if (previousIndex >= 0 && isTimeWithinSegment(time, segments[previousIndex])) {
-      return previousIndex;
-    }
-  }
-
-  let low = 0;
-  let high = segments.length - 1;
-
-  while (low <= high) {
-    const mid = Math.floor((low + high) / 2);
-    const segment = segments[mid];
-
-    if (time < segment.startTime) {
-      high = mid - 1;
-      continue;
-    }
-
-    if (time > segment.endTime) {
-      low = mid + 1;
-      continue;
-    }
-
-    return mid;
-  }
-
-  return -1;
-};
 
 export const TranscriptPanel = () => {
-  const LARGE_TRANSCRIPTION_FILE_SIZE = 25 * 1024 * 1024;
-  const PROGRESSIVE_TRANSCRIPTION_THRESHOLD_SECONDS = 8 * 60;
   const { t } = useTranslation();
   const navigate = useNavigate();
   const mediaId = usePlayerStore((state) => state.getCurrentMediaId());
@@ -170,7 +77,6 @@ export const TranscriptPanel = () => {
     loopStart,
     loopEnd,
     isPlaying,
-    duration,
   } = usePlayerStore(
     useShallow((state) => ({
       currentFile: state.currentFile,
@@ -180,14 +86,9 @@ export const TranscriptPanel = () => {
       loopStart: state.loopStart,
       loopEnd: state.loopEnd,
       isPlaying: state.isPlaying,
-      duration: state.duration,
     }))
   );
   const {
-    startTranscribing,
-    stopTranscribing,
-    addTranscriptSegment,
-    addTranscriptSegments,
     clearTranscript,
     exportTranscript,
     isTranscriptLoading,
@@ -195,10 +96,6 @@ export const TranscriptPanel = () => {
     setTranscriptLanguage,
   } = useTranscriptStore(
     useShallow((state) => ({
-      startTranscribing: state.startTranscribing,
-      stopTranscribing: state.stopTranscribing,
-      addTranscriptSegment: state.addTranscriptSegment,
-      addTranscriptSegments: state.addTranscriptSegments,
       clearTranscript: state.clearTranscript,
       exportTranscript: state.exportTranscript,
       isTranscriptLoading: state.isTranscriptLoading,
@@ -211,14 +108,12 @@ export const TranscriptPanel = () => {
     selectedBookmarkId,
     loadBookmark,
     setSelectedBookmarkId,
-    importBookmarks: storeImportBookmarks,
   } = useBookmarkStore(
     useShallow((state) => ({
       updateBookmark: state.updateBookmark,
       selectedBookmarkId: state.selectedBookmarkId,
       loadBookmark: state.loadBookmark,
       setSelectedBookmarkId: state.setSelectedBookmarkId,
-      importBookmarks: state.importBookmarks,
     }))
   );
   const transcriptSegments = useTranscriptStore(
@@ -262,44 +157,8 @@ export const TranscriptPanel = () => {
     { value: "ru-RU", label: t("transcript.languages.ru-RU") },
   ];
 
-  const importFileInputRef = useRef<HTMLInputElement>(null);
-
-  const handleExportBookmarks = () => {
-    if (bookmarks.length === 0) {
-      toast.error(t("bookmarks.noBookmarksToExport"));
-      return;
-    }
-    const dataStr = JSON.stringify(bookmarks, null, 2);
-    const dataUri = `data:application/json;charset=utf-8,${encodeURIComponent(dataStr)}`;
-    const exportFileDefaultName = `abloop-bookmarks-${new Date().toISOString().slice(0, 10)}.json`;
-    const linkElement = document.createElement("a");
-    linkElement.setAttribute("href", dataUri);
-    linkElement.setAttribute("download", exportFileDefaultName);
-    linkElement.click();
-    toast.success(t("bookmarks.bookmarksExported"));
-  };
-
-  const handleImportBookmarks = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const importedBookmarks = JSON.parse(e.target?.result as string);
-        if (Array.isArray(importedBookmarks)) {
-          storeImportBookmarks(importedBookmarks);
-          toast.success(t("bookmarks.bookmarksImported", { count: importedBookmarks.length }));
-        } else {
-          toast.error(t("bookmarks.invalidFileFormat"));
-        }
-      } catch (error) {
-        console.error("Error importing bookmarks:", error);
-        toast.error(t("bookmarks.importError"));
-      }
-    };
-    reader.readAsText(file);
-    event.target.value = "";
-  };
+  const { importFileInputRef, handleExportBookmarks, handleImportBookmarks } =
+    useBookmarkIO(bookmarks);
 
   const [activeTabId, setActiveTabId] = useState<string | null>(null);
   const [editingBookmarkId, setEditingBookmarkId] = useState<string | null>(null);
@@ -625,19 +484,23 @@ export const TranscriptPanel = () => {
     return undefined;
   };
 
+  const {
+    isProcessing,
+    processingProgress,
+    transcriptionStatus,
+    errorMessage,
+    showApiKeyInput,
+    setShowApiKeyInput,
+    currentProvider,
+    transcribeMedia,
+    cancelTranscription,
+  } = useTranscriptionRunner({ getFallbackRange: getPreferredTranscriptRange });
+
   const handleTranscribeDefault = () => {
     transcribeMedia(getPreferredTranscriptRange());
   };
 
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [processingProgress, setProcessingProgress] = useState(0);
-  const [transcriptionStatus, setTranscriptionStatus] = useState<string | null>(null);
-  const [errorMessage, setErrorMessage] = useState("");
-  const [apiKey, setApiKey] = useState<string>("");
-  const [showApiKeyInput, setShowApiKeyInput] = useState(false);
-  const [currentProvider, setCurrentProvider] = useState<TranscriptionProvider>("openai");
   const transcriptRef = useRef<HTMLDivElement>(null);
-  const abortControllerRef = useRef<AbortController | null>(null);
 
   const virtualizer = useVirtualizer({
     count: filteredSegments.length,
@@ -646,43 +509,6 @@ export const TranscriptPanel = () => {
     overscan: 5,
     getItemKey: (index: number) => filteredSegments[index]?.id ?? `segment-${index}`,
   });
-
-  // Load API key and transcription provider from localStorage on component mount
-  useEffect(() => {
-    const loadSettings = () => {
-      const provider = transcriptionService.getPreferredProvider();
-      setCurrentProvider(provider);
-      const key = transcriptionService.getApiKeyForProvider(provider);
-      setApiKey(key);
-    };
-
-    loadSettings();
-
-    // Listen for AI settings updates from the AI Settings page
-    const handleSettingsUpdate = () => {
-      loadSettings();
-    };
-
-    window.addEventListener("ai-settings-updated", handleSettingsUpdate);
-    window.addEventListener("aiSettingsUpdated", handleSettingsUpdate);
-
-    // Cross-tab/window sync via BroadcastChannel
-    let broadcastChannel: BroadcastChannel | null = null;
-    if (typeof window !== "undefined" && "BroadcastChannel" in window) {
-      broadcastChannel = new BroadcastChannel("abloop-settings");
-      broadcastChannel.onmessage = (event) => {
-        if (event.data?.type === "ai-settings-updated") {
-          loadSettings();
-        }
-      };
-    }
-
-    return () => {
-      window.removeEventListener("ai-settings-updated", handleSettingsUpdate);
-      window.removeEventListener("aiSettingsUpdated", handleSettingsUpdate);
-      broadcastChannel?.close();
-    };
-  }, []);
 
   const handleOpenAISettings = () => {
     requestOpenSettings({ tab: "ai" });
@@ -766,633 +592,6 @@ export const TranscriptPanel = () => {
       unsubscribe();
     };
   }, [autoScrollEnabled, filteredSegments, scrollToSegmentIndex]);
-
-  useEffect(() => {
-    return () => {
-      abortControllerRef.current?.abort();
-      abortControllerRef.current = null;
-    };
-  }, []);
-
-  type TimeRange = { start: number; end: number };
-
-  const normalizeRange = (range?: Partial<TimeRange>): TimeRange | undefined => {
-    if (
-      range &&
-      typeof range.start === "number" &&
-      typeof range.end === "number" &&
-      range.end > range.start
-    ) {
-      return { start: range.start, end: range.end };
-    }
-
-    return undefined;
-  };
-
-  // Function to extract audio from the media file
-  const extractAudioFromMedia = async (range?: TimeRange): Promise<Blob> => {
-    return new Promise((resolve, reject) => {
-      if (!currentFile) {
-        reject(new Error(t("transcript.noFileLoaded")));
-        return;
-      }
-
-      // For audio files, we can use them directly or slice them if range provided
-      if (currentFile.type.includes("audio")) {
-        fetch(currentFile.url)
-          .then(async (response) => {
-            if (!range) {
-              resolve(await response.blob());
-              return;
-            }
-
-            return response.arrayBuffer();
-          })
-          .then(async (arrayBuffer) => {
-            if (!range || !arrayBuffer) {
-              return;
-            }
-
-            try {
-              const audioContext = new AudioContext();
-              const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-
-              let startFrame = 0;
-              let endFrame = audioBuffer.length;
-
-              if (range) {
-                startFrame = Math.floor(range.start * audioBuffer.sampleRate);
-                endFrame = Math.floor(range.end * audioBuffer.sampleRate);
-                // Ensure bounds
-                startFrame = Math.max(0, startFrame);
-                endFrame = Math.min(audioBuffer.length, endFrame);
-              }
-
-              const frameCount = endFrame - startFrame;
-              if (frameCount <= 0) {
-                reject(new Error("Invalid time range"));
-                return;
-              }
-
-              // Extract channel data (mix down to mono if needed, or just take left channel for speech)
-              // Better to mix down for speech recognition
-              const channel0 = audioBuffer.getChannelData(0);
-              const slicedData = new Float32Array(frameCount);
-
-              if (audioBuffer.numberOfChannels > 1) {
-                const channel1 = audioBuffer.getChannelData(1);
-                // Simple average mixdown
-                for (let i = 0; i < frameCount; i++) {
-                  const idx = startFrame + i;
-                  slicedData[i] = (channel0[idx] + channel1[idx]) / 2;
-                }
-              } else {
-                // Mono copy
-                for (let i = 0; i < frameCount; i++) {
-                  slicedData[i] = channel0[startFrame + i];
-                }
-              }
-
-              // Encode to WAV
-              const wavBlob = encodeWAV(slicedData, audioBuffer.sampleRate);
-              audioContext.close();
-              resolve(wavBlob);
-
-            } catch (err) {
-              console.error("Error processing audio:", err);
-              reject(err);
-            }
-          })
-          .catch((error) => reject(error));
-        return;
-      }
-
-      // For video files, we need to extract the audio
-      if (currentFile.type.includes("video")) {
-        const video = document.createElement("video");
-        video.src = currentFile.url;
-
-        // Create an audio context and source node
-        const audioContext = new AudioContext();
-        const destination = audioContext.createMediaStreamDestination();
-        const source = audioContext.createMediaElementSource(video);
-        source.connect(destination);
-
-        // Create a media recorder to capture the audio
-        const mediaRecorder = new MediaRecorder(destination.stream);
-        const chunks: BlobPart[] = [];
-
-        mediaRecorder.ondataavailable = (e) => {
-          if (e.data.size > 0) {
-            chunks.push(e.data);
-          }
-        };
-
-        mediaRecorder.onstop = () => {
-          const blob = new Blob(chunks, { type: "audio/wav" });
-          resolve(blob);
-        };
-
-        // Start recording and playing the video
-        video.onloadedmetadata = () => {
-          const startTime = range ? range.start : 0;
-          const duration = range ? (range.end - range.start) : video.duration;
-
-          video.currentTime = startTime;
-
-          const onSeeked = () => {
-            video.removeEventListener("seeked", onSeeked);
-            video.play();
-            mediaRecorder.start();
-
-            // Stop recording after the duration
-            setTimeout(() => {
-              video.pause();
-              mediaRecorder.stop();
-              audioContext.close();
-              video.remove(); // Clean up
-            }, duration * 1000);
-          };
-
-          video.addEventListener("seeked", onSeeked);
-        };
-
-        video.onerror = () => {
-          reject(new Error(t("transcript.errorLoadingVideo")));
-        };
-
-        return;
-      }
-
-      reject(new Error(t("transcript.unsupportedFileType")));
-    });
-  };
-
-  // Function to transcribe the current media using the selected transcription service
-  const transcribeMedia = async (
-    requestedRange?: Partial<TimeRange>,
-    options?: { forceFullRange?: boolean }
-  ) => {
-    // Check if we have media to transcribe
-    if (!currentFile && !currentYouTube) {
-      toast.error(t("transcript.noMediaToTranscribe"));
-      return;
-    }
-
-    // Check if API key is provided for the current provider
-    if (!apiKey && currentProvider !== "local-whisper") {
-      setShowApiKeyInput(true);
-      return;
-    }
-
-    const range = options?.forceFullRange
-      ? normalizeRange(requestedRange)
-      : normalizeRange(requestedRange) || getPreferredTranscriptRange();
-
-    if (
-      currentFile &&
-      !range &&
-      currentFile.size > LARGE_TRANSCRIPTION_FILE_SIZE
-    ) {
-      toast(t("transcript.largeFileRangeRecommended"));
-    }
-
-    try {
-      setIsProcessing(true);
-      setErrorMessage("");
-      setTranscriptionStatus(null);
-
-      // Only clear if doing full transcript
-      if (!range || options?.forceFullRange) {
-        clearTranscript();
-      }
-
-      abortControllerRef.current?.abort();
-      const abortController = new AbortController();
-      abortControllerRef.current = abortController;
-      startTranscribing();
-      setProcessingProgress(10);
-
-      // For YouTube videos, we can't directly access the audio
-      if (currentYouTube) {
-        toast.error(t("transcript.youtubeTranscriptionWarning"));
-        await simulateTranscription();
-        return;
-      }
-
-      // Extract audio from the media file
-      const audioBlob = await extractAudioFromMedia(range);
-      setProcessingProgress(30);
-
-      const providerInfo = transcriptionService.getProviderInfo(currentProvider);
-      toast(t("transcript.processingWithProvider", { provider: providerInfo.name }));
-
-      setProcessingProgress(50);
-
-      const transcriptionConfig = {
-        provider: currentProvider,
-        apiKey: apiKey,
-        language: transcriptLanguage,
-      };
-      const shouldUseChunkedTranscription =
-        !range && duration >= PROGRESSIVE_TRANSCRIPTION_THRESHOLD_SECONDS;
-
-      // Call the unified transcription service
-      const result = shouldUseChunkedTranscription
-        ? await transcriptionService.transcribeInChunks(
-          transcriptionConfig,
-          audioBlob,
-          {
-            signal: abortController.signal,
-            onChunkComplete: (segments, chunkIndex, totalChunks) => {
-              setTranscriptionStatus(
-                t("transcript.processingChunk", {
-                  current: chunkIndex,
-                  total: totalChunks,
-                })
-              );
-              setProcessingProgress(
-                Math.min(95, 50 + Math.round((chunkIndex / totalChunks) * 45))
-              );
-              addTranscriptSegments(
-                segments.map((segment) => ({
-                  text: segment.text.trim(),
-                  startTime: Math.max(0, segment.start),
-                  endTime: Math.max(segment.start, segment.end),
-                  confidence: segment.confidence,
-                  isFinal: true,
-                }))
-              );
-            },
-          }
-        )
-        : await transcriptionService.transcribe(
-          transcriptionConfig,
-          audioBlob,
-          { signal: abortController.signal }
-        );
-
-      setProcessingProgress(80);
-
-      const startTimeOffset = range ? range.start : 0;
-
-      if (shouldUseChunkedTranscription) {
-        setProcessingProgress(100);
-        return;
-      }
-
-      if (result.segments && result.segments.length > 0) {
-        // Map word-level data from API response to segments
-        const wordMap = assignWordsToSegments(result.words, result.segments);
-        let wordCounter = 0;
-
-        addTranscriptSegments(
-          result.segments.map((segment) => {
-            const segmentWords = wordMap.get(segment.id);
-            const words = segmentWords?.map((w) => ({
-              id: `word-${wordCounter++}`,
-              text: w.word,
-              start: Math.max(0, w.start + startTimeOffset),
-              end: Math.max(0, w.end + startTimeOffset),
-            }));
-            const wordIds = words?.map((w) => w.id);
-
-            return {
-              text: segment.text.trim(),
-              startTime: Math.max(0, segment.start + startTimeOffset),
-              endTime: Math.max(segment.start + startTimeOffset, segment.end + startTimeOffset),
-              confidence: segment.confidence,
-              isFinal: true,
-              words,
-              wordIds,
-            };
-          })
-        );
-      } else {
-        // If no segments are returned, use the full transcript with basic sentence breaking
-        const sentences = await utilBreakIntoSentences(result.fullText);
-
-        addTranscriptSegments(sentences.map((sentence, index) => {
-          const startTime = (index * 30) / sentences.length;
-          const endTime = ((index + 1) * 30) / sentences.length;
-
-          return {
-            text: sentence.trim(),
-            startTime: Math.max(0, startTime + startTimeOffset),
-            endTime: Math.max(startTime + startTimeOffset, endTime + startTimeOffset),
-            confidence: 0.85,
-            isFinal: true,
-          };
-        }));
-      }
-
-      setProcessingProgress(100);
-    } catch (error) {
-      console.error("Error transcribing media:", error);
-
-      if (error instanceof Error && error.name === "AbortError") {
-        toast(t("transcript.transcriptionCancelled"));
-        return;
-      }
-
-      // More detailed error handling
-      let errorMessage = t("transcript.transcriptionFailed");
-
-      if (error instanceof Error) {
-        if (
-          error.message.includes("401") ||
-          error.message.includes("Unauthorized")
-        ) {
-          errorMessage += t("transcript.invalidApiKey");
-        } else if (
-          error.message.includes("429") ||
-          error.message.includes("rate limit")
-        ) {
-          errorMessage += t("transcript.rateLimitExceeded");
-        } else if (
-          error.message.includes("413") ||
-          error.message.includes("too large")
-        ) {
-          errorMessage += t("transcript.audioFileTooLarge");
-        } else if (
-          error.message.includes("network") ||
-          error.message.includes("fetch")
-        ) {
-          errorMessage += t("transcript.networkError");
-        } else {
-          errorMessage += t("transcript.genericError", { message: error.message });
-        }
-      } else {
-        errorMessage += t("transcript.unknownError");
-      }
-
-      setErrorMessage(errorMessage);
-      toast.error(errorMessage);
-    } finally {
-      if (abortControllerRef.current?.signal.aborted || abortControllerRef.current) {
-        abortControllerRef.current = null;
-      }
-      setTranscriptionStatus(null);
-      setIsProcessing(false);
-      stopTranscribing();
-    }
-  };
-
-  // Helper function to create intelligent segments from word-level timestamps
-  // TEMPORARILY DISABLED
-  /*
-  const createIntelligentSegments = async (
-    words: Array<{ word: string; start: number; end: number }>,
-    fullText: string
-  ) => {
-    console.log("Creating intelligent segments from", words.length, "words");
-    console.log("Full text:", fullText);
-
-    // Instead of trying to match sentences to words, let's use a simpler approach:
-    // 1. Create segments based on natural pauses in the word timestamps
-    // 2. Then apply sentence breaking to the text within reasonable time boundaries
-    // 3. Bridge gaps to create continuous timing for better loop functionality
-
-    const segments = [];
-    const pauseThreshold = 0.8; // If there's more than 0.8s gap between words, consider it a segment break
-
-    let currentSegmentWords = [];
-    let currentSegmentText = "";
-    let lastSegmentEndTime = 0; // Track the end time of the last segment to ensure continuity
-
-    for (let i = 0; i < words.length; i++) {
-      const word = words[i];
-      const nextWord = words[i + 1];
-
-      currentSegmentWords.push(word);
-      currentSegmentText += word.word + " ";
-
-      // Check if this should be the end of a segment
-      const shouldEndSegment =
-        !nextWord || // Last word
-        nextWord.start - word.end > pauseThreshold || // Long pause
-        currentSegmentText.length > 200; // Segment getting too long
-
-      if (shouldEndSegment && currentSegmentWords.length > 0) {
-        // Use continuous timing - start where last segment ended, or at the first word's start time
-        const segmentStart =
-          lastSegmentEndTime > 0
-            ? lastSegmentEndTime
-            : currentSegmentWords[0].start;
-        const naturalSegmentEnd =
-          currentSegmentWords[currentSegmentWords.length - 1].end;
-
-        // If there's a next word, extend this segment to bridge the gap
-        const segmentEnd = nextWord ? nextWord.start : naturalSegmentEnd;
-
-        // Apply sentence breaking to this segment's text
-        const sentences = utilBreakIntoSentences(currentSegmentText.trim());
-
-        if (sentences.length > 1) {
-          // Multiple sentences in this segment - split the timing proportionally
-          const totalDuration = segmentEnd - segmentStart;
-          const totalLength = currentSegmentText.trim().length;
-
-          let currentTime = segmentStart;
-
-          sentences.forEach((sentence, sentenceIndex) => {
-            const sentenceLength = sentence.length;
-            const sentenceDuration = Math.max(
-              0.5,
-              (sentenceLength / totalLength) * totalDuration
-            );
-            let endTime =
-              sentenceIndex === sentences.length - 1
-                ? segmentEnd
-                : currentTime + sentenceDuration;
-
-            // Ensure minimum duration of 0.3 seconds but don't create gaps
-            const minDuration = 0.3;
-            const actualDuration = endTime - currentTime;
-            if (actualDuration < minDuration) {
-              endTime = currentTime + minDuration;
-            }
-
-            segments.push({
-              text: sentence,
-              startTime: currentTime,
-              endTime: endTime,
-              confidence: 0.9,
-            });
-
-            console.log(
-              `Created sentence segment: "${sentence}" (${currentTime}s - ${endTime}s)`
-            );
-            currentTime = endTime; // No gap - next sentence starts exactly where this one ends
-          });
-
-          lastSegmentEndTime = segmentEnd;
-        } else {
-          // Single sentence - use the full segment timing
-          segments.push({
-            text: currentSegmentText.trim(),
-            startTime: segmentStart,
-            endTime: segmentEnd,
-            confidence: 0.9,
-          });
-
-          console.log(
-            `Created single segment: "${currentSegmentText.trim()}" (${segmentStart}s - ${segmentEnd}s)`
-          );
-
-          lastSegmentEndTime = segmentEnd;
-        }
-
-        // Reset for next segment
-        currentSegmentWords = [];
-        currentSegmentText = "";
-      }
-    }
-
-    console.log("Final segments:", segments);
-    return segments;
-  };
-  */
-
-  // Helper function to post-process segments for better sentence breaking
-  // TEMPORARILY DISABLED
-  /*
-  const postProcessSegments = async (segments: WhisperSegment[]) => {
-    const processedSegments = [];
-
-    for (const segment of segments) {
-      // If segment is too long, try to break it into sentences
-      if (segment.text.length > 100) {
-        const sentences = await utilBreakIntoSentences(segment.text);
-
-        if (sentences.length > 1) {
-          const duration = segment.end - segment.start;
-          const timePerSentence = duration / sentences.length;
-
-          sentences.forEach((sentence, index) => {
-            const segmentStart = segment.start + index * timePerSentence;
-            const segmentEnd = segment.start + (index + 1) * timePerSentence;
-
-            // Ensure minimum duration of 0.3 seconds but don't create gaps
-            const minDuration = 0.3;
-            const actualDuration = segmentEnd - segmentStart;
-            const finalEnd =
-              actualDuration < minDuration
-                ? segmentStart + minDuration
-                : segmentEnd;
-
-            processedSegments.push({
-              ...segment,
-              text: sentence,
-              start: segmentStart,
-              end: finalEnd,
-            });
-          });
-        } else {
-          processedSegments.push(segment);
-        }
-      } else {
-        processedSegments.push(segment);
-      }
-    }
-
-    return processedSegments;
-  };
-  */
-
-  // Segment processing is now handled by transcriptionService.ts
-
-
-  // Simulate transcription process for demo purposes
-  const simulateTranscription = async () => {
-    // Sample transcript segments to simulate real transcription - with continuous timing (no gaps)
-    const sampleSegments = [
-      {
-        text: "Welcome to this audio demonstration.",
-        startTime: 0.0,
-        endTime: 3.5,
-        confidence: 0.92,
-      },
-      {
-        text: "Today we'll explore the key features of our application.",
-        startTime: 3.5,
-        endTime: 7.2,
-        confidence: 0.89,
-      },
-      {
-        text: "The first feature is the ability to create precise loops.",
-        startTime: 7.2,
-        endTime: 10.8,
-        confidence: 0.95,
-      },
-      {
-        text: "You can set the start and end points exactly where you want them.",
-        startTime: 10.8,
-        endTime: 14.5,
-        confidence: 0.91,
-      },
-      {
-        text: "This is perfect for musicians practicing difficult passages.",
-        startTime: 14.5,
-        endTime: 18.2,
-        confidence: 0.88,
-      },
-      {
-        text: "Or for language learners who want to repeat specific phrases.",
-        startTime: 18.2,
-        endTime: 22.0,
-        confidence: 0.93,
-      },
-      {
-        text: "The second feature is our waveform visualization.",
-        startTime: 22.0,
-        endTime: 25.8,
-        confidence: 0.9,
-      },
-      {
-        text: "It helps you see the audio structure and identify specific parts.",
-        startTime: 25.8,
-        endTime: 30.0,
-        confidence: 0.87,
-      },
-      {
-        text: "And now we've added automatic transcription.",
-        startTime: 30.0,
-        endTime: 33.2,
-        confidence: 0.94,
-      },
-      {
-        text: "So you can read along as you listen.",
-        startTime: 33.2,
-        endTime: 36.0,
-        confidence: 0.92,
-      },
-    ];
-
-    // Clear any existing transcript
-    clearTranscript();
-
-    // Add segments with delay to simulate processing time
-    for (let i = 0; i < sampleSegments.length; i++) {
-      const segment = sampleSegments[i];
-      const progress = Math.round(((i + 1) / sampleSegments.length) * 100);
-
-      // Update progress
-      setProcessingProgress(progress);
-
-      // Add segment to store
-      addTranscriptSegment({
-        text: segment.text,
-        startTime: Math.max(0, segment.startTime),
-        endTime: Math.max(segment.startTime, segment.endTime), // Remove the 0.5s buffer
-        confidence: segment.confidence,
-        isFinal: true,
-      });
-
-      // Delay to simulate processing time
-      await new Promise((resolve) => setTimeout(resolve, 500));
-    }
-  };
 
   // Scroll to bottom when new segments are added (during live transcription)
   useEffect(() => {
@@ -1796,7 +995,7 @@ export const TranscriptPanel = () => {
               </div>
               <button
                 type="button"
-                onClick={() => abortControllerRef.current?.abort()}
+                onClick={cancelTranscription}
                 className="mt-3 rounded-md bg-gray-100 px-3 py-1 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
               >
                 {t("transcript.cancelTranscription")}
