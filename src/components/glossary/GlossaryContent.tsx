@@ -22,6 +22,18 @@ export const GlossaryContent = () => {
     [glossaryEntries]
   );
 
+  // Group by source media, sections ordered by their newest entry.
+  const groupedEntries = useMemo(() => {
+    const groups = new Map<string, typeof entries>();
+    for (const entry of entries) {
+      const key = entry.mediaName || t("glossary.unknownMedia");
+      const list = groups.get(key);
+      if (list) list.push(entry);
+      else groups.set(key, [entry]);
+    }
+    return [...groups.entries()].map(([mediaName, items]) => ({ mediaName, items }));
+  }, [entries, t]);
+
   const handlePlayContext = (id: string) => {
     if (isGlossaryWindow && desktopApi?.navigateInMainWindow) {
       desktopApi.navigateInMainWindow("/player", id);
@@ -59,20 +71,27 @@ export const GlossaryContent = () => {
   }
 
   return (
-    <div className="space-y-3">
-      {entries.map((entry) => (
+    <div className="space-y-6">
+      {groupedEntries.map(({ mediaName, items }) => (
+        <section key={mediaName}>
+          <h2 className="mb-2 flex items-baseline gap-2 px-1 text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+            <span className="truncate">{mediaName}</span>
+            <span className="shrink-0 font-normal normal-case tracking-normal">
+              {t("glossary.entryCount", { count: items.length })}
+            </span>
+          </h2>
+          <div className="space-y-3">
+            {items.map((entry) => (
         <article
           key={entry.id}
           className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900/70"
         >
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <h2 className="break-words text-lg font-semibold text-gray-900 dark:text-white">
+              <h3 className="break-words text-lg font-semibold text-gray-900 dark:text-white">
                 {entry.text}
-              </h2>
+              </h3>
               <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-gray-500 dark:text-gray-400">
-                <span className="truncate">{entry.mediaName}</span>
-                <span aria-hidden="true">·</span>
                 <span>
                   {formatTime(entry.startTime)} - {formatTime(entry.endTime)}
                 </span>
@@ -105,6 +124,9 @@ export const GlossaryContent = () => {
             {entry.contextText}
           </p>
         </article>
+            ))}
+          </div>
+        </section>
       ))}
     </div>
   );

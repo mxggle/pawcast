@@ -1,7 +1,7 @@
 import { memo, useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useShallow } from "zustand/react/shallow";
-import { Bookmark, Brain, Pause, Play, Repeat } from "lucide-react";
+import { Bookmark, Brain, CheckCircle2, Pause, Play, Repeat } from "lucide-react";
 import {
   TranscriptSegment as TranscriptSegmentType,
   usePlayerStore,
@@ -22,6 +22,8 @@ import { TranscriptWordRenderer } from "./TranscriptWordRenderer";
 interface TranscriptSegmentItemProps {
   segment: TranscriptSegmentType;
   matchedBookmarkId: string | null;
+  /** Whether this sentence has a saved practice recording. */
+  isPracticed?: boolean;
   study: SegmentTranscriptStudy | undefined;
   highlightsEnabled: boolean;
   activeLevels: Set<TranscriptStudyLevel> | null;
@@ -35,6 +37,7 @@ export const TranscriptSegmentItem = memo(
   ({
     segment,
     matchedBookmarkId,
+    isPracticed = false,
     study,
     highlightsEnabled,
     activeLevels,
@@ -135,8 +138,15 @@ export const TranscriptSegmentItem = memo(
           />
           <div className="flex flex-col gap-2">
             <div className="flex justify-between items-center">
-              <span className="text-[10px] uppercase tracking-widest text-gray-500 dark:text-gray-500 font-mono">
+              <span className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-gray-500 dark:text-gray-500 font-mono">
                 {formatSegmentTime(segment.startTime)}
+                {isPracticed && (
+                  <CheckCircle2
+                    size={11}
+                    className="text-emerald-500/80"
+                    aria-label={t("sentencePractice.practicedBadge")}
+                  />
+                )}
               </span>
 
               <div className={`flex space-x-1 transition-opacity ${

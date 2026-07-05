@@ -99,7 +99,8 @@
     "recordingNotFound": "找不到录音",
     "recordingPlayError": "播放录音失败",
     "recordingDeleted": "录音已删除",
-    "practiceThisSentence": "练习这个句子"
+    "practiceThisSentence": "练习这个句子",
+    "practicedBadge": "已练习"
   },
   "app": {
     "logoLabel": "Pawcast 标志"
@@ -119,7 +120,7 @@
     "alreadySaved": "此选择已在你的词汇表中",
     "loadMediaFirst": "请先加载媒体再保存到词汇表",
     "unknownMedia": "未知媒体",
-    "entryCount": "已保存 {{count}} 条",
+    "entryCount": "{{count}} 条",
     "emptyTitle": "还没有保存的文本",
     "emptyDescription": "在转录中选择文本并保存，即可建立复习列表。",
     "playContext": "播放语境",

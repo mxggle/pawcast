@@ -99,7 +99,8 @@
     "recordingNotFound": "録音が見つかりません",
     "recordingPlayError": "録音の再生に失敗しました",
     "recordingDeleted": "録音を削除しました",
-    "practiceThisSentence": "この文を練習"
+    "practiceThisSentence": "この文を練習",
+    "practicedBadge": "練習済み"
   },
   "app": {
     "logoLabel": "Pawcastロゴ"
@@ -119,7 +120,7 @@
     "alreadySaved": "この選択範囲はすでに用語集にあります",
     "loadMediaFirst": "用語集に保存するには先にメディアを読み込んでください",
     "unknownMedia": "不明なメディア",
-    "entryCount": "{{count}} 件保存済み",
+    "entryCount": "{{count}} 件",
     "emptyTitle": "保存したテキストはまだありません",
     "emptyDescription": "トランスクリプト内のテキストを選択して保存すると、復習リストを作れます。",
     "playContext": "文脈を再生",

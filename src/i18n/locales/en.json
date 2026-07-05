@@ -99,7 +99,8 @@
     "recordingNotFound": "Recording not found",
     "recordingPlayError": "Failed to play recording",
     "recordingDeleted": "Recording deleted",
-    "practiceThisSentence": "Practice this sentence"
+    "practiceThisSentence": "Practice this sentence",
+    "practicedBadge": "Practiced"
   },
   "app": {
     "logoLabel": "Pawcast logo"
@@ -119,13 +120,14 @@
     "alreadySaved": "This selection is already in your glossary",
     "loadMediaFirst": "Load media before saving to the glossary",
     "unknownMedia": "Unknown media",
-    "entryCount": "{{count}} saved",
     "emptyTitle": "No saved text yet",
     "emptyDescription": "Select text in a transcript and save it to build your review list.",
     "playContext": "Play context",
     "playingContext": "Playing saved context",
     "sourceMediaRequired": "Load the source media first to play this context",
-    "deleteEntry": "Delete glossary entry"
+    "deleteEntry": "Delete glossary entry",
+    "entryCount_one": "{{count}} entry",
+    "entryCount_other": "{{count}} entries"
   },
   "settings": {
     "title": "Settings",

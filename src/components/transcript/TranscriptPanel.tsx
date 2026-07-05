@@ -30,6 +30,7 @@ import { getCurrentTime, subscribeCurrentTime } from "../../stores/currentTimeSt
 import { usePlayerSelection } from "../../player/hooks";
 import { useTranscriptionRunner } from "../../hooks/useTranscriptionRunner";
 import { useBookmarkIO } from "../../hooks/useBookmarkIO";
+import { useProgressStore } from "../../stores/progressStore";
 import {
   findMatchingBookmarkId,
   findSegmentIndexAtTime,
@@ -124,6 +125,9 @@ export const TranscriptPanel = () => {
   );
   const transcriptStudy = useTranscriptStore((state) =>
     mediaId ? state.mediaTranscriptStudy[mediaId] ?? EMPTY_STUDY : EMPTY_STUDY
+  );
+  const practicedIndices = useProgressStore(
+    (state) => (mediaId ? state.progress[mediaId]?.practicedSentenceIndices : undefined)
   );
 
   const [exportOpen, setExportOpen] = useState(false);
@@ -341,6 +345,17 @@ export const TranscriptPanel = () => {
       );
     });
   }, [activeBookmark, transcriptSegments]);
+
+  // Sentence-practice indices refer to positions in the full transcript.
+  const practicedSegmentIds = useMemo(() => {
+    const ids = new Set<string>();
+    if (!practicedIndices) return ids;
+    for (const index of practicedIndices) {
+      const segment = transcriptSegments[index];
+      if (segment) ids.add(segment.id);
+    }
+    return ids;
+  }, [practicedIndices, transcriptSegments]);
 
   const segmentBookmarkLookup = useMemo(() => {
     const lookup = new Map<string, string>();
@@ -1123,6 +1138,7 @@ export const TranscriptPanel = () => {
                     <TranscriptSegmentItem
                       segment={segment}
                       matchedBookmarkId={segmentBookmarkLookup.get(segment.id) ?? null}
+                      isPracticed={practicedSegmentIds.has(segment.id)}
                       study={displayTranscriptStudy[segment.id]}
                       highlightsEnabled={highlightsEnabled}
                       activeLevels={activeLevels}
