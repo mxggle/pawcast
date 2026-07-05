@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to LoopMate (formerly ModernABLoop) will be documented in this file.
+All notable changes to Pawcast (formerly LoopMate / ModernABLoop) will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
@@ -12,11 +12,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Tauri 2 desktop runtime with Rust persistence, filesystem, window, network, local-media, and waveform services.
 - Automatic non-destructive migration from the Pawcast Electron `1.0.0-beta.3` data layout.
 - Target-specific FFmpeg and FFprobe sidecar preparation and validation.
+- **Per-media study progress**: cumulative listening time, practiced-sentence tracking, and last-studied stamps (`progressStore`).
+- **Library-first home**: "Continue studying" resume cards with playback progress bars and bookmark/glossary/takes/practiced stat chips.
+- **Practice deep link**: "Practice this sentence" in the transcript selection popover jumps into Sentence Practice with that segment preselected.
+- **Shadowing takes drawer** under the timeline: list takes per sentence, play a take, replay the original range (A/B compare), delete takes.
+- Practiced sentences show a checkmark in the transcript panel.
+- Glossary entries grouped by source media with per-section counts.
 
 ### Changed
 
 - Rebranded from LoopMate to Pawcast across all files, configs, and identifiers.
 - Replaced the Electron desktop runtime and IPC preload bridge with a typed Tauri `DesktopAPI` boundary.
+- Desktop-only: web-specific UI removed; the Vite dev server remains usable as a development fallback shell.
+- **State architecture**: one store per domain (player/playback, history/library, bookmarks, transcripts+glossary, progress) with per-domain persistence keys; existing data seeds once from the legacy storage snapshot, which is left intact for downgrade safety.
+- Canonical PawcastData JSON mirroring consolidated into a single module, fixing two writers racing on `app-settings.json` with partly hardcoded values.
+- Decomposed the transcript panel (2,000+ lines) into a transcription runner hook, pure segmentation utilities (unit-tested), and a bookmark import/export hook; extracted the player page's panel choreography into `usePanelLayout`.
+
+### Removed
+
+- ~3,700 lines of dead code: the unused `components/controls/` directory, `TriplePaneLayout`, `SettingsDrawer`, `BookmarkDrawer`, `BookmarkManager`, dev/test components, and commented-out segmentation code.
 
 ## [1.0.0-beta.2] - 2026-06-05
 

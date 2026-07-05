@@ -2,7 +2,35 @@
 
 **Date:** 2026-07-05
 **Baseline branch:** `feat/tarui` (post-Tauri-migration, clean tree)
-**Status:** Approved direction — not yet started
+**Status:** Phases 1–4 implemented on `revamp/phase-1-cleanup` (2026-07-05)
+
+## Implementation status
+
+- **Phase 1 — done.** Dead code removed (controls/, layout leftovers, and the
+  unrendered BookmarkDrawer/BookmarkManager found later), desktop-only docs,
+  Pawcast identity. `WebAppLayout` kept as the browser dev-fallback shell.
+- **Phase 2 — done.** playerStore is the real playback store; historyStore,
+  bookmarkStore, transcriptStore own their domains with per-domain persist
+  keys (`pawcast-*`) and one-time seeding from the legacy
+  `abloop-player-storage` snapshot (never modified — downgrade-safe).
+  Composed actions live in `stores/playerActions.ts`; all canonical
+  PawcastData writes consolidated in `stores/canonicalSync.ts`.
+- **Phase 3 — done** except the WaveformVisualizer split, deferred because
+  the takes UI renders on the canvas overlay (no JSX seam); the Phase 4
+  TakesDrawer provides the management surface instead.
+- **Phase 4 — core delivered.** progressStore, library-first home with resume
+  cards, practice-this-sentence deep link, TakesDrawer (play/AB-compare/
+  delete), practiced checkmarks in the transcript, glossary grouped by media.
+  Settings were already unified via SettingsWorkspace. Not done: flip-card
+  glossary review, first-run onboarding walkthrough, broad visual polish pass.
+- **Phase 5 — partially done.** Tests added for segmentation helpers and the
+  legacy-seed migration. Outstanding (flagged as follow-up tasks): bundle
+  splitting per docs/performance-followups.md, and an error boundary around
+  the player (pre-existing gap: a YouTubePlayer crash blanks the app).
+
+Manual desktop regression still recommended before release: record a
+shadowing take and review it in the takes drawer; practice a sentence and
+confirm the transcript checkmark; upgrade from a beta-3 data directory.
 
 ## Locked decisions
 
