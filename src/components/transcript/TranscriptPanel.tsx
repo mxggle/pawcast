@@ -21,7 +21,11 @@ import {
   Locate,
   LocateFixed,
   ListMusic,
+  ChevronDown,
+  SlidersHorizontal,
 } from "lucide-react";
+import { cn } from "../../utils/cn";
+import { TimelineOverflowMenu } from "../player/TimelineOverflowMenu";
 import { toast } from "react-hot-toast";
 import { transcriptionService } from "../../services/transcriptionService";
 import { TranscriptUploader } from "./TranscriptUploader";
@@ -66,7 +70,19 @@ const EMPTY_BOOKMARKS: LoopBookmark[] = [];
 const EMPTY_STUDY: MediaTranscriptStudy = {};
 const SEGMENT_SCROLL_OFFSET_RATIO = 0.15;
 
-export const TranscriptPanel = () => {
+/* Unified transcript-header controls: one icon-button shape + one active state,
+   sized to the compact panel header (28px hit target). */
+const headerIconBtn =
+  "flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-gray-500 transition-colors hover:bg-black/5 hover:text-gray-700 focus:outline-none focus-visible:ring-1 focus-visible:ring-primary-500 disabled:pointer-events-none disabled:opacity-40 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-200";
+const headerIconBtnActive =
+  "bg-primary-500/10 text-primary-600 hover:bg-primary-500/15 hover:text-primary-600 dark:bg-primary-400/10 dark:text-primary-400 dark:hover:bg-primary-400/15 dark:hover:text-primary-400";
+
+interface TranscriptPanelProps {
+  /** Collapses the whole transcript panel (rendered as a header button when provided). */
+  onCollapse?: () => void;
+}
+
+export const TranscriptPanel = ({ onCollapse }: TranscriptPanelProps = {}) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const mediaId = usePlayerStore((state) => state.getCurrentMediaId());
@@ -520,7 +536,7 @@ export const TranscriptPanel = () => {
   const virtualizer = useVirtualizer({
     count: filteredSegments.length,
     getScrollElement: () => transcriptRef.current,
-    estimateSize: () => 140,
+    estimateSize: () => 104,
     overscan: 5,
     getItemKey: (index: number) => filteredSegments[index]?.id ?? `segment-${index}`,
   });
@@ -608,9 +624,31 @@ export const TranscriptPanel = () => {
     };
   }, [autoScrollEnabled, filteredSegments, scrollToSegmentIndex]);
 
-  // Scroll to bottom when new segments are added (during live transcription)
+  // Track whether the user is reading at the bottom of the transcript, so
+  // live transcription only follows new segments when they aren't reading
+  // earlier content (stick-to-bottom, like chat/log views).
+  const isPinnedToBottomRef = useRef(true);
+
   useEffect(() => {
-    if (isProcessing && filteredSegments.length > 0) {
+    const node = transcriptRef.current;
+    if (!node) {
+      return;
+    }
+
+    const updatePinned = () => {
+      const distanceFromBottom = node.scrollHeight - node.scrollTop - node.clientHeight;
+      isPinnedToBottomRef.current = distanceFromBottom < 80;
+    };
+
+    updatePinned();
+    node.addEventListener("scroll", updatePinned, { passive: true });
+    return () => node.removeEventListener("scroll", updatePinned);
+  }, []);
+
+  // Follow new segments during live transcription — but never yank the
+  // user away from earlier segments they scrolled up to read.
+  useEffect(() => {
+    if (isProcessing && filteredSegments.length > 0 && isPinnedToBottomRef.current) {
       virtualizer.scrollToIndex(filteredSegments.length - 1, { align: "end" });
     }
   }, [filteredSegments.length, isProcessing, virtualizer]);
@@ -662,16 +700,7 @@ export const TranscriptPanel = () => {
   };
 
   return (
-    <div className="flex h-full w-full flex-1 min-h-0 @container/transcript bg-white dark:bg-gray-950/40 rounded-t-xl border border-gray-100 dark:border-white/5 overflow-hidden relative z-0">
-      {/* Sidebar Toggle Button (Floating or inside) */}
-      <button
-        onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-        className={`absolute z-10 top-2 left-2 p-1.5 rounded-md bg-white dark:bg-gray-900 shadow-lg border border-gray-200 dark:border-white/10 text-gray-500 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400 transition-all duration-300 ${isSidebarOpen ? "opacity-0 pointer-events-none" : "opacity-100"}`}
-        title={t("transcript.toggleSidebar")}
-      >
-        <Sidebar size={16} />
-      </button>
-
+    <div className="flex h-full w-full flex-1 min-h-0 @container/transcript bg-white dark:bg-gray-950/40 overflow-hidden relative z-0">
       {/* Sidebar */}
       <div
         className={`${isSidebarOpen ? "w-1/4 min-w-[200px] max-w-[300px] border-r" : "w-0 border-none"} transition-all duration-300 ease-in-out border-gray-100 dark:border-white/5 flex flex-col bg-gray-50 dark:bg-gray-950/60 overflow-hidden relative`}
@@ -790,183 +819,221 @@ export const TranscriptPanel = () => {
       {/* Main Content */}
       <div className="transcript-panel-main flex h-full flex-1 flex-col min-w-0 min-h-0 bg-white dark:bg-transparent">
         <div className="transcript-container flex h-full flex-1 min-h-0 min-w-0 flex-col overflow-hidden">
-          <div className="transcript-header flex items-center justify-between p-3 sm:p-4 border-b border-gray-100 dark:border-white/5 bg-white dark:bg-gray-950/60 backdrop-blur-md min-w-0 gap-2">
-            <div className="flex items-center min-w-0 mr-2">
-              <h3 className="transcript-header-title text-sm font-medium text-gray-700 dark:text-gray-300 truncate">
+          <div className="transcript-header flex items-center justify-between px-2 py-1.5 @[460px]/transcript:px-3 border-b border-gray-100 dark:border-white/5 bg-white dark:bg-gray-950/60 backdrop-blur-md min-w-0 gap-2">
+            <div className="flex items-center min-w-0 mr-2 gap-0.5">
+              {onCollapse && (
+                <button
+                  onClick={onCollapse}
+                  className={headerIconBtn}
+                  title={t("common.collapse")}
+                >
+                  <PanelLeftClose size={15} />
+                </button>
+              )}
+              {!isSidebarOpen && (
+                <button
+                  onClick={() => setIsSidebarOpen(true)}
+                  className={headerIconBtn}
+                  title={t("transcript.toggleSidebar")}
+                >
+                  <Sidebar size={15} />
+                </button>
+              )}
+              <h3 className="transcript-header-title text-sm font-medium text-gray-700 dark:text-gray-300 truncate ml-1">
                 {activeTabId
                   ? bookmarks.find(b => b.id === activeTabId)?.name || t("transcript.title")
                   : t("transcript.title")
                 }
               </h3>
               {isProcessing && (
-                <div className="ml-2 flex items-center flex-shrink-0">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-                  <span className="ml-1 text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                    {transcriptionStatus || t("transcript.processing", { progress: processingProgress })}
-                  </span>
+                <div
+                  className="ml-2 flex items-center flex-shrink-0"
+                  title={transcriptionStatus || t("transcript.processing", { progress: processingProgress })}
+                >
+                  <div className="w-2 h-2 bg-primary-500 rounded-full animate-pulse"></div>
                 </div>
               )}
             </div>
 
-            <div className="transcript-header-actions flex items-center gap-1.5 sm:gap-2 flex-shrink-0 overflow-hidden">
-            <button
-              onClick={() => setHighlightsEnabled((previous) => !previous)}
-              className={`inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium transition-colors ${highlightsEnabled
-                ? "bg-primary-100 text-primary-700 hover:bg-primary-200 dark:bg-primary-900/30 dark:text-primary-300 dark:hover:bg-primary-900/50"
-                : "bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
-                }`}
-              title={t("transcript.levelToggle")}
-            >
-              <span className="text-[10px] font-semibold uppercase tracking-wide">
-                {levelSystem === "jlpt" ? "JLPT" : "CEFR"}
-              </span>
-              <span className="hidden sm:inline">
-                {highlightsEnabled
-                  ? t("transcript.levelsOn")
-                  : t("transcript.levelsOff")}
-              </span>
-            </button>
-
-            <div className="transcript-secondary-control relative hidden sm:block">
+            <div className="transcript-header-actions flex items-center gap-1 flex-shrink-0">
+              {/* Level highlight toggle (JLPT / CEFR) */}
               <button
-                onClick={() => setLevelFilterOpen((open) => !open)}
-                disabled={!highlightsEnabled}
-                className="inline-flex items-center gap-1 rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-200 disabled:opacity-40 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
-                title={t("transcript.levelFilter")}
+                onClick={() => setHighlightsEnabled((previous) => !previous)}
+                aria-pressed={highlightsEnabled}
+                className={cn(
+                  "hidden @[300px]/transcript:flex h-7 shrink-0 items-center rounded-md px-2 text-[11px] font-semibold uppercase tracking-wide transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-primary-500",
+                  highlightsEnabled
+                    ? headerIconBtnActive
+                    : "text-gray-500 hover:bg-black/5 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-200"
+                )}
+                title={t("transcript.levelToggle")}
               >
-                {t("transcript.levelFilter")}
-                <span className="text-[10px]">{t("transcript.dropdownArrow")}</span>
+                {levelSystem === "jlpt" ? "JLPT" : "CEFR"}
               </button>
-              {levelFilterOpen && highlightsEnabled && (
-                <>
-                  <div
-                    className="fixed inset-0 z-10"
-                    onClick={() => setLevelFilterOpen(false)}
-                  />
-                  <div className="absolute right-0 top-full z-20 mt-1 w-40 rounded-md border border-gray-200 bg-white p-2 shadow-md dark:border-gray-700 dark:bg-gray-800">
-                    <button
-                      onClick={clearLevelFilter}
-                      className="mb-2 w-full rounded px-2 py-1 text-left text-xs text-gray-500 transition-colors hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
-                    >
-                      {t("transcript.levelFilterAll")}
-                    </button>
-                    <div className="space-y-1">
-                      {levelOptions.map((level) => (
-                        <label
-                          key={level}
-                          className="flex cursor-pointer items-center justify-between rounded px-2 py-1 text-xs text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+
+              {/* Level filter */}
+              <div className="relative hidden @[340px]/transcript:block">
+                <button
+                  onClick={() => setLevelFilterOpen((open) => !open)}
+                  disabled={!highlightsEnabled}
+                  className={cn(headerIconBtn, activeLevels && headerIconBtnActive)}
+                  title={t("transcript.levelFilter")}
+                >
+                  <SlidersHorizontal size={14} />
+                </button>
+                {levelFilterOpen && highlightsEnabled && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-10"
+                      onClick={() => setLevelFilterOpen(false)}
+                    />
+                    <div className="absolute right-0 top-full z-20 mt-1 w-40 rounded-lg border border-gray-200 bg-white p-2 shadow-xl dark:border-white/10 dark:bg-gray-900">
+                      <button
+                        onClick={clearLevelFilter}
+                        className="mb-2 w-full rounded px-2 py-1 text-left text-xs text-gray-500 transition-colors hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/5"
+                      >
+                        {t("transcript.levelFilterAll")}
+                      </button>
+                      <div className="space-y-1">
+                        {levelOptions.map((level) => (
+                          <label
+                            key={level}
+                            className="flex cursor-pointer items-center justify-between rounded px-2 py-1 text-xs text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/5"
+                          >
+                            <span>{level}</span>
+                            <input
+                              type="checkbox"
+                              checked={isLevelActive(level)}
+                              onChange={() => toggleLevel(level)}
+                              className="h-3.5 w-3.5 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                            />
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Auto-scroll toggle */}
+              <button
+                onClick={() => setAutoScrollEnabled(!autoScrollEnabled)}
+                aria-pressed={autoScrollEnabled}
+                className={cn(headerIconBtn, autoScrollEnabled && headerIconBtnActive)}
+                title={t("transcript.autoScroll")}
+              >
+                <LocateFixed size={15} />
+              </button>
+
+              {/* Jump to current segment — inline on wider panels */}
+              <button
+                onClick={scrollToActiveSegment}
+                disabled={filteredSegments.length === 0}
+                className={cn(headerIconBtn, "hidden @[560px]/transcript:flex")}
+                title={t("transcript.scrollToCurrent")}
+              >
+                <Locate size={15} />
+              </button>
+
+              {/* Export — inline on wider panels */}
+              <div className="relative hidden @[560px]/transcript:block">
+                <button
+                  onClick={() => setExportOpen((o) => !o)}
+                  disabled={transcriptSegments.length === 0}
+                  className={headerIconBtn}
+                  title={t("common.export")}
+                >
+                  <Download size={15} />
+                </button>
+                {exportOpen && (
+                  <>
+                    <div className="fixed inset-0 z-10" onClick={() => setExportOpen(false)} />
+                    <div className="absolute right-0 top-full z-20 mt-1 min-w-[72px] rounded-lg border border-gray-200 bg-white py-1 shadow-xl dark:border-white/10 dark:bg-gray-900">
+                      {(["txt", "srt", "vtt"] as const).map((fmt) => (
+                        <button
+                          key={fmt}
+                          onClick={() => { handleExport(fmt); setExportOpen(false); }}
+                          className="block w-full px-3 py-1.5 text-left text-xs text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/5"
                         >
-                          <span>{level}</span>
-                          <input
-                            type="checkbox"
-                            checked={isLevelActive(level)}
-                            onChange={() => toggleLevel(level)}
-                            className="h-3.5 w-3.5 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-                          />
-                        </label>
+                          {fmt.toUpperCase()}
+                        </button>
                       ))}
                     </div>
-                  </div>
-                </>
-              )}
-            </div>
+                  </>
+                )}
+              </div>
 
-            <div className="transcript-language-select relative">
-              <select
-                value={transcriptLanguage}
-                onChange={(e) => setTranscriptLanguage(e.target.value)}
-                className="appearance-none rounded-md border border-gray-300 bg-white px-2 py-1 pr-6 text-xs text-gray-700 outline-none transition focus:border-primary-400 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300"
-              >
-                {LANGUAGE_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-              <span className="pointer-events-none absolute inset-y-0 right-1.5 flex items-center text-[10px] text-gray-400 dark:text-gray-500">
-                ▼
-              </span>
-            </div>
-
-            <div className="transcript-secondary-control relative hidden md:block">
+              {/* AI settings — inline on wide panels */}
               <button
-                onClick={() => setExportOpen((o) => !o)}
-                disabled={transcriptSegments.length === 0}
-                className="inline-flex items-center gap-1 rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-200 disabled:opacity-40 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
+                onClick={handleOpenAISettings}
+                className={cn(headerIconBtn, "hidden @[640px]/transcript:flex")}
+                title={t("transcript.openAiSettings")}
               >
-                <Download size={13} />
-                <span className="hidden lg:inline">{t("common.export")}</span>
-                <span className="text-[10px]">{t("transcript.dropdownArrow")}</span>
+                <Settings size={15} />
               </button>
-              {exportOpen && (
-                <>
-                  <div className="fixed inset-0 z-10" onClick={() => setExportOpen(false)} />
-                  <div className="absolute right-0 top-full z-20 mt-1 min-w-[72px] rounded-md border border-gray-200 bg-white py-1 shadow-md dark:border-gray-700 dark:bg-gray-800">
-                    {(["txt", "srt", "vtt"] as const).map((fmt) => (
-                      <button
-                        key={fmt}
-                        onClick={() => { handleExport(fmt); setExportOpen(false); }}
-                        className="block w-full px-3 py-1.5 text-left text-xs text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
-                      >
-                        {fmt.toUpperCase()}
-                      </button>
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
 
-            <button
-              onClick={() => setAutoScrollEnabled(!autoScrollEnabled)}
-              className={`p-1.5 rounded-full transition-all duration-200 ${autoScrollEnabled
-                ? "bg-primary-500/20 text-primary-600 dark:bg-primary-500/30 dark:text-primary-400"
-                : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
-                }`}
-              title={t("transcript.autoScroll")}
-            >
-              <LocateFixed size={16} className={autoScrollEnabled ? "fill-current" : ""} />
-            </button>
+              {/* Sentence practice — inline on wide panels */}
+              <button
+                onClick={() => navigate("/sentence-practice")}
+                disabled={transcriptSegments.length === 0}
+                className={cn(headerIconBtn, "hidden @[640px]/transcript:flex")}
+                title={t("sentencePractice.title")}
+              >
+                <ListMusic size={15} />
+              </button>
 
-            <button
-              onClick={scrollToActiveSegment}
-              className="transcript-secondary-control hidden sm:flex p-1.5 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700 disabled:opacity-40 transition-all duration-200 active:scale-90"
-              title={t("transcript.scrollToCurrent")}
-              disabled={filteredSegments.length === 0}
-            >
-              <Locate size={16} />
-            </button>
-
-            <button
-              onClick={handleOpenAISettings}
-              className="transcript-secondary-control hidden sm:flex p-1.5 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
-              title={t("transcript.openAiSettings")}
-            >
-              <Settings size={16} />
-            </button>
-
-            <button
-              onClick={() => navigate("/sentence-practice")}
-              className="transcript-secondary-control hidden lg:flex p-1.5 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700 disabled:opacity-40 transition-all duration-200 active:scale-90"
-              title={t("sentencePractice.title")}
-              disabled={transcriptSegments.length === 0}
-            >
-              <ListMusic size={16} />
-            </button>
-
-            <button
-              onClick={() => clearTranscript()}
-              className="p-1.5 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
-              title={t("transcript.clearTranscript")}
-              disabled={transcriptSegments.length === 0}
-            >
-              <Trash size={16} />
-            </button>
+              {/* Overflow: narrow-panel fallbacks + destructive actions */}
+              <TimelineOverflowMenu
+                side="bottom"
+                triggerClassName="rounded-md h-7 w-7 p-0 flex items-center justify-center"
+                items={[
+                  {
+                    id: "locate",
+                    label: t("transcript.scrollToCurrent"),
+                    icon: <Locate size={12} />,
+                    onSelect: scrollToActiveSegment,
+                    disabled: filteredSegments.length === 0,
+                    hideAtClass: "@[560px]/transcript:hidden",
+                  },
+                  ...(["txt", "srt", "vtt"] as const).map((fmt) => ({
+                    id: `export-${fmt}`,
+                    label: `${t("common.export")} ${fmt.toUpperCase()}`,
+                    icon: <Download size={12} />,
+                    onSelect: () => handleExport(fmt),
+                    disabled: transcriptSegments.length === 0,
+                    hideAtClass: "@[560px]/transcript:hidden",
+                  })),
+                  {
+                    id: "ai-settings",
+                    label: t("transcript.openAiSettings"),
+                    icon: <Settings size={12} />,
+                    onSelect: handleOpenAISettings,
+                    hideAtClass: "@[640px]/transcript:hidden",
+                  },
+                  {
+                    id: "sentence-practice",
+                    label: t("sentencePractice.title"),
+                    icon: <ListMusic size={12} />,
+                    onSelect: () => navigate("/sentence-practice"),
+                    disabled: transcriptSegments.length === 0,
+                    hideAtClass: "@[640px]/transcript:hidden",
+                  },
+                  {
+                    id: "clear",
+                    label: t("transcript.clearTranscript"),
+                    icon: <Trash size={12} />,
+                    onSelect: () => clearTranscript(),
+                    disabled: transcriptSegments.length === 0,
+                    destructive: true,
+                  },
+                ]}
+              />
             </div>
           </div>
 
         <div
           ref={transcriptRef}
-          className="transcript-content-scroll flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-4 pt-8 pb-6 md:px-8 lg:px-16 md:pb-12"
+          className="transcript-content-scroll flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-3 pt-3 pb-6 @[460px]/transcript:px-6 @[460px]/transcript:pt-4 @[700px]/transcript:px-12 @[700px]/transcript:pb-12"
         >
           {showApiKeyInput && (
             <div className="p-4 bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-200 rounded-md mb-3">
@@ -975,7 +1042,7 @@ export const TranscriptPanel = () => {
               <div className="flex space-x-2">
                 <button
                   onClick={handleOpenAISettings}
-                  className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-medium flex items-center gap-1"
+                  className="px-3 py-1 bg-primary-600 hover:bg-primary-700 text-white rounded text-xs font-medium flex items-center gap-1"
                 >
                   <Settings size={14} />
                   {t("transcript.openAiSettings")}
@@ -996,15 +1063,18 @@ export const TranscriptPanel = () => {
             </div>
           )}
 
-          {isProcessing && (
+          {/* Centered loading state only while no segments exist yet; once
+              partial segments stream in, the slim status bar below the list
+              takes over so the transcript stays readable. */}
+          {isProcessing && filteredSegments.length === 0 && (
             <div className="flex flex-col items-center justify-center py-8 text-center">
-              <Loader size={24} className="animate-spin text-blue-500 mb-2" />
+              <Loader size={24} className="animate-spin text-primary-500 mb-2" />
               <p className="text-gray-600 dark:text-gray-400">
                 {transcriptionStatus || t("transcript.processingTranscription")}
               </p>
               <div className="w-full max-w-xs bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 mt-3">
                 <div
-                  className="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
+                  className="bg-primary-600 h-2.5 rounded-full transition-all duration-300"
                   style={{ width: `${processingProgress}%` }}
                 ></div>
               </div>
@@ -1023,7 +1093,7 @@ export const TranscriptPanel = () => {
             <>
               {isTranscriptLoading ? (
                 <div className="flex flex-col items-center justify-center py-8 text-center">
-                  <Loader size={24} className="animate-spin text-blue-500 mb-2" />
+                  <Loader size={24} className="animate-spin text-primary-500 mb-2" />
                   <p className="text-gray-600 dark:text-gray-400">
                     {t("common.loading")}
                   </p>
@@ -1039,9 +1109,6 @@ export const TranscriptPanel = () => {
                       <h3 className="text-sm font-medium text-gray-800 dark:text-gray-200">
                         {t("transcript.noTranscriptForBookmark")}
                       </h3>
-                      <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                        {t("transcript.noTranscriptForBookmark")}
-                      </p>
                       <div className="mt-4 flex justify-center">
                         <button
                           onClick={handleTranscribeBookmark}
@@ -1080,6 +1147,32 @@ export const TranscriptPanel = () => {
                       </p>
                       {(currentFile || currentYouTube) && (
                         <div className="mt-4 @[260px]/transcript:mt-5 space-y-3">
+                          <div className="flex items-center justify-center gap-2">
+                            <label
+                              htmlFor="transcribe-language"
+                              className="text-[11px] font-medium text-gray-500 dark:text-gray-400"
+                            >
+                              {t("transcript.language")}
+                            </label>
+                            <div className="relative">
+                              <select
+                                id="transcribe-language"
+                                value={transcriptLanguage}
+                                onChange={(e) => setTranscriptLanguage(e.target.value)}
+                                className="h-8 appearance-none rounded-md border border-gray-200 bg-white pl-2.5 pr-7 text-xs text-gray-700 outline-none transition-colors hover:border-gray-300 focus-visible:ring-1 focus-visible:ring-primary-500 dark:border-white/10 dark:bg-gray-900 dark:text-gray-300 dark:hover:border-white/20"
+                              >
+                                {LANGUAGE_OPTIONS.map((option) => (
+                                  <option key={option.value} value={option.value}>
+                                    {option.label}
+                                  </option>
+                                ))}
+                              </select>
+                              <ChevronDown
+                                size={12}
+                                className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500"
+                              />
+                            </div>
+                          </div>
                           <div className="flex flex-col @[300px]/transcript:flex-row items-stretch @[300px]/transcript:items-center justify-center gap-2">
                             <button
                               onClick={handleTranscribeDefault}
@@ -1155,6 +1248,30 @@ export const TranscriptPanel = () => {
             </div>
           )}
         </div>
+
+        {/* Slim live-transcription status bar — shown once partial segments
+            exist, so progress stays visible without covering the transcript. */}
+        {isProcessing && filteredSegments.length > 0 && (
+          <div className="flex items-center gap-2.5 border-t border-gray-100 dark:border-white/5 bg-white/95 dark:bg-gray-950/80 px-3 py-1.5 shrink-0">
+            <Loader size={13} className="animate-spin text-primary-500 shrink-0" />
+            <span className="text-xs text-gray-500 dark:text-gray-400 truncate">
+              {transcriptionStatus || t("transcript.processingTranscription")}
+            </span>
+            <div className="flex-1 min-w-[60px] h-1 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
+              <div
+                className="h-full rounded-full bg-primary-500 transition-all duration-300"
+                style={{ width: `${processingProgress}%` }}
+              />
+            </div>
+            <button
+              type="button"
+              onClick={cancelTranscription}
+              className="text-xs font-medium text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors shrink-0"
+            >
+              {t("common.cancel")}
+            </button>
+          </div>
+        )}
       </div>
       </div>
 

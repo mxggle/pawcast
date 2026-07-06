@@ -23,18 +23,20 @@ export const GlossaryPage = () => {
               <ArrowLeft size={16} />
               {t("common.back")}
             </button>
-            <div className="flex items-center gap-2">
-              <BookOpen className="h-5 w-5 text-primary-600 dark:text-primary-400" />
-              <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
+            <div className="flex items-center gap-2.5">
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary-500/10 text-primary-600 dark:text-primary-400">
+                <BookOpen className="h-[18px] w-[18px]" />
+              </span>
+              <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">
                 {t("glossary.title")}
               </h1>
             </div>
-            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            <p className="mt-1.5 text-sm text-gray-500 dark:text-gray-400">
               {t("glossary.description")}
             </p>
           </div>
 
-          <div className="rounded-full border border-gray-200 px-3 py-1 text-sm text-gray-600 dark:border-gray-700 dark:text-gray-300">
+          <div className="rounded-full bg-primary-500/10 px-3 py-1 text-sm font-medium text-primary-600 dark:text-primary-400">
             {t("glossary.entryCount", { count: glossaryEntries.length })}
           </div>
         </div>

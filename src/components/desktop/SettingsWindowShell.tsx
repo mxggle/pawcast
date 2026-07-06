@@ -1,11 +1,7 @@
-import { useTranslation } from "react-i18next";
 import type { ReactNode } from "react";
-import { X } from "lucide-react";
-import { desktopApi } from "../../platform/runtime";
 
 interface SettingsWindowShellProps {
   title: string;
-  subtitle: string;
   navigation: ReactNode;
   footer: ReactNode;
   children: ReactNode;
@@ -13,35 +9,30 @@ interface SettingsWindowShellProps {
 
 export function SettingsWindowShell({
   title,
-  subtitle,
   navigation,
   footer,
   children,
 }: SettingsWindowShellProps) {
-  const { t } = useTranslation();
+  const isMac =
+    typeof navigator !== "undefined" && navigator.userAgent.includes("Mac OS X");
   return (
     <div className="min-h-screen bg-white text-gray-900 dark:bg-gray-950 dark:text-white">
-      <div className="flex min-h-screen flex-col overflow-hidden">
-        <header className="[-webkit-app-region:drag] flex items-center justify-between border-b border-gray-100 px-6 py-5 dark:border-gray-800">
-          <div className="space-y-1">
-            <h1 className="text-xl font-semibold text-gray-900 dark:text-white">
-              {title}
-            </h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              {subtitle}
-            </p>
-          </div>
-          <button
-            onClick={() => desktopApi?.closeSettingsWindow()}
-            className="[-webkit-app-region:no-drag] rounded-md p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-300"
-            aria-label={t("common.close")}
-          >
-            <X className="h-5 w-5" />
-          </button>
+      <div className="flex h-screen flex-col overflow-hidden">
+        {/* Unified title bar: fixed height so the macOS traffic lights sit
+            vertically centered next to the title (drag region spans the bar). */}
+        <header
+          data-tauri-drag-region="deep"
+          className={`flex h-[52px] shrink-0 select-none items-center border-b border-gray-100 pr-4 dark:border-white/[0.06] ${
+            isMac ? "pl-[84px]" : "pl-5"
+          }`}
+        >
+          <h1 className="text-[15px] font-semibold tracking-tight text-gray-900 dark:text-white">
+            {title}
+          </h1>
         </header>
 
         <div className="grid min-h-0 flex-1 grid-cols-[200px_minmax(0,1fr)]">
-          <aside className="border-r border-gray-100 bg-gray-50/50 px-3 py-4 dark:border-gray-800 dark:bg-gray-900/30 overflow-y-auto">
+          <aside className="overflow-y-auto border-r border-gray-100 bg-gray-50/50 px-3 py-4 dark:border-white/[0.06] dark:bg-gray-900/30">
             {navigation}
           </aside>
 
@@ -50,7 +41,7 @@ export function SettingsWindowShell({
           </main>
         </div>
 
-        <footer className="border-t border-gray-100 bg-gray-50/50 px-6 py-3 dark:border-gray-800 dark:bg-gray-900/30">
+        <footer className="border-t border-gray-100 bg-gray-50/50 px-6 py-3 dark:border-white/[0.06] dark:bg-gray-900/30">
           {footer}
         </footer>
       </div>

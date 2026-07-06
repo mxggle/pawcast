@@ -22,6 +22,12 @@ export interface NavigationPayload {
   entryId?: string;
 }
 
+export type AiSettingsChangedPayload = Record<string, string>;
+
+export interface GlossaryPlaybackPayload {
+  entryId: string;
+}
+
 export interface WaveformLevelMeta {
   level: number;
   samplesPerPeak: number;

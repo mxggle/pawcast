@@ -21,6 +21,7 @@ import { useShadowingRecorder } from "../../hooks/useShadowingRecorder";
 import {
   analyzeAudioFileWaveform,
   buildWaveformMediaKey,
+  buildNativeWaveformId,
   createPlaceholderWaveform,
   shouldUseAdaptiveWaveform,
   shouldUseDetailedWaveform,
@@ -426,13 +427,14 @@ export const WaveformVisualizer = ({ className }: WaveformVisualizerProps) => {
       // FFmpeg path (desktop only) — fall through to AudioContext on failure
       if (waveformLoader.isAvailable && currentFile?.nativePath) {
         const filePath = currentFile.nativePath;
-        ffmpegMediaIdRef.current = filePath;
+        const mediaId = buildNativeWaveformId(buildWaveformMediaKey(currentFile));
+        ffmpegMediaIdRef.current = mediaId;
         ffmpegReadyRef.current = false;
         setWaveformLoadState({ status: 'analyzing', progress: 0 });
         try {
-          let meta = await waveformLoader.getMeta(filePath);
+          let meta = await waveformLoader.getMeta(mediaId);
           if (!meta) {
-            meta = await waveformLoader.analyze(filePath, filePath, (fraction) => {
+            meta = await waveformLoader.analyze(filePath, mediaId, (fraction) => {
               if (cancelled) return;
               setWaveformLoadState({ status: 'analyzing', progress: Math.round(fraction * 100) });
             });
@@ -440,7 +442,7 @@ export const WaveformVisualizer = ({ className }: WaveformVisualizerProps) => {
           if (cancelled) return;
           const canvasW = staticCanvasRef.current?.clientWidth ?? 800;
           const levelData = await waveformLoader.loadForViewport({
-            mediaId: filePath,
+            mediaId,
             visibleDuration: duration / (waveformZoom ?? 1),
             canvasWidth: canvasW,
           });

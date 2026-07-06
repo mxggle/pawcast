@@ -444,6 +444,14 @@ export const OLLAMA_MODELS: Record<string, OllamaModel> = {
 };
 
 export const OPCODE_MODELS: Record<string, OpenCodeModel> = {
+  "glm-5.2": {
+    id: "glm-5.2",
+    name: "GLM-5.2",
+    description: "OpenCode Go coding model - Latest GLM",
+    contextWindow: 128000,
+    maxOutputTokens: 4096,
+    capabilities: ["text", "code"],
+  },
   "glm-5.1": {
     id: "glm-5.1",
     name: "GLM-5.1",
@@ -452,17 +460,9 @@ export const OPCODE_MODELS: Record<string, OpenCodeModel> = {
     maxOutputTokens: 4096,
     capabilities: ["text", "code"],
   },
-  "glm-5": {
-    id: "glm-5",
-    name: "GLM-5",
-    description: "OpenCode Go coding model",
-    contextWindow: 128000,
-    maxOutputTokens: 4096,
-    capabilities: ["text", "code"],
-  },
-  "kimi-k2.5": {
-    id: "kimi-k2.5",
-    name: "Kimi K2.5",
+  "kimi-k2.7-code": {
+    id: "kimi-k2.7-code",
+    name: "Kimi K2.7 Code",
     description: "OpenCode Go coding model",
     contextWindow: 128000,
     maxOutputTokens: 4096,
@@ -492,38 +492,6 @@ export const OPCODE_MODELS: Record<string, OpenCodeModel> = {
     maxOutputTokens: 4096,
     capabilities: ["text", "code"],
   },
-  "qwen3.6-plus": {
-    id: "qwen3.6-plus",
-    name: "Qwen3.6 Plus",
-    description: "OpenCode Go coding model - Latest Qwen Plus",
-    contextWindow: 128000,
-    maxOutputTokens: 4096,
-    capabilities: ["text", "code"],
-  },
-  "qwen3.5-plus": {
-    id: "qwen3.5-plus",
-    name: "Qwen3.5 Plus",
-    description: "OpenCode Go coding model",
-    contextWindow: 128000,
-    maxOutputTokens: 4096,
-    capabilities: ["text", "code"],
-  },
-  "minimax-m2.7": {
-    id: "minimax-m2.7",
-    name: "MiniMax M2.7",
-    description: "OpenCode Go coding model - High performance",
-    contextWindow: 128000,
-    maxOutputTokens: 4096,
-    capabilities: ["text", "code"],
-  },
-  "minimax-m2.5": {
-    id: "minimax-m2.5",
-    name: "MiniMax M2.5",
-    description: "OpenCode Go coding model",
-    contextWindow: 128000,
-    maxOutputTokens: 4096,
-    capabilities: ["text", "code"],
-  },
   "mimo-v2.5-pro": {
     id: "mimo-v2.5-pro",
     name: "MiMo-V2.5-Pro",
@@ -535,22 +503,6 @@ export const OPCODE_MODELS: Record<string, OpenCodeModel> = {
   "mimo-v2.5": {
     id: "mimo-v2.5",
     name: "MiMo-V2.5",
-    description: "OpenCode Go coding model",
-    contextWindow: 128000,
-    maxOutputTokens: 4096,
-    capabilities: ["text", "code"],
-  },
-  "mimo-v2-pro": {
-    id: "mimo-v2-pro",
-    name: "MiMo-V2-Pro",
-    description: "OpenCode Go coding model",
-    contextWindow: 128000,
-    maxOutputTokens: 4096,
-    capabilities: ["text", "code"],
-  },
-  "mimo-v2-omni": {
-    id: "mimo-v2-omni",
-    name: "MiMo-V2-Omni",
     description: "OpenCode Go coding model",
     contextWindow: 128000,
     maxOutputTokens: 4096,
@@ -941,7 +893,16 @@ const LEGACY_MODEL_MIGRATIONS: Partial<Record<AIProvider, Record<string, string>
   ollama: {
     "llama3.1": "llama3.2",
   },
-  opencode: {},
+  opencode: {
+    "glm-5": "glm-5.2",
+    "kimi-k2.5": "kimi-k2.7-code",
+    "qwen3.6-plus": "glm-5.2",
+    "qwen3.5-plus": "glm-5.2",
+    "minimax-m2.7": "glm-5.2",
+    "minimax-m2.5": "glm-5.2",
+    "mimo-v2-pro": "mimo-v2.5-pro",
+    "mimo-v2-omni": "mimo-v2.5",
+  },
   deepseek: {
     "deepseek-chat": "deepseek-v4-flash",
     "deepseek-reasoner": "deepseek-v4-flash",
@@ -977,7 +938,7 @@ export const DEFAULT_MODELS: Record<AIProvider, string> = {
   gemini: "gemini-3-flash-preview",
   grok: "grok-4",
   ollama: "llama3.2",
-  opencode: "glm-5",
+  opencode: "glm-5.2",
   deepseek: "deepseek-v4-flash",
 };
 

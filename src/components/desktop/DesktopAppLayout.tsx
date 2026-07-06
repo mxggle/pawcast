@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef, Dispatch, SetStateAction } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { usePlayerStore } from "../../stores/playerStore";
 import { useHistoryStore } from "../../stores/historyStore";
@@ -21,8 +21,9 @@ import {
   BookOpen,
 } from "lucide-react";
 import { Popover, PopoverTrigger, PopoverContent } from "../ui/popover";
-import { AppLayoutBase } from "../layout/AppLayoutBase";
+import { AppLayoutBase, headerIconButtonClass } from "../layout/AppLayoutBase";
 import { KeyboardShortcutsDialog } from "../layout/KeyboardShortcutsDialog";
+import { SidebarRow } from "../ui/SidebarRow";
 import { FolderBrowser } from "./FolderBrowser";
 import type {
   LibraryScope,
@@ -34,10 +35,9 @@ import {
   type SettingsOpenIntentDetail,
 } from "../../utils/settingsIntents";
 
-/* ── Icon rail (VS Code style activity bar) ─────────────────────── */
-const RAIL_WIDTH = 56;
-const railButtonClass =
-  "flex h-10 w-10 items-center justify-center rounded-xl text-gray-500 transition-colors hover:bg-black/5 hover:text-gray-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/30 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-100 [-webkit-app-region:no-drag]";
+/* ── Sidebar sizing (single macOS-style source list) ────────────── */
+const MIN_SIDEBAR_WIDTH = 200;
+const MAX_SIDEBAR_WIDTH = 450;
 
 /* ── Library sort menu (compact popover, replaces inline controls) ── */
 const SORT_FIELD_OPTIONS: { value: LibrarySortBy; labelKey: string; fallback: string }[] = [
@@ -145,13 +145,13 @@ export const DesktopAppLayout = ({
 }: DesktopAppLayoutProps) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const location = useLocation();
   const [isResizing, setIsResizing] = useState(false);
   const [libraryQuery, setLibraryQuery] = useState("");
   const [libraryScope, setLibraryScope] = useState<LibraryScope>("recent");
   const [librarySortBy, setLibrarySortBy] = useState<LibrarySortBy>("recent");
   const [librarySortOrder, setLibrarySortOrder] = useState<LibrarySortOrder>("desc");
   const sidebarRef = useRef<HTMLDivElement>(null);
-  const isMac = typeof window !== "undefined" && navigator.userAgent.includes("Mac OS X");
 
   const {
     isSidebarOpen,
@@ -182,8 +182,10 @@ export const DesktopAppLayout = ({
   const resize = useCallback(
     (e: MouseEvent) => {
       if (isResizing) {
-        const newWidth = e.clientX - RAIL_WIDTH;
-        if (newWidth >= 200 && newWidth <= 450) setSidebarWidth(newWidth);
+        const newWidth = e.clientX;
+        if (newWidth >= MIN_SIDEBAR_WIDTH && newWidth <= MAX_SIDEBAR_WIDTH) {
+          setSidebarWidth(newWidth);
+        }
       }
     },
     [isResizing, setSidebarWidth]
@@ -280,116 +282,111 @@ export const DesktopAppLayout = ({
   }, [navigate]);
 
   useEffect(() => {
+    if (!desktopApi?.onGlossaryPlayback) return;
+    return desktopApi.onGlossaryPlayback(async ({ entryId }) => {
+      const transcriptStore = useTranscriptStore.getState();
+      const entry = transcriptStore.glossaryEntries.find((item) => item.id === entryId);
+      if (!entry) return;
+
+      if (transcriptStore.playGlossaryEntryContext(entryId)) return;
+
+      const historyStore = useHistoryStore.getState();
+      const historyItem = historyStore.mediaHistory.find((item) => {
+        if (item.type === "youtube" && item.youtubeData?.youtubeId) {
+          return `youtube-${item.youtubeData.youtubeId}` === entry.mediaId;
+        }
+        if (item.type === "file") {
+          return (item.storageId || `file-${item.name}-${item.fileData?.size}`) === entry.mediaId;
+        }
+        return false;
+      });
+
+      if (!historyItem) return;
+
+      await historyStore.loadFromHistory(historyItem.id);
+      transcriptStore.playGlossaryEntryContext(entryId);
+    });
+  }, []);
+
+  useEffect(() => {
     import("../../utils/migrationBridge").then(({ runMigrationIfNeeded }) => {
       void runMigrationIfNeeded();
     });
   }, []);
 
-  /* ── Icon rail (always visible activity bar) ───────────────────── */
-  const iconRail = (
-    <nav
-      aria-label={t("sidebar.navigation", "Navigation")}
-      style={{ width: RAIL_WIDTH }}
-      className="fixed left-0 top-0 bottom-0 z-[61] flex flex-col items-center border-r border-black/5 dark:border-white/5 bg-white/70 dark:bg-gray-950/70 backdrop-blur-3xl shrink-0 [-webkit-app-region:drag]"
+  /* ── Sidebar toggle (title-bar/toolbar control, macOS convention) ── */
+  const sidebarToggle = (
+    <button
+      onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+      className={headerIconButtonClass}
+      aria-expanded={isSidebarOpen}
+      title={
+        isSidebarOpen
+          ? t("layout.hideSidebar", "Hide Sidebar")
+          : t("layout.showSidebar", "Show Sidebar")
+      }
+      aria-label={
+        isSidebarOpen
+          ? t("layout.hideSidebar", "Hide Sidebar")
+          : t("layout.showSidebar", "Show Sidebar")
+      }
     >
-      {/* Draggable top region (window move + macOS traffic-light clearance) */}
-      <div className="h-[52px] w-full shrink-0 sm:h-[56px]" />
-
-      {/* Primary navigation */}
-      <div className="flex flex-col items-center gap-1 pt-1">
-        <button
-          onClick={navigateToHome}
-          className={`${railButtonClass} text-primary-600 hover:text-primary-700 dark:text-primary-400`}
-          title={t("common.home", "Home")}
-          aria-label={t("common.home", "Home")}
-        >
-          <Home className="h-5 w-5" />
-        </button>
-        <button
-          onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-          className={railButtonClass}
-          aria-expanded={isSidebarOpen}
-          title={
-            isSidebarOpen
-              ? t("layout.hideSidebar", "Hide Sidebar")
-              : t("layout.showSidebar", "Show Sidebar")
-          }
-          aria-label={
-            isSidebarOpen
-              ? t("layout.hideSidebar", "Hide Sidebar")
-              : t("layout.showSidebar", "Show Sidebar")
-          }
-        >
-          {isSidebarOpen ? (
-            <PanelLeftClose className="h-5 w-5" />
-          ) : (
-            <PanelLeftOpen className="h-5 w-5" />
-          )}
-        </button>
-        <button
-          onClick={handleOpenGlossary}
-          className={railButtonClass}
-          title={t("glossary.openGlossary", "Glossary")}
-          aria-label={t("glossary.openGlossary", "Glossary")}
-        >
-          <BookOpen className="h-5 w-5" />
-        </button>
-      </div>
-
-      {/* Secondary actions pinned to the bottom */}
-      <div className="mt-auto flex flex-col items-center gap-1 pb-3">
-        <KeyboardShortcutsDialog triggerClassName={railButtonClass} />
-        <button
-          onClick={() => void handleOpenSettings()}
-          className={railButtonClass}
-          title={t("layout.openSettings", "Open Settings")}
-          aria-label={t("layout.openSettings", "Open Settings")}
-        >
-          <Settings className="h-5 w-5" />
-        </button>
-        <button
-          onClick={toggleTheme}
-          className={railButtonClass}
-          title={
-            theme === "dark"
-              ? t("layout.switchToLightTheme", "Light Theme")
-              : t("layout.switchToDarkTheme", "Dark Theme")
-          }
-          aria-label={
-            theme === "dark"
-              ? t("layout.switchToLightTheme", "Light Theme")
-              : t("layout.switchToDarkTheme", "Dark Theme")
-          }
-        >
-          {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-        </button>
-      </div>
-    </nav>
+      {isSidebarOpen ? (
+        <PanelLeftClose className="h-4 w-4" />
+      ) : (
+        <PanelLeftOpen className="h-4 w-4" />
+      )}
+    </button>
   );
 
-  /* ── Sidebar ───────────────────────────────────────────────────── */
+  /* ── Sidebar (unified macOS-style source list) ─────────────────── */
+  const navRowClass = "h-8 rounded-lg";
+
   const sidebar = (
-    <>
-      {iconRail}
-      <aside
-        ref={sidebarRef}
-        style={{ left: RAIL_WIDTH, width: isSidebarOpen ? sidebarWidth : 0 }}
-        aria-label={t("sidebar.explorer", "Explorer")}
-      className={`fixed top-0 bottom-0 border-r border-black/5 dark:border-white/5 bg-white/60 dark:bg-gray-950/60 backdrop-blur-3xl flex flex-col z-[60] shrink-0 ${
-        !isSidebarOpen ? "border-none overflow-hidden" : "shadow-2xl dark:shadow-black/40"
+    <aside
+      ref={sidebarRef}
+      style={{ width: isSidebarOpen ? sidebarWidth : 0 }}
+      aria-label={t("sidebar.explorer", "Explorer")}
+      className={`fixed left-0 top-0 bottom-0 border-r border-black/5 dark:border-white/5 bg-white/60 dark:bg-gray-950/60 backdrop-blur-3xl flex flex-col z-[60] shrink-0 ${
+        !isSidebarOpen ? "border-none overflow-hidden" : ""
       } transition-[width] duration-300 ease-in-out`}
     >
       {isSidebarOpen && (
         <>
-          {/* Title bar spacer (macOS draggable region) */}
+          {/* Title bar row: window drag area + traffic-light clearance,
+              with the sidebar toggle at the trailing edge (Finder/Notes style) */}
           <div
-            className={`w-full shrink-0 h-[52px] sm:h-[56px] ${
-              isMac ? "[-webkit-app-region:drag]" : ""
-            }`}
-          />
+            data-tauri-drag-region="deep"
+            className="flex w-full shrink-0 items-center justify-end h-[52px] px-2 sm:h-[56px] select-none"
+          >
+            {sidebarToggle}
+          </div>
+
+          {/* ─── Primary navigation (labeled source-list rows) ───── */}
+          <nav
+            aria-label={t("sidebar.navigation", "Navigation")}
+            className="shrink-0 space-y-0.5 px-2 pb-1"
+          >
+            <SidebarRow
+              onClick={navigateToHome}
+              isActive={location.pathname === "/"}
+              aria-current={location.pathname === "/" ? "page" : undefined}
+              icon={<Home className="h-4 w-4" />}
+              primaryText={t("navigation.home", "Home")}
+              primaryTextClassName="text-[13px]"
+              className={navRowClass}
+            />
+            <SidebarRow
+              onClick={handleOpenGlossary}
+              icon={<BookOpen className="h-4 w-4" />}
+              primaryText={t("glossary.title", "Glossary")}
+              primaryTextClassName="text-[13px]"
+              className={navRowClass}
+            />
+          </nav>
 
           {/* ─── Library section ─────────────────────────────────── */}
-          <div className="flex h-7 shrink-0 select-none items-center justify-between pl-4 pr-2">
+          <div className="mt-2 flex h-7 shrink-0 select-none items-center justify-between pl-4 pr-2">
             <span className="truncate text-[10px] font-bold uppercase tracking-[0.1em] text-gray-500/70 dark:text-gray-300/60">
               {t("sidebar.library", "LIBRARY")}
             </span>
@@ -460,6 +457,35 @@ export const DesktopAppLayout = ({
               </div>
             </div>
 
+          {/* ─── Footer utilities (settings / theme / shortcuts) ─── */}
+          <div className="flex shrink-0 items-center gap-0.5 border-t border-black/5 px-2 py-1.5 dark:border-white/5">
+            <button
+              onClick={() => void handleOpenSettings()}
+              className={headerIconButtonClass}
+              title={t("layout.openSettings", "Open Settings")}
+              aria-label={t("layout.openSettings", "Open Settings")}
+            >
+              <Settings className="h-4 w-4" />
+            </button>
+            <button
+              onClick={toggleTheme}
+              className={headerIconButtonClass}
+              title={
+                theme === "dark"
+                  ? t("layout.switchToLightTheme", "Light Theme")
+                  : t("layout.switchToDarkTheme", "Dark Theme")
+              }
+              aria-label={
+                theme === "dark"
+                  ? t("layout.switchToLightTheme", "Light Theme")
+                  : t("layout.switchToDarkTheme", "Dark Theme")
+              }
+            >
+              {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            </button>
+            <KeyboardShortcutsDialog triggerClassName={headerIconButtonClass} />
+          </div>
+
           {/* ─── Resize handle ───────────────────────────────────── */}
           <div
             onMouseDown={startResizing}
@@ -486,11 +512,10 @@ export const DesktopAppLayout = ({
           background: rgba(156,163,175,0.7);
         }
       `}</style>
-      </aside>
-    </>
+    </aside>
   );
 
-  const contentLeft = RAIL_WIDTH + (isSidebarOpen ? sidebarWidth : 0);
+  const contentLeft = isSidebarOpen ? sidebarWidth : 0;
 
   return (
     <AppLayoutBase
@@ -500,12 +525,16 @@ export const DesktopAppLayout = ({
       sidebar={sidebar}
       contentPaddingLeft={contentLeft}
       headerOffsetLeft={contentLeft}
+      // When the sidebar is collapsed, its toggle and utility actions move to
+      // the header so every control stays reachable (macOS toolbar behavior).
+      headerLeadingSlot={!isSidebarOpen ? sidebarToggle : undefined}
       desktopMode={true}
-      hideThemeToggle={true}
-      hideSettings={true}
-      hideGlossary={true}
-      hideHelp={true}
+      hideThemeToggle={isSidebarOpen}
+      hideSettings={isSidebarOpen}
+      hideGlossary={isSidebarOpen}
+      hideHelp={isSidebarOpen}
       onOpenSettings={() => void handleOpenSettings()}
+      onOpenGlossary={handleOpenGlossary}
     >
       {children}
     </AppLayoutBase>

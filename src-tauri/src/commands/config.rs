@@ -137,6 +137,19 @@ pub async fn config_set(
     Ok(())
 }
 
+#[tauri::command]
+pub fn broadcast_ai_settings(app: AppHandle, payload: Map<String, Value>) -> Result<(), AppError> {
+    app.emit("ai-settings-changed", payload).map_err(|error| {
+        AppError::new(
+            "event_failed",
+            "AI settings could not be synchronized with other windows",
+        )
+        .operation("broadcast_ai_settings")
+        .retryable(true)
+        .tap_log(error)
+    })
+}
+
 trait LogError: Sized {
     fn tap_log(self, error: impl std::fmt::Display) -> Self;
 }

@@ -19,6 +19,10 @@
 }
 
 @layer components {
+    /* Keyboard keycap — used by the shortcuts dialog and inline hints. */
+    .kbd {
+        @apply inline-flex h-6 min-w-[1.5rem] items-center justify-center rounded-md border border-gray-200 bg-gray-50 px-1.5 text-[11px] font-semibold text-gray-600 shadow-[inset_0_-1px_0_rgba(0,0,0,0.08)] dark:border-white/10 dark:bg-white/[0.06] dark:text-gray-300 dark:shadow-[inset_0_-1px_0_rgba(0,0,0,0.4)];
+    }
     .btn {
         @apply px-4 py-2 rounded-lg font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-opacity-50;
     }
@@ -97,77 +101,6 @@ body {
 }
 .thin-scrollbar::-webkit-scrollbar-thumb:hover {
     background: rgba(156, 163, 175, 0.7);
-}
-
-/* Resizable media workspace: hide secondary controls before text or frames crush. */
-.timeline-panel-shell {
-    container-type: inline-size;
-    container-name: timeline-panel;
-}
-
-.transcript-container {
-    container-type: inline-size;
-    container-name: transcript-panel;
-}
-
-@container timeline-panel (max-width: 720px) {
-    .timeline-time {
-        display: none !important;
-    }
-}
-
-@container timeline-panel (max-width: 560px) {
-    .timeline-secondary-action {
-        display: none !important;
-    }
-    .timeline-panel-controls {
-        margin-left: 0;
-        padding-left: 0.25rem;
-    }
-}
-
-@container timeline-panel (max-width: 420px) {
-    .timeline-toolbar {
-        gap: 0.25rem;
-        padding-inline: 0.5rem;
-    }
-    .timeline-ruler {
-        display: none;
-    }
-    .timeline-waveform-frame {
-        min-height: 72px;
-    }
-}
-
-@container transcript-panel (max-width: 620px) {
-    .transcript-secondary-control {
-        display: none !important;
-    }
-    .transcript-content-scroll {
-        padding-inline: 1rem !important;
-        padding-top: 1.5rem !important;
-    }
-}
-
-@container transcript-panel (max-width: 460px) {
-    .transcript-header {
-        padding-inline: 0.75rem;
-    }
-    .transcript-header-title {
-        max-width: 9rem;
-    }
-    .transcript-language-select select {
-        max-width: 7rem;
-    }
-}
-
-@container transcript-panel (max-width: 360px) {
-    .transcript-language-select {
-        display: none;
-    }
-    .transcript-content-scroll {
-        padding-inline: 0.75rem !important;
-    }
 }
 
 /* Custom CSS for syntax highlighting and markdown */

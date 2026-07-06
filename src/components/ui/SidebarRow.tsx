@@ -50,7 +50,7 @@ export const SidebarRow = React.forwardRef<HTMLButtonElement, SidebarRowProps>(
           className={cn(
             "w-full flex items-center h-[28px] rounded-md text-left transition-all duration-150 outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-primary-500",
             isActive
-              ? "bg-primary-500/12 dark:bg-primary-500/15 text-primary-700 dark:text-primary-300 font-semibold"
+              ? "bg-primary-500/10 dark:bg-primary-500/15 text-primary-700 dark:text-primary-300 font-semibold"
               : "text-gray-600 dark:text-gray-300 hover:bg-black/5 dark:hover:bg-white/5",
             className
           )}

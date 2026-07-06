@@ -55,6 +55,9 @@ function getMediaId(): string | null {
   return usePlayerStore.getState().getCurrentMediaId();
 }
 
+/** Monotonic id for transcript loads — lets the latest load own the shared loading flag. */
+let transcriptLoadRequestId = 0;
+
 export const STUDY_STORAGE_KEY = "pawcast-study";
 
 export const useTranscriptStore = create<TranscriptState & TranscriptActions>()(
@@ -69,27 +72,33 @@ export const useTranscriptStore = create<TranscriptState & TranscriptActions>()(
   transcriptLanguage: "en-US",
 
   async loadTranscriptForMedia(mediaId: string) {
+    const requestId = ++transcriptLoadRequestId;
     set({ isTranscriptLoading: true });
-    const transcriptRecord = await getStoredTranscriptRecord(mediaId);
-    const segments = transcriptRecord?.segments || [];
-    const levelSystem = inferTranscriptLevelSystem(get().transcriptLanguage);
-    const studyBySegment =
-      transcriptRecord?.studyBySegment && Object.keys(transcriptRecord.studyBySegment).length > 0
-        ? transcriptRecord.studyBySegment
-        : buildTranscriptStudy(segments, levelSystem);
+    try {
+      const transcriptRecord = await getStoredTranscriptRecord(mediaId);
+      const segments = transcriptRecord?.segments || [];
+      const levelSystem = inferTranscriptLevelSystem(get().transcriptLanguage);
+      const studyBySegment =
+        transcriptRecord?.studyBySegment && Object.keys(transcriptRecord.studyBySegment).length > 0
+          ? transcriptRecord.studyBySegment
+          : buildTranscriptStudy(segments, levelSystem);
 
-    if (transcriptRecord && Object.keys(transcriptRecord.studyBySegment).length === 0 && segments.length > 0) {
-      void setStoredTranscript(mediaId, segments, studyBySegment);
-    }
+      if (transcriptRecord && Object.keys(transcriptRecord.studyBySegment).length === 0 && segments.length > 0) {
+        void setStoredTranscript(mediaId, segments, studyBySegment);
+      }
 
-    set((state) => {
-      const currentMediaId = getMediaId();
-      return {
+      set((state) => ({
         mediaTranscripts: { ...state.mediaTranscripts, [mediaId]: segments },
         mediaTranscriptStudy: { ...state.mediaTranscriptStudy, [mediaId]: studyBySegment },
-        isTranscriptLoading: currentMediaId === mediaId ? false : state.isTranscriptLoading,
-      };
-    });
+      }));
+    } finally {
+      // Only the latest in-flight load owns the shared loading flag; a stale
+      // load finishing after a newer one started must not clear it early,
+      // and an aborted/failed load must not leave it stuck on.
+      if (requestId === transcriptLoadRequestId) {
+        set({ isTranscriptLoading: false });
+      }
+    }
   },
 
   startTranscribing: () => set({ isTranscribing: true }),

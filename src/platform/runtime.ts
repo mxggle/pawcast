@@ -4,7 +4,20 @@ import type { DesktopAPI } from "./desktop/types";
 import type { DesktopFetchOptions } from "../types/desktop";
 import { tauriDesktop } from "./desktop/tauriDesktop";
 
-export const isDesktop = (): boolean => isTauri();
+/**
+ * Dev-only escape hatch: lets the browser dev server render the desktop shell
+ * (`localStorage.setItem("pawcast-force-desktop", "1")` + reload). Desktop API
+ * calls will fail in the browser, so this is for layout/UI work only.
+ */
+const isDesktopForcedInDev = (): boolean => {
+  try {
+    return import.meta.env.DEV && localStorage.getItem("pawcast-force-desktop") === "1";
+  } catch {
+    return false;
+  }
+};
+
+export const isDesktop = (): boolean => isTauri() || isDesktopForcedInDev();
 
 export const desktopApi: DesktopAPI | null = isDesktop() ? tauriDesktop : null;
 

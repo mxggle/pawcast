@@ -123,11 +123,15 @@
     "emptyTitle": "No saved text yet",
     "emptyDescription": "Select text in a transcript and save it to build your review list.",
     "playContext": "Play context",
+    "openOriginalMedia": "Open original media",
     "playingContext": "Playing saved context",
     "sourceMediaRequired": "Load the source media first to play this context",
     "deleteEntry": "Delete glossary entry",
     "entryCount_one": "{{count}} entry",
-    "entryCount_other": "{{count}} entries"
+    "entryCount_other": "{{count}} entries",
+    "searchPlaceholder": "Search saved words and phrases",
+    "clearSearch": "Clear search",
+    "noResults": "No entries match your search."
   },
   "settings": {
     "title": "Settings",
@@ -761,6 +765,9 @@
     "hideSidebar": "Hide Sidebar",
     "showSidebar": "Show Sidebar",
     "keyboardShortcuts": "Keyboard Shortcuts",
+    "shortcutGroupPlayback": "Playback",
+    "shortcutGroupLoop": "A-B Loop",
+    "shortcutGroupNavigation": "Navigation",
     "playPause": "Play/Pause",
     "setAPoint": "Set A point at current time",
     "setBPoint": "Set B point at current time",
@@ -849,6 +856,7 @@
   },
   "sidebar": {
     "library": "LIBRARY",
+    "navigation": "Navigation",
     "explorer": "EXPLORER",
     "recent": "RECENT",
     "addFolder": "Add folder",

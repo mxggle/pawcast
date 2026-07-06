@@ -5,13 +5,18 @@ import { usePlayerStore } from "../../stores/playerStore";
 import { useSettingsStore } from "../../stores/settingsStore";
 import { useShallow } from "zustand/react/shallow";
 import {
-  Moon, Sun, Settings, Layout, Eye, EyeOff,
+  Moon, Sun, Settings, Layout,
   Music, Video, Youtube, BookOpen,
 } from "lucide-react";
 import * as Popover from "@radix-ui/react-popover";
 import { cn } from "../../utils/cn";
 import { ScrollLock } from "../../hooks/useScrollLock";
 import { KeyboardShortcutsDialog } from "./KeyboardShortcutsDialog";
+import { Switch } from "../ui/switch";
+
+/** Shared header icon-button style: consistent hit target + visible focus ring. */
+export const headerIconButtonClass =
+  "flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-black/5 hover:text-gray-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40 dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-gray-100";
 
 import { LayoutSettings } from "../../stores/layoutStore";
 
@@ -43,6 +48,8 @@ export interface AppLayoutBaseProps {
   hideHelp?: boolean;
   /** Opens settings using the active platform shell behavior */
   onOpenSettings?: () => void;
+  /** Opens the glossary using the active platform shell behavior (defaults to route navigation) */
+  onOpenGlossary?: () => void;
 }
 
 export const AppLayoutBase = ({
@@ -61,6 +68,7 @@ export const AppLayoutBase = ({
   hideGlossary = false,
   hideHelp = false,
   onOpenSettings,
+  onOpenGlossary,
 }: AppLayoutBaseProps) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -89,11 +97,10 @@ export const AppLayoutBase = ({
   return (
     <div className={cn(
       "flex h-screen w-full overflow-hidden transition-colors duration-300",
-      desktopMode 
-        ? "bg-gray-50 dark:bg-[#0a0a12]" 
+      desktopMode
+        ? "bg-gray-50 dark:bg-[#0a0a12]"
         : "bg-white dark:bg-gray-900",
-      containerClassName,
-      "pl-2 sm:pl-4"
+      containerClassName
     )}>
       {sidebar}
 
@@ -105,8 +112,9 @@ export const AppLayoutBase = ({
         <div className="h-[52px] sm:h-[56px]"></div>
 
         <header
+          data-tauri-drag-region={desktopMode ? "deep" : undefined}
           className={`flex items-center h-[52px] sm:h-[56px] justify-between px-2 sm:px-4 border-b border-black/5 dark:border-white/5 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl fixed top-0 right-0 z-[55] transition-[left,padding-left] duration-300 ease-in-out ${
-            desktopMode ? "[-webkit-app-region:drag] select-none [&_button]:[-webkit-app-region:no-drag] [&_input]:[-webkit-app-region:no-drag] [&_a]:[-webkit-app-region:no-drag] [&_[role='dialog']]:[-webkit-app-region:no-drag]" : ""
+            desktopMode ? "select-none" : ""
           }`}
           style={{
             left: headerOffsetLeft,
@@ -118,18 +126,29 @@ export const AppLayoutBase = ({
         >
           {headerLeadingSlot}
 
-          {/* Media title – centered */}
+          {/* Now playing – centered */}
           {(currentFile || currentYouTube) && (
             <div className="flex-1 flex justify-center px-2 sm:px-4 overflow-hidden min-w-0">
-              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gray-50/80 dark:bg-white/10 backdrop-blur-sm border border-gray-200/60 dark:border-white/10 max-w-full transition-all hover:bg-white dark:hover:bg-white/15">
-                {currentYouTube ? (
-                  <Youtube className="h-3 w-3 text-error-500 shrink-0" />
-                ) : currentFile?.type.includes("video") ? (
-                  <Video className="h-3 w-3 text-blue-500 shrink-0" />
-                ) : (
-                  <Music className="h-3 w-3 text-primary-500 shrink-0" />
-                )}
-                <span className="text-[10px] sm:text-xs font-medium text-gray-600 dark:text-gray-200 truncate max-w-[100px] sm:max-w-[350px]">
+              <div className="flex max-w-full items-center gap-2 rounded-full border border-black/[0.06] bg-black/[0.03] py-1 pl-1.5 pr-3 dark:border-white/10 dark:bg-white/[0.06]">
+                <span
+                  className={cn(
+                    "flex h-5 w-5 shrink-0 items-center justify-center rounded-full",
+                    currentYouTube
+                      ? "bg-error-500/10 text-error-500"
+                      : currentFile?.type.includes("video")
+                        ? "bg-info-500/10 text-info-500"
+                        : "bg-primary-500/10 text-primary-500"
+                  )}
+                >
+                  {currentYouTube ? (
+                    <Youtube className="h-3 w-3" />
+                  ) : currentFile?.type.includes("video") ? (
+                    <Video className="h-3 w-3" />
+                  ) : (
+                    <Music className="h-3 w-3" />
+                  )}
+                </span>
+                <span className="truncate text-[11px] font-medium text-gray-700 dark:text-gray-200 sm:text-xs max-w-[120px] sm:max-w-[350px]">
                   {currentYouTube
                     ? currentYouTube.title || currentYouTube.id
                     : currentFile?.name}
@@ -138,71 +157,55 @@ export const AppLayoutBase = ({
             </div>
           )}
 
-          <div className="flex items-center space-x-1 sm:space-x-3 shrink-0">
+          <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
             {/* Layout settings popover */}
             {(currentFile || youtubeId) && layoutSettings && setLayoutSettings && (
               <Popover.Root open={isLayoutPopoverOpen} onOpenChange={setIsLayoutPopoverOpen}>
                 <Popover.Trigger asChild>
                   <button
-                    className="p-1.5 sm:p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300 transition-colors"
+                    className={headerIconButtonClass}
+                    title={t("layout.layoutSettings")}
                     aria-label={t("layout.layoutSettings")}
                   >
-                    <Layout className="h-4 w-4 sm:h-5 sm:w-5" />
+                    <Layout className="h-4 w-4" />
                   </button>
                 </Popover.Trigger>
                 <Popover.Portal>
                   <Popover.Content
-                    className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-4 w-64 z-50"
+                    className="z-[70] w-60 rounded-xl border border-black/5 bg-white p-1.5 shadow-xl dark:border-white/10 dark:bg-gray-900"
                     sideOffset={8}
                     align="end"
                   >
                     <ScrollLock />
-                    <div className="space-y-3">
-                      <h3 className="font-medium text-gray-900 dark:text-white text-sm">
-                        {t("layout.layoutSettings")}
-                      </h3>
+                    <h3 className="px-2.5 pb-1 pt-1.5 text-[11px] font-bold uppercase tracking-[0.08em] text-gray-400 dark:text-gray-500">
+                      {t("layout.layoutSettings")}
+                    </h3>
 
-                      {(
-                        [
-                          ["transcriptPanelVisible", "layout.transcript"],
-                          ["videoPanelVisible", "player.video"],
-                          ["timelinePanelVisible", "layout.waveform"],
-                        ] as const
-                      ).map(([key, labelKey]) => (
-                        <div key={key} className="flex items-center justify-between">
-                          <div className="flex items-center space-x-2">
-                            {layoutSettings[key] ? (
-                              <Eye className="h-4 w-4 text-gray-500" />
-                            ) : (
-                              <EyeOff className="h-4 w-4 text-gray-500" />
-                            )}
-                            <span className="text-sm text-gray-700 dark:text-gray-300">
-                              {t(labelKey)}
-                            </span>
-                          </div>
-                          <button
-                            onClick={() =>
-                              setLayoutSettings((current) => ({
-                                ...current,
-                                [key]: !current[key],
-                              }))
-                            }
-                            className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-                              layoutSettings[key]
-                                ? "bg-primary-600"
-                                : "bg-gray-200 dark:bg-gray-600"
-                            }`}
-                          >
-                            <span
-                              className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
-                                layoutSettings[key] ? "translate-x-5" : "translate-x-1"
-                              }`}
-                            />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                    <Popover.Arrow className="fill-white dark:fill-gray-800" />
+                    {(
+                      [
+                        ["transcriptPanelVisible", "layout.transcript"],
+                        ["videoPanelVisible", "player.video"],
+                        ["timelinePanelVisible", "layout.waveform"],
+                      ] as const
+                    ).map(([key, labelKey]) => (
+                      <label
+                        key={key}
+                        className="flex cursor-pointer items-center justify-between gap-3 rounded-lg px-2.5 py-2 transition-colors hover:bg-black/[0.03] dark:hover:bg-white/[0.05]"
+                      >
+                        <span className="text-sm text-gray-700 dark:text-gray-300">
+                          {t(labelKey)}
+                        </span>
+                        <Switch
+                          checked={layoutSettings[key]}
+                          onCheckedChange={(checked) =>
+                            setLayoutSettings((current) => ({
+                              ...current,
+                              [key]: checked,
+                            }))
+                          }
+                        />
+                      </label>
+                    ))}
                   </Popover.Content>
                 </Popover.Portal>
               </Popover.Root>
@@ -210,11 +213,12 @@ export const AppLayoutBase = ({
 
             {!hideGlossary && (
               <button
-                onClick={() => navigate("/glossary")}
-                className="p-1.5 sm:p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300 transition-colors"
+                onClick={() => (onOpenGlossary ? onOpenGlossary() : navigate("/glossary"))}
+                className={headerIconButtonClass}
+                title={t("glossary.openGlossary")}
                 aria-label={t("glossary.openGlossary")}
               >
-                <BookOpen className="h-4 w-4 sm:h-5 sm:w-5" />
+                <BookOpen className="h-4 w-4" />
               </button>
             )}
 
@@ -222,7 +226,12 @@ export const AppLayoutBase = ({
             {!hideThemeToggle && (
               <button
                 onClick={toggleTheme}
-                className="p-1.5 sm:p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300 transition-colors"
+                className={headerIconButtonClass}
+                title={
+                  theme === "dark"
+                    ? t("layout.switchToLightTheme")
+                    : t("layout.switchToDarkTheme")
+                }
                 aria-label={
                   theme === "dark"
                     ? t("layout.switchToLightTheme")
@@ -230,9 +239,9 @@ export const AppLayoutBase = ({
                 }
               >
                 {theme === "dark" ? (
-                  <Sun className="h-4 w-4 sm:h-5 sm:w-5" />
+                  <Sun className="h-4 w-4" />
                 ) : (
-                  <Moon className="h-4 w-4 sm:h-5 sm:w-5" />
+                  <Moon className="h-4 w-4" />
                 )}
               </button>
             )}
@@ -241,15 +250,18 @@ export const AppLayoutBase = ({
             {!hideSettings && onOpenSettings && (
               <button
                 onClick={onOpenSettings}
-                className="p-1.5 sm:p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300 transition-colors"
+                className={headerIconButtonClass}
+                title={t("layout.openSettings")}
                 aria-label={t("layout.openSettings")}
               >
-                <Settings className="h-4 w-4 sm:h-5 sm:w-5" />
+                <Settings className="h-4 w-4" />
               </button>
             )}
 
             {/* Keyboard shortcuts dialog */}
-            {!hideHelp && <KeyboardShortcutsDialog />}
+            {!hideHelp && (
+              <KeyboardShortcutsDialog triggerClassName={headerIconButtonClass} />
+            )}
           </div>
         </header>
 

@@ -27,7 +27,14 @@ const bundleModule = async (entryPoint) => {
 test("opencode keeps custom model ids instead of falling back to the placeholder", async () => {
   const { normalizeModelId } = await bundleModule("src/types/aiService.ts");
 
-  assert.equal(normalizeModelId("opencode", "glm-5"), "glm-5");
+  assert.equal(normalizeModelId("opencode", "custom-model"), "custom-model");
+});
+
+test("opencode migrates retired model ids to chat-completions models", async () => {
+  const { normalizeModelId } = await bundleModule("src/types/aiService.ts");
+
+  assert.equal(normalizeModelId("opencode", "glm-5"), "glm-5.2");
+  assert.equal(normalizeModelId("opencode", "minimax-m2.7"), "glm-5.2");
 });
 
 test("opencode accepts config-style model ids and sends API model ids", async () => {
@@ -69,7 +76,7 @@ test("opencode accepts config-style model ids and sends API model ids", async ()
   );
 
   const body = JSON.parse(fetchCalls[0]?.init?.body);
-  assert.equal(body.model, "glm-5");
+  assert.equal(body.model, "glm-5.2");
 });
 
 test("opencode uses the current OpenCode Go chat completions endpoint by default", async () => {
@@ -233,20 +240,14 @@ test("opencode exposes current chat-completions Go models", async () => {
   assert.deepEqual(
     modelIds,
     [
+      "glm-5.2",
       "glm-5.1",
-      "glm-5",
-      "kimi-k2.5",
+      "kimi-k2.7-code",
       "kimi-k2.6",
       "deepseek-v4-pro",
       "deepseek-v4-flash",
-      "qwen3.6-plus",
-      "qwen3.5-plus",
-      "minimax-m2.7",
-      "minimax-m2.5",
       "mimo-v2.5-pro",
       "mimo-v2.5",
-      "mimo-v2-pro",
-      "mimo-v2-omni",
     ]
   );
 });

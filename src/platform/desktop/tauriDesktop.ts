@@ -5,8 +5,10 @@ import { open } from "@tauri-apps/plugin-dialog";
 
 import type {
   DesktopMediaFile,
+  AiSettingsChangedPayload,
   DesktopFetchOptions,
   FolderTreeNode,
+  GlossaryPlaybackPayload,
   HealthCheckResult,
   MediaTreeChangedPayload,
   MigrationResult,
@@ -98,6 +100,8 @@ export const createTauriDesktop = (dependencies: TauriDesktopDependencies): Desk
     closeGlossaryWindow: () => call("close_glossary_window"),
     navigateInMainWindow: (route, entryId) => call("navigate_in_main_window", { route, entryId }),
     onNavigate: (callback) => subscribe<NavigationPayload>("navigate", callback),
+    playGlossaryEntryInMainWindow: (entryId) => call("play_glossary_entry_in_main_window", { entryId }),
+    onGlossaryPlayback: (callback) => subscribe<GlossaryPlaybackPayload>("play-glossary-entry", callback),
     showInFileManager: (targetPath) => call<boolean>("show_in_file_manager", { targetPath }),
     listMediaFiles: (folderPath) => call<DesktopMediaFile[]>("list_media_files", { folderPath }),
     listMediaTree: (folderPath) => call<FolderTreeNode[]>("list_media_tree", { folderPath }),
@@ -125,6 +129,9 @@ export const createTauriDesktop = (dependencies: TauriDesktopDependencies): Desk
     configSet: (key, value) => call("config_set", { key, value }),
     configGetAll: () => call("config_get_all"),
     onConfigChanged: (callback) => subscribe("config-changed", callback),
+    broadcastAiSettings: (payload) => call("broadcast_ai_settings", { payload }),
+    onAiSettingsChanged: (callback) =>
+      subscribe<AiSettingsChangedPayload>("ai-settings-changed", callback),
     fetch: (url, options: DesktopFetchOptions) => call("desktop_fetch", { url, options }),
     waveformAnalyze: (filePath, mediaId) => call<WaveformMeta | null>("waveform_analyze", { filePath, mediaId }),
     waveformGetMeta: (mediaId) => call<WaveformMeta | null>("waveform_get_meta", { mediaId }),
@@ -151,7 +158,14 @@ export const createTauriDesktop = (dependencies: TauriDesktopDependencies): Desk
     approvePath: (filePath) => call("approve_path", { filePath }),
     mediaUrl: (filePath) => dependencies.convertFileSrc(filePath, "local-media"),
     onFileDrop: (callback) => {
-      const currentWindow = dependencies.getCurrentWindow?.();
+      let currentWindow: CurrentWindow | undefined;
+      try {
+        // Throws outside a real Tauri runtime (browser dev with the
+        // force-desktop escape hatch); treat that as "no drop events".
+        currentWindow = dependencies.getCurrentWindow?.();
+      } catch {
+        currentWindow = undefined;
+      }
       if (!currentWindow) return createSubscription(async () => () => undefined);
       return createSubscription(() => currentWindow.onDragDropEvent((event) => {
         if (event.payload.type === "drop" && event.payload.paths) callback(event.payload.paths);

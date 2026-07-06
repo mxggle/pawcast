@@ -124,9 +124,13 @@
     "emptyTitle": "保存したテキストはまだありません",
     "emptyDescription": "トランスクリプト内のテキストを選択して保存すると、復習リストを作れます。",
     "playContext": "文脈を再生",
+    "openOriginalMedia": "元のメディアを開く",
     "playingContext": "保存した文脈を再生しています",
     "sourceMediaRequired": "この文脈を再生するには元のメディアを読み込んでください",
-    "deleteEntry": "用語集項目を削除"
+    "deleteEntry": "用語集項目を削除",
+    "searchPlaceholder": "保存した単語やフレーズを検索",
+    "clearSearch": "検索をクリア",
+    "noResults": "検索に一致する項目がありません。"
   },
   "settings": {
     "title": "設定",
@@ -760,6 +764,9 @@
     "hideSidebar": "サイドバーを隠す",
     "showSidebar": "サイドバーを表示",
     "keyboardShortcuts": "キーボードショートカット",
+    "shortcutGroupPlayback": "再生",
+    "shortcutGroupLoop": "ABループ",
+    "shortcutGroupNavigation": "ナビゲーション",
     "playPause": "再生/一時停止",
     "setAPoint": "現在時刻にAポイントを設定",
     "setBPoint": "現在時刻にBポイントを設定",
@@ -848,6 +855,7 @@
   },
   "sidebar": {
     "library": "ライブラリ",
+    "navigation": "ナビゲーション",
     "explorer": "エクスプローラー",
     "recent": "最近",
     "addFolder": "フォルダーを追加",

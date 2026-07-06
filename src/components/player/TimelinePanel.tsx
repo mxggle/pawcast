@@ -60,7 +60,7 @@ export const TimelinePanel = ({
 
   // Full mode: toolbar + time ruler + waveform
   return (
-    <div className={cn("flex flex-col h-full min-h-0 @container/timeline bg-white dark:bg-gray-950/40 rounded-t-xl border border-gray-200 dark:border-white/5 overflow-y-auto overflow-x-hidden overscroll-contain", className)}>
+    <div className={cn("flex flex-col h-full min-h-0 @container/timeline bg-white dark:bg-gray-950/40 overflow-y-auto overflow-x-hidden overscroll-contain", className)}>
       <TimelineToolbar
         collapsed={collapsed}
         onCollapse={onCollapse}

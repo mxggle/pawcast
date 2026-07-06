@@ -21,6 +21,12 @@ test("tauri desktop maps config and cleans up listeners", async () => {
   assert.equal(await api.configGet("theme-storage"), "value");
   assert.deepEqual(calls[0], ["config_get", { key: "theme-storage" }]);
 
+  await api.broadcastAiSettings({ openai_model: "gpt-test" });
+  assert.deepEqual(calls[1], [
+    "broadcast_ai_settings",
+    { payload: { openai_model: "gpt-test" } },
+  ]);
+
   const stop = api.onConfigChanged(() => undefined);
   await stop.ready;
   stop();

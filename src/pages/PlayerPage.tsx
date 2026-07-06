@@ -6,7 +6,7 @@ import { usePlayerStore } from "../stores/playerStore";
 import { useShallow } from "zustand/react/shallow";
 import { MediaPreviewPanel } from "../components/player/MediaPreviewPanel";
 import { TimelinePanel } from "../components/player/TimelinePanel";
-import { PanelHeader, CollapsedHorizontalStrip, CollapsedVerticalStrip } from "../components/player/PanelHeader";
+import { CollapsedHorizontalStrip, CollapsedVerticalStrip } from "../components/player/PanelHeader";
 import { PanelTop } from "lucide-react";
 import { TranscriptPanel } from "../components/transcript";
 import { useKeyboardShortcuts } from "../hooks/useKeyboardShortcuts";
@@ -199,17 +199,9 @@ export const PlayerPage = () => {
                               expandIcon="left"
                             />
                           ) : (
-                            <>
-                              <PanelHeader
-                                title={t("transcript.title")}
-                                onCollapse={() => collapsePanel("transcript", true)}
-                                collapseIcon="left"
-                                buttonPosition="left"
-                              />
-                              <div className="flex-1 min-h-0 min-w-0 overflow-hidden overflow-x-hidden">
-                                <TranscriptPanel />
-                              </div>
-                            </>
+                            <div className="flex-1 min-h-0 min-w-0 overflow-hidden overflow-x-hidden">
+                              <TranscriptPanel onCollapse={() => collapsePanel("transcript", true)} />
+                            </div>
                           )}
                         </div>
                       </Panel>

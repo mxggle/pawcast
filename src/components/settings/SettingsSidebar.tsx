@@ -41,18 +41,22 @@ export function SettingsSidebar({
             key={id}
             type="button"
             onClick={() => onTabChange(id)}
-            aria-pressed={isActive}
+            aria-current={isActive ? "true" : undefined}
             className={cn(
-              "relative flex items-center gap-2.5 rounded-xl py-2.5 pl-5 pr-3 text-left text-sm font-semibold transition-all duration-200",
+              "flex items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40",
               isActive
-                ? "bg-primary/10 text-primary dark:text-primary-300"
-                : "text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800/40 dark:hover:text-gray-100"
+                ? "bg-primary-500/10 font-semibold text-primary-600 dark:text-primary-300"
+                : "font-medium text-gray-600 hover:bg-black/[0.04] hover:text-gray-900 dark:text-gray-400 dark:hover:bg-white/[0.06] dark:hover:text-gray-100"
             )}
           >
-            {isActive && (
-              <span className="absolute left-1.5 top-2.5 bottom-2.5 w-1 rounded-full bg-primary" />
-            )}
-            <Icon className="h-4 w-4 shrink-0" />
+            <Icon
+              className={cn(
+                "h-4 w-4 shrink-0",
+                isActive
+                  ? "text-primary-600 dark:text-primary-300"
+                  : "text-gray-400 dark:text-gray-500"
+              )}
+            />
             <span className="truncate">{label}</span>
           </button>
         );

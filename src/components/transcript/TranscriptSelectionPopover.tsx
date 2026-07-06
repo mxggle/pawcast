@@ -283,7 +283,7 @@ export const TranscriptSelectionPopover = ({
   const content = (
     <motion.div
       ref={popoverRef}
-      className="transcript-selection-popover fixed z-[70] flex w-[min(24rem,calc(100vw-1.5rem))] flex-col overflow-hidden rounded-xl border border-gray-200/80 bg-white/98 text-gray-900 shadow-xl shadow-black/10 backdrop-blur-sm dark:border-white/10 dark:bg-gray-900/98 dark:text-gray-100"
+      className="transcript-selection-popover fixed z-[70] flex w-[min(24rem,calc(100vw-1.5rem))] flex-col overflow-hidden rounded-xl border border-gray-200/80 bg-white/95 text-gray-900 shadow-xl shadow-black/10 backdrop-blur-sm dark:border-white/10 dark:bg-gray-900/95 dark:text-gray-100"
       initial={{ opacity: 0, scale: 0.96, y: -4 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
       transition={{ duration: 0.12, ease: "easeOut" }}

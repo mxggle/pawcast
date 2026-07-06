@@ -16,13 +16,6 @@ export function DesktopSettingsWindowPage() {
   const activeTab = routeState.tab;
   const navItems = SettingsWorkspace.getNavItems(t);
 
-  const subtitle =
-    activeTab === "data"
-      ? t("settingsPage.data.description")
-      : activeTab === "general"
-        ? t("settingsPage.generalDescription")
-        : t("settingsPage.aiDescription");
-
   const handleTabChange = (tab: typeof activeTab) => {
     navigate(
       {
@@ -53,7 +46,6 @@ export function DesktopSettingsWindowPage() {
   return (
     <SettingsWindowShell
       title={t("settingsPage.title")}
-      subtitle={subtitle}
       navigation={
         <SettingsSidebar
           activeTab={activeTab}

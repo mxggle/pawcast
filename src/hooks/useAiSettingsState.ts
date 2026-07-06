@@ -15,6 +15,7 @@ import {
   TranscriptionProvider,
   normalizeModelId,
 } from "../types/aiService";
+import { getAiSettingsPayload } from "../utils/aiSettingsSync";
 
 export type ConnectionStatus = "idle" | "success" | "error";
 
@@ -547,7 +548,7 @@ export function useAiSettingsState(): UseAiSettingsStateResult {
       window.dispatchEvent(new CustomEvent("aiSettingsUpdated"));
       window.dispatchEvent(new CustomEvent("ai-settings-updated"));
       settingsBroadcastChannel?.postMessage({ type: "ai-settings-updated" });
-      void desktopApi?.configSet("ai-settings-storage", Date.now().toString());
+      void desktopApi?.broadcastAiSettings(getAiSettingsPayload());
     }, 400);
 
     return () => {

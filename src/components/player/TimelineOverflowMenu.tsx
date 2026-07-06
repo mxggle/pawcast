@@ -14,6 +14,7 @@ export interface OverflowItem {
   hideAtClass?: string;
   destructive?: boolean;
   shortcut?: string;
+  disabled?: boolean;
 }
 
 interface Props {
@@ -21,6 +22,7 @@ interface Props {
   className?: string;
   triggerClassName?: string;
   ariaLabel?: string;
+  side?: "top" | "bottom";
 }
 
 export const TimelineOverflowMenu = ({
@@ -28,6 +30,7 @@ export const TimelineOverflowMenu = ({
   className,
   triggerClassName,
   ariaLabel = "More controls",
+  side = "top",
 }: Props) => {
   if (items.length === 0) return null;
 
@@ -46,7 +49,7 @@ export const TimelineOverflowMenu = ({
       </DropdownMenu.Trigger>
       <DropdownMenu.Portal>
         <DropdownMenu.Content
-          side="top"
+          side={side}
           align="end"
           sideOffset={8}
           className={cn(
@@ -58,10 +61,12 @@ export const TimelineOverflowMenu = ({
             <DropdownMenu.Item
               key={item.id}
               onSelect={item.onSelect}
+              disabled={item.disabled}
               className={cn(
                 "flex items-center gap-2 px-3 py-1.5 text-xs cursor-pointer outline-none",
                 "text-gray-700 dark:text-gray-200",
                 "data-[highlighted]:bg-gray-100 dark:data-[highlighted]:bg-white/5",
+                "data-[disabled]:opacity-40 data-[disabled]:pointer-events-none",
                 item.destructive && "text-error-600 dark:text-error-400",
                 item.hideAtClass
               )}

@@ -3,12 +3,14 @@ import type {
   DesktopFetchOptions,
   DesktopMediaFile,
   FolderTreeNode,
+  GlossaryPlaybackPayload,
   HealthCheckResult,
   MediaTreeChangedPayload,
   MigrationResult,
   NavigationPayload,
   RecoveryResult,
   SettingsWindowTab,
+  AiSettingsChangedPayload,
   WaveformLevel,
   WaveformMeta,
 } from "../../types/desktop";
@@ -24,6 +26,8 @@ export interface DesktopAPI {
   closeGlossaryWindow(): Promise<void>;
   navigateInMainWindow(route: string, entryId?: string): Promise<void>;
   onNavigate(callback: (payload: NavigationPayload) => void): DesktopUnlisten;
+  playGlossaryEntryInMainWindow(entryId: string): Promise<void>;
+  onGlossaryPlayback(callback: (payload: GlossaryPlaybackPayload) => void): DesktopUnlisten;
   showInFileManager(targetPath: string): Promise<boolean>;
   listMediaFiles(folderPath: string): Promise<DesktopMediaFile[]>;
   listMediaTree(folderPath: string): Promise<FolderTreeNode[]>;
@@ -32,6 +36,8 @@ export interface DesktopAPI {
   configSet(key: string, value: unknown): Promise<void>;
   configGetAll(): Promise<unknown>;
   onConfigChanged(callback: (payload: { key: string }) => void): DesktopUnlisten;
+  broadcastAiSettings(payload: AiSettingsChangedPayload): Promise<void>;
+  onAiSettingsChanged(callback: (payload: AiSettingsChangedPayload) => void): DesktopUnlisten;
   fetch(url: string, options: DesktopFetchOptions): Promise<DesktopFetchResult>;
   waveformAnalyze(filePath: string, mediaId: string): Promise<WaveformMeta | null>;
   waveformGetMeta(mediaId: string): Promise<WaveformMeta | null>;

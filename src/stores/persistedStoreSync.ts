@@ -8,6 +8,8 @@ import { useTranscriptStore, STUDY_STORAGE_KEY } from "./transcriptStore";
 import { useHistoryStore, LIBRARY_STORAGE_KEY } from "./historyStore";
 import { useSettingsStore } from "./settingsStore";
 import { useThemeStore } from "./themeStore";
+import { applyAiSettingsPayload } from "../utils/aiSettingsSync";
+import { desktopApi } from "../platform/runtime";
 
 /**
  * Cross-window persisted-store sync.
@@ -92,9 +94,14 @@ export const startPersistedStoreSync = () => {
   const unsubscribe = subscribeDesktopStorageChanges(({ key }) => {
     void syncPersistedStoreForConfigKey(key);
   });
+  const unsubscribeAiSettings = desktopApi?.onAiSettingsChanged((payload) => {
+    applyAiSettingsPayload(payload);
+    notifyAiSettingsChanged();
+  }) ?? (() => undefined);
 
   stopPersistedStoreSync = () => {
     unsubscribe();
+    unsubscribeAiSettings();
     stopPersistedStoreSync = null;
   };
 

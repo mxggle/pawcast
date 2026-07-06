@@ -124,10 +124,10 @@ export const TranscriptSegmentItem = memo(
       <>
         <div
           data-transcript-row
-          className={`group relative overflow-hidden rounded-xl px-4 py-6 transition-[opacity,background-color,box-shadow,transform] duration-300 ease-out ${
+          className={`group relative overflow-hidden rounded-xl px-4 py-3.5 transition-[opacity,background-color,box-shadow,transform] duration-300 ease-out ${
             isActive
-              ? "translate-x-[1px] bg-white/8 opacity-100 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.05)] dark:bg-white/5"
-              : "bg-transparent opacity-60 hover:bg-white/4 hover:opacity-100 dark:text-gray-400 dark:hover:bg-white/3"
+              ? "translate-x-[1px] bg-primary-500/5 opacity-100 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.04)] dark:bg-white/5 dark:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.05)]"
+              : "bg-transparent opacity-70 hover:bg-gray-900/[0.03] hover:opacity-100 dark:text-gray-400 dark:hover:bg-white/[0.03]"
           }`}
         >
           <span

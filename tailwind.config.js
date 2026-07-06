@@ -1,3 +1,32 @@
+/**
+ * Theme shades resolve from runtime CSS variables, so Tailwind can't inject an
+ * alpha channel into the color string itself (`color-mix(...)` has no
+ * `<alpha-value>` slot). Function values let `/opacity` modifiers compile to a
+ * color-mix toward transparent — with a plain string they are silently dropped.
+ */
+const withAlpha = (color) => ({ opacityValue }) =>
+  opacityValue === undefined
+    ? color
+    : `color-mix(in srgb, ${color} calc(${opacityValue} * 100%), transparent)`;
+
+const mix = (variable, tone, percent) =>
+  withAlpha(`color-mix(in srgb, var(${variable}), ${tone} ${percent}%)`);
+
+const themeScale = (variable) => ({
+  DEFAULT: `rgb(var(${variable}-rgb) / <alpha-value>)`,
+  50: mix(variable, "white", 95),
+  100: mix(variable, "white", 90),
+  200: mix(variable, "white", 70),
+  300: mix(variable, "white", 50),
+  400: mix(variable, "white", 20),
+  500: withAlpha(`var(${variable})`),
+  600: mix(variable, "black", 10),
+  700: mix(variable, "black", 20),
+  800: mix(variable, "black", 40),
+  900: mix(variable, "black", 60),
+  950: mix(variable, "black", 80),
+});
+
 /** @type {import('tailwindcss').Config} */
 export default {
   darkMode: "class",
@@ -12,66 +41,12 @@ export default {
     },
     extend: {
       colors: {
-        primary: {
-          DEFAULT: "rgb(var(--theme-primary-rgb) / <alpha-value>)",
-          50: "color-mix(in srgb, var(--theme-primary), white 95%)",
-          100: "color-mix(in srgb, var(--theme-primary), white 90%)",
-          200: "color-mix(in srgb, var(--theme-primary), white 70%)",
-          300: "color-mix(in srgb, var(--theme-primary), white 50%)",
-          400: "color-mix(in srgb, var(--theme-primary), white 20%)",
-          500: "var(--theme-primary)",
-          600: "color-mix(in srgb, var(--theme-primary), black 10%)",
-          700: "color-mix(in srgb, var(--theme-primary), black 20%)",
-          800: "color-mix(in srgb, var(--theme-primary), black 40%)",
-          900: "color-mix(in srgb, var(--theme-primary), black 60%)",
-          950: "color-mix(in srgb, var(--theme-primary), black 80%)",
-        },
-        accent: {
-          DEFAULT: "rgb(var(--theme-accent-rgb) / <alpha-value>)",
-          50: "color-mix(in srgb, var(--theme-accent), white 95%)",
-          100: "color-mix(in srgb, var(--theme-accent), white 90%)",
-          200: "color-mix(in srgb, var(--theme-accent), white 70%)",
-          300: "color-mix(in srgb, var(--theme-accent), white 50%)",
-          400: "color-mix(in srgb, var(--theme-accent), white 20%)",
-          500: "var(--theme-accent)",
-          600: "color-mix(in srgb, var(--theme-accent), black 10%)",
-          700: "color-mix(in srgb, var(--theme-accent), black 20%)",
-          800: "color-mix(in srgb, var(--theme-accent), black 40%)",
-          900: "color-mix(in srgb, var(--theme-accent), black 60%)",
-          950: "color-mix(in srgb, var(--theme-accent), black 80%)",
-        },
-        success: {
-          DEFAULT: "rgb(var(--theme-success-rgb) / <alpha-value>)",
-          50: "color-mix(in srgb, var(--theme-success), white 95%)",
-          100: "color-mix(in srgb, var(--theme-success), white 90%)",
-          500: "var(--theme-success)",
-          600: "color-mix(in srgb, var(--theme-success), black 10%)",
-          700: "color-mix(in srgb, var(--theme-success), black 20%)",
-        },
-        warning: {
-          DEFAULT: "rgb(var(--theme-warning-rgb) / <alpha-value>)",
-          50: "color-mix(in srgb, var(--theme-warning), white 95%)",
-          100: "color-mix(in srgb, var(--theme-warning), white 90%)",
-          500: "var(--theme-warning)",
-          600: "color-mix(in srgb, var(--theme-warning), black 10%)",
-          700: "color-mix(in srgb, var(--theme-warning), black 20%)",
-        },
-        error: {
-          DEFAULT: "rgb(var(--theme-error-rgb) / <alpha-value>)",
-          50: "color-mix(in srgb, var(--theme-error), white 95%)",
-          100: "color-mix(in srgb, var(--theme-error), white 90%)",
-          500: "var(--theme-error)",
-          600: "color-mix(in srgb, var(--theme-error), black 10%)",
-          700: "color-mix(in srgb, var(--theme-error), black 20%)",
-        },
-        info: {
-          DEFAULT: "rgb(var(--theme-info-rgb) / <alpha-value>)",
-          50: "color-mix(in srgb, var(--theme-info), white 95%)",
-          100: "color-mix(in srgb, var(--theme-info), white 90%)",
-          500: "var(--theme-info)",
-          600: "color-mix(in srgb, var(--theme-info), black 10%)",
-          700: "color-mix(in srgb, var(--theme-info), black 20%)",
-        },
+        primary: themeScale("--theme-primary"),
+        accent: themeScale("--theme-accent"),
+        success: themeScale("--theme-success"),
+        warning: themeScale("--theme-warning"),
+        error: themeScale("--theme-error"),
+        info: themeScale("--theme-info"),
         gray: {
           750: "#2D3748", // Custom gray shade for dark mode hover
         },

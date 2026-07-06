@@ -9,7 +9,11 @@ const DEFAULT_MAX_TOTAL_STORAGE = 10 * 1024 * 1024 * 1024; // 10GB total
 
 // IndexedDB setup
 const DB_NAME = "abloop-media-storage";
-const DB_VERSION = 4;
+// Version 4 was released with transcript persistence, but some desktop
+// profiles already had a v4 database without the transcripts object store.
+// Advancing the schema forces IndexedDB to run the repair below for those
+// profiles instead of failing every transcript operation with NotFoundError.
+const DB_VERSION = 5;
 const MEDIA_STORE = "media-files";
 const META_STORE = "storage-meta";
 const TRANSCRIPT_STORE = "transcripts";

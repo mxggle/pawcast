@@ -30,9 +30,9 @@ export function GeneralSettingsPanel() {
 
   return (
     <div className="space-y-10">
-      {/* Appearance */}
+      {/* Language */}
       <SettingsSection
-        title={t("settingsPage.appearance")}
+        title={t("common.language")}
         icon={<Globe className="h-4 w-4 text-primary" />}
       >
         <Card>

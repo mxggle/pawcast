@@ -19,6 +19,21 @@ export const buildWaveformMediaKey = (media: {
   media.id ||
   `${media.name || "unknown"}:${media.size || 0}:${media.type || "unknown"}`;
 
+/**
+ * Build an opaque identifier accepted by the native waveform cache.
+ *
+ * Native paths cannot be used directly: besides leaking filesystem layout
+ * into cache paths, separators are intentionally rejected by the Rust layer.
+ */
+export const buildNativeWaveformId = (mediaKey: string): string => {
+  let hash = 0x811c9dc5;
+  for (let index = 0; index < mediaKey.length; index += 1) {
+    hash ^= mediaKey.charCodeAt(index);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return `waveform-${(hash >>> 0).toString(16).padStart(8, "0")}`;
+};
+
 export const shouldUseDetailedWaveform = (file: {
   type: string;
   size: number;
