@@ -20,6 +20,10 @@ export const MediaPlayer = ({ hiddenMode = false }: MediaPlayerProps) => {
   const controllerRef = useRef<MediaController | null>(null);
   const isDelayingRef = useRef(false);
   const pendingPlayRef = useRef(false);
+  // Monotonically identifies the latest store-driven play/pause request.
+  // HTMLMediaElement.play() is asynchronous: a rejected, superseded request
+  // must not be allowed to pause a newer successful request.
+  const playbackIntentRef = useRef(0);
   const lastZustandWriteRef = useRef(0);
   const resolvingInfiniteDurationRef = useRef(false);
   const loopResumeTimeoutRef = useRef<number | null>(null);
@@ -75,17 +79,20 @@ export const MediaPlayer = ({ hiddenMode = false }: MediaPlayerProps) => {
   }, [currentFile]);
 
   const safePlay = useCallback(
-    async (mediaElement: HTMLMediaElement) => {
+    async (mediaElement: HTMLMediaElement, intent: number) => {
       if (mediaElement.readyState >= 2) {
         try {
           setIsTransitioning(true);
           await mediaElement.play();
         } catch (err) {
+          if (playbackIntentRef.current !== intent) return;
           console.error("Error playing media:", err);
           toast.error("Error playing media. The file may be corrupted or not supported.");
           setIsPlaying(false);
         } finally {
-          setIsTransitioning(false);
+          if (playbackIntentRef.current === intent) {
+            setIsTransitioning(false);
+          }
         }
       } else {
         pendingPlayRef.current = true;
@@ -118,6 +125,7 @@ export const MediaPlayer = ({ hiddenMode = false }: MediaPlayerProps) => {
 
   // Reset state when media source changes
   useEffect(() => {
+    playbackIntentRef.current += 1;
     pendingPlayRef.current = false;
     resolvingInfiniteDurationRef.current = false;
     if (loopResumeTimeoutRef.current !== null) {
@@ -145,22 +153,16 @@ export const MediaPlayer = ({ hiddenMode = false }: MediaPlayerProps) => {
     if (!mediaElement) return;
 
     const handleCanPlay = () => {
-      if (pendingPlayRef.current) {
+      if (pendingPlayRef.current && usePlayerStore.getState().isPlaying) {
         pendingPlayRef.current = false;
-        setIsTransitioning(true);
-        mediaElement.play().catch((err) => {
-          console.error("Error playing media after canplay:", err);
-          setIsPlaying(false);
-        }).finally(() => {
-          setIsTransitioning(false);
-        });
+        void safePlay(mediaElement, playbackIntentRef.current);
       }
     };
 
     mediaElement.addEventListener("canplay", handleCanPlay);
     if (mediaElement.readyState >= 2) handleCanPlay();
     return () => mediaElement.removeEventListener("canplay", handleCanPlay);
-  }, [currentFile, setIsPlaying, setIsTransitioning, getMediaElement]);
+  }, [currentFile, safePlay, getMediaElement]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -177,6 +179,7 @@ export const MediaPlayer = ({ hiddenMode = false }: MediaPlayerProps) => {
   useEffect(() => {
     const mediaElement = getMediaElement();
     if (!mediaElement) return;
+    const intent = ++playbackIntentRef.current;
 
     // Swap controller when media element changes
     if (!controllerRef.current || controllerRef.current.getElement() !== mediaElement) {
@@ -186,15 +189,17 @@ export const MediaPlayer = ({ hiddenMode = false }: MediaPlayerProps) => {
     if (isPlaying) {
       if (isDelayingRef.current) return;
       if (mediaElement.paused) {
-        safePlay(mediaElement);
+        void safePlay(mediaElement, intent);
       }
     } else {
       pendingPlayRef.current = false;
       if (!mediaElement.paused) {
         setIsTransitioning(true);
         mediaElement.pause();
-        setIsTransitioning(false);
       }
+      // Also clears a superseded in-flight play transition when the new
+      // element is already paused.
+      setIsTransitioning(false);
     }
   }, [isPlaying, currentFile, setIsPlaying, safePlay, setIsTransitioning, getMediaElement]);
 

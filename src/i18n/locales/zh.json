@@ -622,6 +622,21 @@
     "exportTranscript": "导出转录",
     "scrollToCurrent": "定位当前句子",
     "autoScroll": "自动滚动",
+    "translation": {
+      "menuTitle": "翻译",
+      "showTranslation": "显示翻译",
+      "language": "翻译成",
+      "loading": "翻译中…",
+      "retry": "翻译失败 — 重试",
+      "configureApiKey": "设置 AI 密钥以进行翻译",
+      "clickToReveal": "点击显示翻译",
+      "blurTitle": "模糊",
+      "blurMode": {
+        "none": "始终显示",
+        "hover": "模糊 — 悬停显示",
+        "click": "模糊 — 点击显示"
+      }
+    },
     "languages": {
       "auto": "自动检测",
       "en-US": "英语 (美国)",

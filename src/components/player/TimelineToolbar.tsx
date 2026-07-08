@@ -54,7 +54,7 @@ export const TimelineToolbar = ({
     loopStart,
     loopEnd,
     seekStepSeconds,
-    setIsPlaying,
+    togglePlay,
     setVolume,
     setMuted,
     setPlaybackRate,
@@ -63,7 +63,7 @@ export const TimelineToolbar = ({
   } = usePlayerStore();
   const addBookmark = useBookmarkStore((state) => state.addBookmark);
 
-  const togglePlayPause = () => setIsPlaying(!isPlaying);
+  const togglePlayPause = () => togglePlay();
   const seekForward = () => playerSeekForward(seekStepSeconds);
   const seekBackward = () => playerSeekBackward(seekStepSeconds);
 

@@ -18,6 +18,10 @@ import { ExplanationDrawer } from "./ExplanationDrawer";
 import { TranscriptSelectionPopover } from "./TranscriptSelectionPopover";
 import { TranscriptTextRenderer } from "./TranscriptTextRenderer";
 import { TranscriptWordRenderer } from "./TranscriptWordRenderer";
+import {
+  TranscriptTranslationLine,
+  type TranslationBlurMode,
+} from "./TranscriptTranslationLine";
 
 interface TranscriptSegmentItemProps {
   segment: TranscriptSegmentType;
@@ -33,6 +37,10 @@ interface TranscriptSegmentItemProps {
   selectionEnabled: boolean;
   onSelectionChange: (selection: TranscriptSelectionState | null) => void;
   onClearSelection: () => void;
+  /** Whether to render an AI translation line beneath the transcript text. */
+  translationEnabled: boolean;
+  translationLanguage: string;
+  translationBlurMode: TranslationBlurMode;
 }
 
 export const TranscriptSegmentItem = memo(
@@ -48,6 +56,9 @@ export const TranscriptSegmentItem = memo(
     selectionEnabled,
     onSelectionChange,
     onClearSelection,
+    translationEnabled,
+    translationLanguage,
+    translationBlurMode,
   }: TranscriptSegmentItemProps) => {
     const { t } = useTranslation();
     const [showExplanation, setShowExplanation] = useState(false);
@@ -256,6 +267,14 @@ export const TranscriptSegmentItem = memo(
                   selectionEnabled={selectionEnabled}
                   onSelectionChange={onSelectionChange}
                   isActive={isActive}
+                />
+              )}
+
+              {translationEnabled && (
+                <TranscriptTranslationLine
+                  sourceText={segment.text}
+                  targetLanguage={translationLanguage}
+                  blurMode={translationBlurMode}
                 />
               )}
             </div>

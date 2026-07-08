@@ -623,6 +623,21 @@
     "exportTranscript": "トランスクリプトをエクスポート",
     "scrollToCurrent": "再生中の文章を表示",
     "autoScroll": "自動スクロール",
+    "translation": {
+      "menuTitle": "翻訳",
+      "showTranslation": "翻訳を表示",
+      "language": "翻訳先の言語",
+      "loading": "翻訳中…",
+      "retry": "翻訳に失敗しました — 再試行",
+      "configureApiKey": "翻訳するには AI キーを設定",
+      "clickToReveal": "クリックして翻訳を表示",
+      "blurTitle": "ぼかし",
+      "blurMode": {
+        "none": "常に表示",
+        "hover": "ぼかし — ホバーで表示",
+        "click": "ぼかし — クリックで表示"
+      }
+    },
     "languages": {
       "auto": "自動検出",
       "en-US": "英語 (米国)",

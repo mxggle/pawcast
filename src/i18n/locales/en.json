@@ -631,6 +631,21 @@
     "dropdownArrow": "▾",
     "scrollToCurrent": "Locate active sentence",
     "autoScroll": "Auto-scroll to current",
+    "translation": {
+      "menuTitle": "Translation",
+      "showTranslation": "Show translation",
+      "language": "Translate into",
+      "loading": "Translating…",
+      "retry": "Translation failed — retry",
+      "configureApiKey": "Set up an AI key to translate",
+      "clickToReveal": "Click to reveal translation",
+      "blurTitle": "Blur",
+      "blurMode": {
+        "none": "Always show",
+        "hover": "Blur — reveal on hover",
+        "click": "Blur — reveal on click"
+      }
+    },
     "languages": {
       "auto": "Auto-detect",
       "en-US": "English (US)",

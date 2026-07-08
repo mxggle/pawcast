@@ -24,7 +24,9 @@ import {
   ChevronDown,
   SlidersHorizontal,
   BadgeCheck,
+  Languages,
 } from "lucide-react";
+import type { TranslationBlurMode } from "./TranscriptTranslationLine";
 import { cn } from "../../utils/cn";
 import { TimelineOverflowMenu } from "../player/TimelineOverflowMenu";
 import { toast } from "react-hot-toast";
@@ -66,6 +68,21 @@ import {
   DialogTitle,
 } from "../ui/dialog";
 import { requestOpenSettings } from "../../utils/settingsIntents";
+
+/** Target languages offered for per-line AI translation. Values double as the
+    language name sent to the model; labels show the native name. */
+const TRANSLATION_LANGUAGE_OPTIONS: Array<{ value: string; label: string }> = [
+  { value: "English", label: "English" },
+  { value: "Simplified Chinese", label: "简体中文" },
+  { value: "Traditional Chinese", label: "繁體中文" },
+  { value: "Japanese", label: "日本語" },
+  { value: "Korean", label: "한국어" },
+  { value: "Spanish", label: "Español" },
+  { value: "French", label: "Français" },
+  { value: "German", label: "Deutsch" },
+];
+
+const TRANSLATION_BLUR_MODES: TranslationBlurMode[] = ["none", "hover", "click"];
 
 const EMPTY_SEGMENTS: TranscriptSegmentType[] = [];
 const EMPTY_BOOKMARKS: LoopBookmark[] = [];
@@ -182,6 +199,24 @@ export const TranscriptPanel = ({ onCollapse }: TranscriptPanelProps = {}) => {
     if (typeof window === "undefined") return false;
     return localStorage.getItem("transcript_auto_scroll") === "true";
   });
+  const [translationMenuOpen, setTranslationMenuOpen] = useState(false);
+  const [translationEnabled, setTranslationEnabled] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return localStorage.getItem("transcript_translation_enabled") === "true";
+  });
+  const [translationBlurMode, setTranslationBlurMode] = useState<TranslationBlurMode>(() => {
+    if (typeof window === "undefined") return "none";
+    const saved = localStorage.getItem("transcript_translation_blur");
+    return saved === "hover" || saved === "click" ? saved : "none";
+  });
+  const [translationLanguage, setTranslationLanguage] = useState<string>(() => {
+    if (typeof window === "undefined") return "English";
+    return (
+      localStorage.getItem("transcript_translation_language") ||
+      localStorage.getItem("target_language") ||
+      "English"
+    );
+  });
 
   const { selection: playerSelection, setSelection } = usePlayerSelection();
 
@@ -238,6 +273,24 @@ export const TranscriptPanel = ({ onCollapse }: TranscriptPanelProps = {}) => {
       localStorage.setItem("transcript_auto_scroll", String(autoScrollEnabled));
     }
   }, [autoScrollEnabled]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("transcript_translation_enabled", String(translationEnabled));
+    }
+  }, [translationEnabled]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("transcript_translation_blur", translationBlurMode);
+    }
+  }, [translationBlurMode]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("transcript_translation_language", translationLanguage);
+    }
+  }, [translationLanguage]);
 
   useEffect(() => {
     setActiveSelection(null);
@@ -863,7 +916,7 @@ export const TranscriptPanel = ({ onCollapse }: TranscriptPanelProps = {}) => {
       {/* Main Content */}
       <div className="transcript-panel-main flex h-full flex-1 flex-col min-w-0 min-h-0 bg-white dark:bg-transparent">
         <div className="transcript-container flex h-full flex-1 min-h-0 min-w-0 flex-col overflow-hidden">
-          <div className="transcript-header flex items-center justify-between px-2 py-1.5 @[460px]/transcript:px-3 border-b border-gray-100 dark:border-white/5 bg-white dark:bg-gray-950/60 backdrop-blur-md min-w-0 gap-2">
+          <div className="transcript-header relative z-30 flex items-center justify-between px-2 py-1.5 @[460px]/transcript:px-3 border-b border-gray-100 dark:border-white/5 bg-white dark:bg-gray-950/60 backdrop-blur-md min-w-0 gap-2">
             <div className="flex items-center min-w-0 mr-2 gap-0.5">
               {onCollapse && (
                 <button
@@ -999,6 +1052,77 @@ export const TranscriptPanel = ({ onCollapse }: TranscriptPanelProps = {}) => {
               >
                 <LocateFixed size={15} />
               </button>
+
+              {/* Per-line AI translation */}
+              <div className="relative">
+                <button
+                  onClick={() => setTranslationMenuOpen((open) => !open)}
+                  aria-expanded={translationMenuOpen}
+                  aria-pressed={translationEnabled}
+                  className={cn(headerIconBtn, translationEnabled && headerIconBtnActive)}
+                  title={t("transcript.translation.menuTitle")}
+                >
+                  <Languages size={15} />
+                </button>
+                {translationMenuOpen && (
+                  <>
+                    <div className="fixed inset-0 z-10" onClick={() => setTranslationMenuOpen(false)} />
+                    <div className="absolute right-0 top-full z-20 mt-1 w-56 rounded-lg border border-gray-200 bg-white p-2 shadow-xl dark:border-white/10 dark:bg-gray-900">
+                      <label className="flex cursor-pointer items-center justify-between rounded px-2 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-white/5">
+                        <span>{t("transcript.translation.showTranslation")}</span>
+                        <input
+                          type="checkbox"
+                          checked={translationEnabled}
+                          onChange={(e) => setTranslationEnabled(e.target.checked)}
+                          className="h-3.5 w-3.5 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                        />
+                      </label>
+
+                      <div className="mt-2 border-t border-gray-100 pt-2 dark:border-white/10">
+                        <p className="px-2 pb-1 text-[10px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
+                          {t("transcript.translation.language")}
+                        </p>
+                        <select
+                          value={translationLanguage}
+                          onChange={(e) => setTranslationLanguage(e.target.value)}
+                          className="h-8 w-full appearance-none rounded-md border border-gray-200 bg-white px-2 text-xs text-gray-700 outline-none transition-colors hover:border-gray-300 focus-visible:ring-1 focus-visible:ring-primary-500 dark:border-white/10 dark:bg-gray-900 dark:text-gray-300 dark:hover:border-white/20"
+                        >
+                          {TRANSLATION_LANGUAGE_OPTIONS.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="mt-2 border-t border-gray-100 pt-2 dark:border-white/10">
+                        <p className="px-2 pb-1 text-[10px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
+                          {t("transcript.translation.blurTitle")}
+                        </p>
+                        <div className="space-y-0.5">
+                          {TRANSLATION_BLUR_MODES.map((mode) => (
+                            <button
+                              key={mode}
+                              onClick={() => setTranslationBlurMode(mode)}
+                              className={cn(
+                                "flex w-full items-center justify-between rounded px-2 py-1.5 text-left text-xs transition-colors hover:bg-gray-100 dark:hover:bg-white/5",
+                                translationBlurMode === mode
+                                  ? "font-medium text-primary-600 dark:text-primary-400"
+                                  : "text-gray-600 dark:text-gray-300"
+                              )}
+                            >
+                              <span>{t(`transcript.translation.blurMode.${mode}`)}</span>
+                              {translationBlurMode === mode && (
+                                <span className="text-primary-500">✓</span>
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
 
               {/* Jump to current segment — inline on wider panels */}
               <button
@@ -1363,6 +1487,9 @@ export const TranscriptPanel = ({ onCollapse }: TranscriptPanelProps = {}) => {
                       selectionEnabled={selectionEnabled}
                       onSelectionChange={setActiveSelection}
                       onClearSelection={handleClearSelection}
+                      translationEnabled={translationEnabled}
+                      translationLanguage={translationLanguage}
+                      translationBlurMode={translationBlurMode}
                     />
                   </div>
                 );

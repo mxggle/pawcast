@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0-beta.4] - 2026-07-09
+
 ### Added
 
 - Tauri 2 desktop runtime with Rust persistence, filesystem, window, network, local-media, and waveform services.
@@ -18,6 +20,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Shadowing takes drawer** under the timeline: list takes per sentence, play a take, replay the original range (A/B compare), delete takes.
 - Practiced sentences show a checkmark in the transcript panel.
 - Glossary entries grouped by source media with per-section counts.
+- **Per-line AI translation**: toggle inline translations beneath each transcript segment, with selectable target language (English, 简体中文, 繁體中文, 日本語, 한국어, Español, Français, Deutsch) and a blur mode (none / reveal on hover / reveal on click) for active-recall practice.
+- **Native YouTube support**: native media preparation and caption fetching for smoother loading and stored captions.
+- **Automatic language detection** for loaded media, plus a level system-override UI.
+- **Interactive product website** (`website/`): a self-contained landing page that acts as a digital twin of the app, with live A-B loop, transcript, shadowing, theme-switching, and settings demos.
 
 ### Changed
 
@@ -27,6 +33,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **State architecture**: one store per domain (player/playback, history/library, bookmarks, transcripts+glossary, progress) with per-domain persistence keys; existing data seeds once from the legacy storage snapshot, which is left intact for downgrade safety.
 - Canonical PawcastData JSON mirroring consolidated into a single module, fixing two writers racing on `app-settings.json` with partly hardcoded values.
 - Decomposed the transcript panel (2,000+ lines) into a transcription runner hook, pure segmentation utilities (unit-tested), and a bookmark import/export hook; extracted the player page's panel choreography into `usePanelLayout`.
+- macOS unified title bar; glossary playback and AI settings now sync across auxiliary windows.
+
+### Fixed
+
+- Windows Tauri startup packaging.
+- Aborting an in-flight platform media fetch no longer surfaces a spurious error.
 
 ### Removed
 

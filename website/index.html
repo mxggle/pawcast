@@ -1,0 +1,1032 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="purple">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Pawcast — Master any audio, one loop at a time</title>
+<meta name="description" content="Pawcast is the friendly desktop studio for language learners & musicians: precision A-B looping, shadowing recorder, AI transcripts, and smart review — all offline-first." />
+<link rel="icon" href="favicon.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+<style>
+/* ============================================================
+   Pawcast — landing page
+   Design tokens mirror the app's runtime theme system.
+   ============================================================ */
+:root{
+  --primary:#8B5CF6;
+  --primary-600:#7c4ddb;
+  --primary-700:#6d3fc9;
+  --accent:#6366F1;
+  --coral:#FB8C6A;
+  --coral-soft:#FFB99E;
+  --success:#10B981;
+  --warning:#F59E0B;
+  --error:#EF4444;
+  --info:#0EA5E9;
+
+  --ink:#1f2130;
+  --ink-soft:#4a4d63;
+  --muted:#7b7e95;
+  --line:#eceaf5;
+  --line-strong:#ded9ef;
+  --bg:#fbfaff;
+  --bg-2:#f4f2fc;
+  --card:#ffffff;
+  --card-2:#faf9ff;
+  --shadow:0 24px 60px -20px rgba(76,50,140,.28);
+  --shadow-sm:0 8px 24px -12px rgba(76,50,140,.24);
+  --radius:22px;
+  --maxw:1120px;
+  --font:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;
+}
+/* Color presets — mirrors THEME_PRESETS in the app */
+html[data-theme="blue"]{--primary:#3B82F6;--primary-600:#2f6fdd;--primary-700:#285fc0;--accent:#0EA5E9;}
+html[data-theme="green"]{--primary:#10B981;--primary-600:#0ea371;--accent:#065F46;--coral:#34D399;--coral-soft:#8ff0cf;}
+html[data-theme="rose"]{--primary:#F43F5E;--primary-600:#e02a4a;--accent:#FB7185;--coral:#FB7185;--coral-soft:#ffb0bd;}
+html[data-theme="orange"]{--primary:#F97316;--primary-600:#e5640c;--accent:#FB923C;--coral:#FB923C;--coral-soft:#fdc5a0;}
+html[data-theme="black"]{--primary:#0F172A;--primary-600:#1e293b;--accent:#475569;--coral:#FB8C6A;}
+
+html[data-mode="dark"]{
+  --ink:#f2f1fa;--ink-soft:#c9c7dc;--muted:#9a98b3;
+  --line:#2a2740;--line-strong:#3a3556;
+  --bg:#100e1c;--bg-2:#15132480;--card:#1a1730;--card-2:#201d38;
+  --shadow:0 24px 60px -20px rgba(0,0,0,.6);
+  --shadow-sm:0 8px 24px -12px rgba(0,0,0,.5);
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  font-family:var(--font);background:var(--bg);color:var(--ink);
+  line-height:1.55;-webkit-font-smoothing:antialiased;
+  transition:background .4s ease,color .3s ease;overflow-x:hidden;
+}
+a{color:inherit;text-decoration:none}
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 24px}
+.eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;font-weight:700;
+  letter-spacing:.08em;text-transform:uppercase;color:var(--primary);
+  background:color-mix(in srgb,var(--primary) 12%,transparent);
+  padding:6px 12px;border-radius:100px;}
+h2.section-title{font-size:clamp(28px,4vw,42px);font-weight:800;letter-spacing:-.02em;line-height:1.1;margin:16px 0 12px}
+.section-sub{font-size:17px;color:var(--muted);max-width:620px}
+.section-head{text-align:center;display:flex;flex-direction:column;align-items:center;margin-bottom:44px}
+.section-head .section-sub{margin:0 auto}
+section{padding:84px 0;position:relative}
+.grad-text{background:linear-gradient(120deg,var(--primary),var(--coral));-webkit-background-clip:text;background-clip:text;color:transparent}
+
+/* ---------- Nav ---------- */
+header.nav{position:sticky;top:0;z-index:50;backdrop-filter:blur(14px);
+  background:color-mix(in srgb,var(--bg) 82%,transparent);border-bottom:1px solid var(--line);}
+.nav-inner{display:flex;align-items:center;justify-content:space-between;height:64px}
+.brand{display:flex;align-items:center;gap:11px;font-weight:800;font-size:18px;letter-spacing:-.01em}
+.brand img{width:34px;height:34px;object-fit:contain}
+.nav-links{display:flex;gap:26px;align-items:center}
+.nav-links a{font-size:14.5px;font-weight:500;color:var(--ink-soft);transition:color .2s}
+.nav-links a:hover{color:var(--primary)}
+.nav-actions{display:flex;gap:10px;align-items:center}
+.icon-btn{width:38px;height:38px;border-radius:11px;border:1px solid var(--line-strong);background:var(--card);
+  display:grid;place-items:center;cursor:pointer;color:var(--ink-soft);transition:.2s}
+.icon-btn:hover{color:var(--primary);border-color:var(--primary)}
+.btn{display:inline-flex;align-items:center;gap:8px;font-weight:600;font-size:14.5px;
+  padding:11px 20px;border-radius:12px;cursor:pointer;border:1px solid transparent;transition:.2s;font-family:var(--font)}
+.btn-primary{background:linear-gradient(120deg,var(--primary),var(--primary-600));color:#fff;
+  box-shadow:0 10px 24px -10px color-mix(in srgb,var(--primary) 70%,transparent)}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 16px 30px -12px color-mix(in srgb,var(--primary) 80%,transparent)}
+.btn-ghost{background:var(--card);border-color:var(--line-strong);color:var(--ink)}
+.btn-ghost:hover{border-color:var(--primary);color:var(--primary)}
+@media(max-width:820px){.nav-links{display:none}}
+
+/* ---------- Hero ---------- */
+.hero{padding-top:64px;padding-bottom:40px;position:relative;overflow:hidden}
+.hero-glow{position:absolute;inset:0;pointer-events:none;z-index:0}
+.hero-glow::before{content:"";position:absolute;top:-160px;left:50%;transform:translateX(-50%);
+  width:900px;height:520px;border-radius:50%;filter:blur(90px);opacity:.5;
+  background:radial-gradient(circle at 30% 40%,color-mix(in srgb,var(--primary) 55%,transparent),transparent 60%),
+             radial-gradient(circle at 70% 55%,color-mix(in srgb,var(--coral) 50%,transparent),transparent 60%);}
+.hero-grid{position:relative;z-index:1;display:grid;grid-template-columns:1.05fr 1fr;gap:48px;align-items:center}
+.hero h1{font-size:clamp(38px,5.4vw,62px);font-weight:900;letter-spacing:-.03em;line-height:1.03}
+.hero p.lead{font-size:19px;color:var(--ink-soft);margin:22px 0 30px;max-width:520px}
+.hero-cta{display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+.hero-note{margin-top:22px;display:flex;gap:18px;flex-wrap:wrap;color:var(--muted);font-size:13.5px}
+.hero-note span{display:inline-flex;align-items:center;gap:7px}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--success)}
+@media(max-width:900px){.hero-grid{grid-template-columns:1fr;gap:36px}.hero p.lead{max-width:none}}
+
+/* ---------- App window chrome (digital twin) ---------- */
+.twin{background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);overflow:hidden}
+.twin-bar{display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--line);
+  background:var(--card-2)}
+.tl{display:flex;gap:7px}
+.tl i{width:12px;height:12px;border-radius:50%;display:block}
+.tl i:nth-child(1){background:#ff5f57}.tl i:nth-child(2){background:#febc2e}.tl i:nth-child(3){background:#28c840}
+.twin-title{font-size:13px;font-weight:600;color:var(--muted);margin-left:6px;display:flex;align-items:center;gap:8px}
+.twin-title img{width:16px;height:16px}
+
+/* ---------- Marquee logos / trust ---------- */
+.trust{padding:34px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:var(--bg-2)}
+.trust-inner{display:flex;align-items:center;justify-content:center;gap:38px;flex-wrap:wrap;color:var(--muted);
+  font-size:14px;font-weight:600}
+.trust-inner b{color:var(--ink)}
+.pill-list{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+.pill{border:1px solid var(--line-strong);background:var(--card);border-radius:100px;padding:8px 15px;
+  font-size:13px;font-weight:600;color:var(--ink-soft);display:inline-flex;gap:7px;align-items:center}
+
+/* ---------- Feature grid ---------- */
+.fgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+@media(max-width:900px){.fgrid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:600px){.fgrid{grid-template-columns:1fr}}
+.fcard{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:26px;
+  transition:.25s;position:relative;overflow:hidden}
+.fcard:hover{transform:translateY(-4px);border-color:color-mix(in srgb,var(--primary) 40%,var(--line));box-shadow:var(--shadow-sm)}
+.fic{width:46px;height:46px;border-radius:13px;display:grid;place-items:center;margin-bottom:16px;
+  background:color-mix(in srgb,var(--primary) 12%,transparent);color:var(--primary)}
+.fcard h3{font-size:17.5px;font-weight:700;margin-bottom:7px;letter-spacing:-.01em}
+.fcard p{font-size:14.5px;color:var(--muted)}
+.fcard .tag{position:absolute;top:18px;right:18px;font-size:10.5px;font-weight:700;letter-spacing:.05em;
+  text-transform:uppercase;color:var(--coral);background:color-mix(in srgb,var(--coral) 15%,transparent);
+  padding:4px 9px;border-radius:100px}
+
+/* ---------- Alternating showcase rows ---------- */
+.showcase{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:center;margin-bottom:110px}
+.showcase.rev .sc-copy{order:2}
+@media(max-width:900px){.showcase{grid-template-columns:1fr;gap:32px;margin-bottom:70px}.showcase.rev .sc-copy{order:0}}
+.sc-copy h3{font-size:clamp(24px,3.2vw,32px);font-weight:800;letter-spacing:-.02em;line-height:1.12;margin:14px 0 14px}
+.sc-copy p.desc{font-size:16.5px;color:var(--ink-soft);margin-bottom:22px}
+.sc-list{display:flex;flex-direction:column;gap:12px}
+.sc-list li{list-style:none;display:flex;gap:12px;align-items:flex-start;font-size:15px;color:var(--ink-soft)}
+.sc-check{flex:none;width:22px;height:22px;border-radius:7px;display:grid;place-items:center;margin-top:1px;
+  background:color-mix(in srgb,var(--success) 16%,transparent);color:var(--success)}
+.sc-stage{min-height:300px}
+
+/* ---------- generic demo panel ---------- */
+.demo{background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow-sm);padding:18px}
+
+/* ---------- A-B loop demo ---------- */
+.player-demo{background:linear-gradient(160deg,color-mix(in srgb,var(--primary) 90%,#000),color-mix(in srgb,var(--accent) 80%,#000));
+  border-radius:16px;padding:22px;color:#fff;position:relative;overflow:hidden}
+.player-demo .pd-head{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+.pd-cover{width:44px;height:44px;border-radius:11px;background:rgba(255,255,255,.16);display:grid;place-items:center}
+.pd-meta b{font-size:15px}.pd-meta span{display:block;font-size:12px;opacity:.75}
+.wave-wrap{position:relative;height:96px;border-radius:12px;background:rgba(255,255,255,.08);overflow:hidden;cursor:pointer;
+  border:1px solid rgba(255,255,255,.12)}
+.wave-wrap svg{position:absolute;inset:0;width:100%;height:100%}
+.loop-region{position:absolute;top:0;bottom:0;background:rgba(255,255,255,.16);border-left:2px solid var(--coral);
+  border-right:2px solid #34D399}
+.playhead{position:absolute;top:0;bottom:0;width:2px;background:#fff;box-shadow:0 0 10px rgba(255,255,255,.8)}
+.marker{position:absolute;top:-1px;width:20px;height:20px;border-radius:6px;font-size:11px;font-weight:800;
+  display:grid;place-items:center;color:#0b0b12;transform:translateX(-50%);cursor:ew-resize;user-select:none;z-index:3}
+.marker.a{background:#34D399}.marker.b{background:var(--coral)}
+.pd-controls{display:flex;align-items:center;justify-content:space-between;margin-top:16px;gap:12px;flex-wrap:wrap}
+.pd-left{display:flex;align-items:center;gap:10px}
+.rbtn{width:38px;height:38px;border-radius:11px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.1);
+  color:#fff;display:grid;place-items:center;cursor:pointer;transition:.15s}
+.rbtn:hover{background:rgba(255,255,255,.22)}
+.rbtn.play{width:48px;height:48px;background:#fff;color:var(--primary)}
+.pd-time{font-variant-numeric:tabular-nums;font-size:13px;opacity:.9}
+.chipset{display:flex;gap:8px;flex-wrap:wrap}
+.chip2{font-size:12px;font-weight:600;padding:6px 11px;border-radius:9px;background:rgba(255,255,255,.12);
+  border:1px solid rgba(255,255,255,.18);cursor:pointer;transition:.15s;user-select:none}
+.chip2:hover{background:rgba(255,255,255,.22)}
+.chip2.on{background:var(--coral);border-color:var(--coral);color:#241a12}
+.speed-row{display:flex;gap:6px;align-items:center;font-size:12px;opacity:.9}
+.pd-info{margin-top:12px;font-size:12.5px;opacity:.85;display:flex;gap:14px;flex-wrap:wrap}
+.pd-info b{color:var(--coral-soft)}
+
+/* ---------- Transcript demo ---------- */
+.ts{display:flex;flex-direction:column;gap:2px;max-height:340px;overflow:auto}
+.ts-line{padding:11px 13px;border-radius:12px;cursor:pointer;transition:.15s;border:1px solid transparent}
+.ts-line:hover{background:var(--card-2)}
+.ts-line.active{background:color-mix(in srgb,var(--primary) 10%,transparent);border-color:color-mix(in srgb,var(--primary) 30%,transparent)}
+.ts-time{font-size:11px;font-weight:700;color:var(--primary);font-variant-numeric:tabular-nums}
+.ts-text{font-size:15.5px;margin-top:3px;color:var(--ink)}
+.ts-text w{cursor:pointer;border-radius:4px;padding:0 1px;transition:.12s}
+.ts-text w:hover{background:color-mix(in srgb,var(--coral) 30%,transparent)}
+.ts-text w.sel{background:color-mix(in srgb,var(--coral) 45%,transparent)}
+.ts-trans{font-size:13.5px;color:var(--muted);margin-top:5px;font-style:italic;display:none}
+.ts-line.showtrans .ts-trans{display:block}
+.ts-toolbar{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.ai-pop{margin-top:14px;border:1px solid var(--line);border-radius:14px;overflow:hidden;
+  background:var(--card-2);opacity:0;max-height:0;transition:.35s}
+.ai-pop.show{opacity:1;max-height:320px}
+.ai-pop-head{display:flex;align-items:center;gap:9px;padding:12px 14px;background:color-mix(in srgb,var(--primary) 10%,transparent);
+  font-weight:700;font-size:14px}
+.ai-pop-body{padding:14px;font-size:14px;color:var(--ink-soft)}
+.ai-pop-body .sel-chip{display:inline-block;font-weight:700;color:var(--primary);
+  background:color-mix(in srgb,var(--primary) 12%,transparent);padding:2px 8px;border-radius:7px;margin-bottom:8px}
+.typing::after{content:"▌";animation:blink 1s steps(1) infinite;color:var(--primary)}
+@keyframes blink{50%{opacity:0}}
+
+/* ---------- shadowing demo ---------- */
+.takes{display:flex;flex-direction:column;gap:9px}
+.take{display:flex;align-items:center;gap:12px;padding:11px 13px;border:1px solid var(--line);border-radius:12px;background:var(--card-2)}
+.take .num{width:26px;height:26px;border-radius:8px;background:color-mix(in srgb,var(--primary) 14%,transparent);
+  color:var(--primary);font-weight:800;font-size:12px;display:grid;place-items:center}
+.take .mini-wave{flex:1;height:26px;display:flex;align-items:center;gap:2px}
+.take .mini-wave i{flex:1;background:var(--coral);border-radius:2px;opacity:.8;display:block}
+.rec-btn{width:64px;height:64px;border-radius:50%;border:none;cursor:pointer;display:grid;place-items:center;
+  background:var(--error);box-shadow:0 0 0 0 color-mix(in srgb,var(--error) 60%,transparent);transition:.2s}
+.rec-btn.recording{animation:pulse 1.4s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--error) 55%,transparent)}70%{box-shadow:0 0 0 18px transparent}100%{box-shadow:0 0 0 0 transparent}}
+.rec-core{width:22px;height:22px;background:#fff;border-radius:6px;transition:.2s}
+.rec-btn.recording .rec-core{border-radius:50%;width:18px;height:18px}
+
+/* ---------- theme switcher swatches ---------- */
+.swatches{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.swatch{width:34px;height:34px;border-radius:11px;cursor:pointer;border:2px solid var(--line-strong);transition:.15s;position:relative}
+.swatch.active{border-color:var(--ink);transform:scale(1.08)}
+.swatch.active::after{content:"✓";position:absolute;inset:0;display:grid;place-items:center;color:#fff;font-size:14px;font-weight:800}
+
+/* ---------- sentence practice ---------- */
+.sp-cards{display:flex;flex-direction:column;gap:10px}
+.sp-card{display:flex;align-items:center;gap:12px;padding:13px 15px;border:1px solid var(--line);border-radius:13px;
+  background:var(--card);transition:.2s;cursor:pointer}
+.sp-card:hover{border-color:color-mix(in srgb,var(--primary) 35%,var(--line))}
+.sp-card.done{background:color-mix(in srgb,var(--success) 8%,transparent);border-color:color-mix(in srgb,var(--success) 30%,transparent)}
+.sp-tick{width:26px;height:26px;border-radius:50%;flex:none;display:grid;place-items:center;border:2px solid var(--line-strong);color:transparent;transition:.2s}
+.sp-card.done .sp-tick{background:var(--success);border-color:var(--success);color:#fff}
+.sp-txt{flex:1;font-size:14.5px}
+.sp-card.done .sp-txt{color:var(--muted)}
+
+/* ---------- providers ---------- */
+.prov-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+@media(max-width:820px){.prov-grid{grid-template-columns:repeat(2,1fr)}}
+.prov{border:1px solid var(--line);border-radius:15px;padding:16px;background:var(--card);text-align:center;transition:.2s}
+.prov:hover{transform:translateY(-3px);box-shadow:var(--shadow-sm)}
+.prov .pi{width:40px;height:40px;border-radius:11px;margin:0 auto 10px;display:grid;place-items:center;font-weight:800;
+  background:color-mix(in srgb,var(--accent) 12%,transparent);color:var(--accent)}
+.prov b{font-size:14px;display:block}
+.prov span{font-size:12px;color:var(--muted)}
+
+/* ---------- steps ---------- */
+.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;counter-reset:s}
+@media(max-width:820px){.steps{grid-template-columns:1fr 1fr}}
+.step{position:relative;padding:26px 20px 22px;border:1px solid var(--line);border-radius:var(--radius);background:var(--card)}
+.step::before{counter-increment:s;content:counter(s);position:absolute;top:-16px;left:20px;width:36px;height:36px;
+  border-radius:11px;background:linear-gradient(120deg,var(--primary),var(--coral));color:#fff;font-weight:800;
+  display:grid;place-items:center;box-shadow:var(--shadow-sm)}
+.step h4{margin:12px 0 7px;font-size:16.5px;font-weight:700}
+.step p{font-size:14px;color:var(--muted)}
+
+/* ---------- data / settings mock ---------- */
+.settings-mock{display:grid;grid-template-columns:150px 1fr;gap:0;border:1px solid var(--line);border-radius:16px;overflow:hidden;background:var(--card)}
+.sm-side{background:var(--card-2);border-right:1px solid var(--line);padding:14px 10px;display:flex;flex-direction:column;gap:4px}
+.sm-side button{text-align:left;font-size:13.5px;font-weight:600;color:var(--ink-soft);padding:9px 12px;border-radius:10px;
+  border:none;background:transparent;cursor:pointer;transition:.15s;display:flex;gap:9px;align-items:center}
+.sm-side button:hover{background:var(--card)}
+.sm-side button.on{background:color-mix(in srgb,var(--primary) 12%,transparent);color:var(--primary)}
+.sm-body{padding:20px}
+.sm-panel{display:none}.sm-panel.on{display:block;animation:fade .3s}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.meter{height:10px;border-radius:100px;background:var(--line);overflow:hidden;margin:6px 0}
+.meter i{display:block;height:100%;border-radius:100px}
+.srow{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px solid var(--line);font-size:14px}
+.srow:last-child{border-bottom:none}
+.srow small{color:var(--muted);font-size:12.5px}
+.toggle{width:44px;height:25px;border-radius:100px;background:var(--line-strong);position:relative;cursor:pointer;transition:.2s;flex:none}
+.toggle.on{background:var(--primary)}
+.toggle::after{content:"";position:absolute;top:3px;left:3px;width:19px;height:19px;border-radius:50%;background:#fff;transition:.2s}
+.toggle.on::after{left:22px}
+.status-ok{color:var(--success);font-weight:700;font-size:13px;display:inline-flex;gap:6px;align-items:center}
+
+/* ---------- keyboard ---------- */
+.keys{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
+kbd{font-family:var(--font);font-size:12.5px;font-weight:700;background:var(--card);border:1px solid var(--line-strong);
+  border-bottom-width:3px;border-radius:9px;padding:7px 11px;color:var(--ink);min-width:34px;text-align:center}
+.kb-row{display:flex;align-items:center;gap:12px;justify-content:center;flex-wrap:wrap;margin-bottom:14px}
+.kb-row span{font-size:13.5px;color:var(--muted)}
+
+/* ---------- CTA band ---------- */
+.cta-band{background:linear-gradient(130deg,color-mix(in srgb,var(--primary) 92%,#000),color-mix(in srgb,var(--coral) 78%,#000));
+  border-radius:28px;padding:56px 40px;text-align:center;color:#fff;position:relative;overflow:hidden}
+.cta-band h2{font-size:clamp(28px,4vw,40px);font-weight:900;letter-spacing:-.02em;margin-bottom:12px}
+.cta-band p{opacity:.92;font-size:17px;max-width:520px;margin:0 auto 26px}
+.cta-band .btn-primary{background:#fff;color:var(--primary)}
+.paw{position:absolute;opacity:.12;font-size:120px;user-select:none}
+
+/* ---------- footer ---------- */
+footer{padding:56px 0 40px;border-top:1px solid var(--line);background:var(--bg-2)}
+.foot-grid{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:32px}
+@media(max-width:820px){.foot-grid{grid-template-columns:1fr 1fr}}
+.foot-grid h5{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:14px}
+.foot-grid a{display:block;font-size:14px;color:var(--ink-soft);margin-bottom:9px;transition:.15s}
+.foot-grid a:hover{color:var(--primary)}
+.foot-bottom{margin-top:40px;padding-top:22px;border-top:1px solid var(--line);display:flex;justify-content:space-between;
+  flex-wrap:wrap;gap:12px;color:var(--muted);font-size:13px}
+
+.reveal{opacity:0;transform:translateY(24px);transition:.7s cubic-bezier(.16,.8,.3,1)}
+.reveal.in{opacity:1;transform:none}
+
+.badge-soon{font-size:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--warning);
+  background:color-mix(in srgb,var(--warning) 15%,transparent);padding:3px 8px;border-radius:100px;margin-left:8px}
+</style>
+</head>
+<body>
+<!-- ============ NAV ============ -->
+<header class="nav">
+  <div class="wrap nav-inner">
+    <a class="brand" href="#top">
+      <img src="logo.png" alt="Pawcast logo" />
+      <span>Pawcast</span>
+    </a>
+    <nav class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#loop">A-B Loop</a>
+      <a href="#shadowing">Shadowing</a>
+      <a href="#transcript">Transcripts</a>
+      <a href="#ai">AI</a>
+      <a href="#settings">Settings</a>
+    </nav>
+    <div class="nav-actions">
+      <button class="icon-btn" id="modeToggle" title="Toggle dark mode" aria-label="Toggle dark mode">🌙</button>
+      <a href="#download" class="btn btn-primary">Get Pawcast</a>
+    </div>
+  </div>
+</header>
+
+<!-- ============ HERO ============ -->
+<section class="hero" id="top">
+  <div class="hero-glow"></div>
+  <div class="wrap hero-grid">
+    <div class="hero-copy">
+      <span class="eyebrow">🐾 Desktop studio · macOS &amp; Windows</span>
+      <h1>Master any audio,<br /><span class="grad-text">one loop at a time.</span></h1>
+      <p class="lead">Pawcast is the friendly practice studio for language learners &amp; musicians —
+        precision A-B looping, a shadowing recorder, AI transcripts, and smart review. All offline-first,
+        all on your device.</p>
+      <div class="hero-cta">
+        <a href="#download" class="btn btn-primary">⬇︎ Download free beta</a>
+        <a href="#loop" class="btn btn-ghost">▶ Try the live demo</a>
+      </div>
+      <div class="hero-note">
+        <span><i class="dot"></i> YouTube &amp; local media</span>
+        <span><i class="dot"></i> 100% local &amp; private</span>
+        <span><i class="dot"></i> English · 日本語 · 中文</span>
+      </div>
+    </div>
+
+    <!-- LIVE DIGITAL TWIN: A-B loop player -->
+    <div class="twin reveal" id="heroTwin">
+      <div class="twin-bar">
+        <div class="tl"><i></i><i></i><i></i></div>
+        <div class="twin-title"><img src="logo.png" alt="" /> Pawcast — bonjour.mp3</div>
+      </div>
+      <div style="padding:16px">
+        <div class="player-demo" id="loopDemo">
+          <div class="pd-head">
+            <div class="pd-cover">🎧</div>
+            <div class="pd-meta"><b>Le Petit Prince — Ch. 1</b><span>French · Audiobook · 04:12</span></div>
+          </div>
+          <div class="wave-wrap" id="waveWrap">
+            <svg id="waveSvg" viewBox="0 0 600 96" preserveAspectRatio="none"></svg>
+            <div class="loop-region" id="loopRegion"></div>
+            <div class="playhead" id="playhead" style="left:0"></div>
+            <div class="marker a" id="markerA">A</div>
+            <div class="marker b" id="markerB">B</div>
+          </div>
+          <div class="pd-controls">
+            <div class="pd-left">
+              <button class="rbtn" id="btnBack" title="Nudge loop left">⏮</button>
+              <button class="rbtn play" id="btnPlay" title="Play / pause">▶</button>
+              <button class="rbtn" id="btnFwd" title="Nudge loop right">⏭</button>
+              <span class="pd-time" id="pdTime">00:16.5 / 04:12</span>
+            </div>
+            <div class="chipset">
+              <span class="chip2 on" id="chipLoop">🔁 A-B Loop</span>
+              <span class="chip2" id="chipHalf">½ length</span>
+              <span class="chip2" id="chipDouble">2× length</span>
+            </div>
+          </div>
+          <div class="pd-info">
+            <span>Loop <b id="loopReadout">00:16.5 → 00:21.3</b></span>
+            <span>Speed <b id="speedReadout">1.00×</b></span>
+            <div class="speed-row">
+              <button class="rbtn" id="spDown" style="width:26px;height:26px">−</button>
+              <button class="rbtn" id="spUp" style="width:26px;height:26px">+</button>
+            </div>
+          </div>
+        </div>
+        <p style="font-size:12.5px;color:var(--muted);margin-top:12px;text-align:center">
+          👆 Drag the <b style="color:var(--success)">A</b> / <b style="color:var(--coral)">B</b> handles, click the waveform, or hit play — this is the real loop engine.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ TRUST / QUICK FACTS ============ -->
+<div class="trust">
+  <div class="wrap trust-inner">
+    <span>Works with <b>YouTube</b></span>
+    <span><b>MP3 · WAV · FLAC · AAC · MP4 · WebM</b></span>
+    <span>Transcribe with <b>Whisper · Gemini · Groq</b></span>
+    <span>Explain with <b>GPT · Gemini · Grok · Ollama</b></span>
+  </div>
+</div>
+
+<!-- ============ FEATURE GRID ============ -->
+<section id="features">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <span class="eyebrow">Everything in the box</span>
+      <h2 class="section-title">One studio for the whole practice loop</h2>
+      <p class="section-sub">From the first play to fluent recall — Pawcast covers listening, imitation, understanding, and review without leaving the app.</p>
+    </div>
+    <div class="fgrid" id="featureGrid"></div>
+  </div>
+</section>
+
+<!-- ============ SHOWCASE: A-B LOOP ============ -->
+<section id="loop" style="background:var(--bg-2)">
+  <div class="wrap">
+    <div class="showcase reveal">
+      <div class="sc-copy">
+        <span class="eyebrow">🔁 Precision A-B Loop</span>
+        <h3>Trap the exact phrase. Repeat it until it sticks.</h3>
+        <p class="desc">Set point A and point B down to the millisecond, then let Pawcast loop the passage
+          hands-free. Built for shadowers, transcribers, and musicians drilling a lick.</p>
+        <ul class="sc-list">
+          <li><span class="sc-check">✓</span><span><b>Millisecond A/B markers</b> — set from the current time, drag on the waveform, or jump to either edge.</span></li>
+          <li><span class="sc-check">✓</span><span><b>Nudge, halve &amp; double</b> the loop window without losing your place.</span></li>
+          <li><span class="sc-check">✓</span><span><b>Loop count &amp; gap</b> — repeat N times with a silent pause between reps, or loop infinitely.</span></li>
+          <li><span class="sc-check">✓</span><span><b>BPM quantization</b> for musicians — snap loop length to musical beats.</span></li>
+          <li><span class="sc-check">✓</span><span><b>Shareable loops</b> — export loop points &amp; settings as a link.</span></li>
+        </ul>
+      </div>
+      <div class="sc-stage">
+        <div class="demo">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+            <b style="font-size:14px">Loop Quantization</b>
+            <span class="pill">🎵 Musician mode</span>
+          </div>
+          <div class="srow"><span>BPM</span><b id="bpmVal">120</b></div>
+          <input type="range" min="60" max="200" value="120" id="bpmSlider" style="width:100%;accent-color:var(--primary);margin:12px 0" />
+          <div class="srow"><span>Auto-quantize loop to beats</span><div class="toggle on" data-toggle></div></div>
+          <div class="srow"><span>Repeats</span><small>4× · then advance</small></div>
+          <div class="srow"><span>Gap between reps</span><small>0.6s</small></div>
+          <div style="margin-top:14px;padding:12px;border-radius:12px;background:color-mix(in srgb,var(--primary) 8%,transparent);font-size:13px;color:var(--ink-soft)">
+            At <b id="bpmEcho">120</b> BPM, one bar = <b id="barLen">2.00s</b>. Loop snapped to <b>2 bars</b> (<b id="loopLen">4.00s</b>).
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SHOWCASE: SHADOWING -->
+    <div class="showcase rev reveal" id="shadowing">
+      <div class="sc-copy">
+        <span class="eyebrow">🎙️ Shadowing Recorder</span>
+        <h3>Speak along, record every take, compare to the original.</h3>
+        <p class="desc">Shadowing mode arms your mic to the loop. Record as many takes as you like,
+          play them back against the source, and dial in the mix between the two tracks.</p>
+        <ul class="sc-list">
+          <li><span class="sc-check">✓</span><span><b>Unlimited takes</b> per passage, saved automatically to your device.</span></li>
+          <li><span class="sc-check">✓</span><span><b>Per-sentence recording</b> — auto-arm on each sentence for structured drills.</span></li>
+          <li><span class="sc-check">✓</span><span><b>Independent track volume</b> for original vs. your shadow track.</span></li>
+          <li><span class="sc-check">✓</span><span><b>Stop delay</b> so the recorder captures your full trailing syllable.</span></li>
+        </ul>
+      </div>
+      <div class="sc-stage">
+        <div class="demo">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:10px;margin-bottom:16px">
+            <button class="rec-btn" id="recBtn" aria-label="Record"><span class="rec-core"></span></button>
+            <b id="recLabel" style="font-size:13px;color:var(--muted)">Press REC to capture take 4</b>
+          </div>
+          <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:9px">SHADOWING TAKES (3)</div>
+          <div class="takes" id="takesList"></div>
+          <div class="srow" style="margin-top:14px"><span>🔊 Original volume</span><small>80%</small></div>
+          <div class="meter"><i style="width:80%;background:var(--primary)"></i></div>
+          <div class="srow"><span>🎙️ Shadow volume</span><small>100%</small></div>
+          <div class="meter"><i style="width:100%;background:var(--coral)"></i></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SHOWCASE: TRANSCRIPT + AI -->
+    <div class="showcase reveal" id="transcript">
+      <div class="sc-copy">
+        <span class="eyebrow">📝 Smart Transcripts + AI</span>
+        <h3>Read along. Tap a word to jump. Select a phrase to understand it.</h3>
+        <p class="desc">Generate a word-timed transcript with Whisper, Gemini, or Groq — or upload your own.
+          Every word is a seek point. Highlight any text and ask the AI to explain or translate it in context.</p>
+        <ul class="sc-list">
+          <li><span class="sc-check">✓</span><span><b>Word-level timestamps</b> &amp; speaker diarization — click a word to seek there.</span></li>
+          <li><span class="sc-check">✓</span><span><b>Inline translations</b> under each line in your target language.</span></li>
+          <li><span class="sc-check">✓</span><span><b>Select → Explain</b> — grammar, nuance, and vocabulary on demand, streamed live.</span></li>
+          <li><span class="sc-check">✓</span><span><b>Save to Glossary</b> to review the phrase later with its original audio.</span></li>
+        </ul>
+      </div>
+      <div class="sc-stage">
+        <div class="demo">
+          <div class="ts-toolbar">
+            <span class="pill" id="transToggle" style="cursor:pointer">🌐 Show translations</span>
+            <span class="pill">👤 2 speakers</span>
+            <span class="pill">Groq Whisper</span>
+          </div>
+          <div class="ts" id="transcriptBox"></div>
+          <div class="ai-pop" id="aiPop">
+            <div class="ai-pop-head">✨ AI Explanation <span style="font-weight:500;color:var(--muted);font-size:12px">· GPT-4o</span></div>
+            <div class="ai-pop-body">
+              <span class="sel-chip" id="aiSel">…</span>
+              <div id="aiText"></div>
+            </div>
+          </div>
+          <p style="font-size:12px;color:var(--muted);margin-top:12px;text-align:center">👆 Click a word to seek · click a <b style="color:var(--coral)">highlighted</b> phrase to explain it</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SENTENCE PRACTICE + GLOSSARY ============ -->
+<section id="practice">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <span class="eyebrow">Turn listening into recall</span>
+      <h2 class="section-title">Practice sentence by sentence — and never lose a word</h2>
+      <p class="section-sub">Sentence Practice loops one line at a time with auto-advance and per-sentence recording. Your Glossary keeps every saved phrase with the audio it came from.</p>
+    </div>
+    <div class="showcase reveal" style="margin-bottom:40px">
+      <div class="sc-stage">
+        <div class="demo">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+            <b style="font-size:14px">🎯 Sentence Practice</b>
+            <div style="display:flex;gap:8px">
+              <span class="pill">🔁 Loop</span>
+              <span class="pill" id="autoAdv" style="cursor:pointer">⏭ Auto-advance</span>
+            </div>
+          </div>
+          <div class="sp-cards" id="spCards"></div>
+        </div>
+      </div>
+      <div class="sc-copy">
+        <span class="eyebrow">🎯 Sentence Practice</span>
+        <h3>One sentence, on repeat, until it's yours.</h3>
+        <p class="desc">Jump into a focused mode that loops a single sentence, auto-advances when you're ready,
+          and records your voice per line. Practiced sentences earn a check so you always know what's left.</p>
+        <ul class="sc-list">
+          <li><span class="sc-check">✓</span><span><b>Loop or play once</b>, with optional auto-advance to the next line.</span></li>
+          <li><span class="sc-check">✓</span><span><b>Record per sentence</b> and replay instantly.</span></li>
+          <li><span class="sc-check">✓</span><span><b>Practiced checkmarks</b> track your progress across the whole media.</span></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="showcase rev reveal">
+      <div class="sc-copy">
+        <span class="eyebrow">📚 Glossary</span>
+        <h3>Your personal phrasebook, built from real listening.</h3>
+        <p class="desc">Every phrase you save keeps a pointer back to the exact moment in the media.
+          Replay the original context in one click, search your whole collection, and group by source.</p>
+        <ul class="sc-list">
+          <li><span class="sc-check">✓</span><span><b>Save any selection</b> from a transcript in one tap.</span></li>
+          <li><span class="sc-check">✓</span><span><b>Play context</b> — jump straight back to where you heard it.</span></li>
+          <li><span class="sc-check">✓</span><span><b>Grouped by media</b> &amp; fully searchable.</span></li>
+        </ul>
+      </div>
+      <div class="sc-stage">
+        <div class="demo">
+          <div style="display:flex;gap:8px;align-items:center;margin-bottom:14px">
+            <input placeholder="Search saved words &amp; phrases" style="flex:1;padding:10px 13px;border-radius:11px;border:1px solid var(--line);background:var(--card-2);color:var(--ink);font-family:var(--font);font-size:13px" />
+            <span class="pill">12 entries</span>
+          </div>
+          <div id="glossaryBox"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ AI PROVIDERS ============ -->
+<section id="ai" style="background:var(--bg-2)">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <span class="eyebrow">🔌 Bring your own AI</span>
+      <h2 class="section-title">Plug in the models you already use</h2>
+      <p class="section-sub">Pawcast connects to your own provider keys — stored locally, never uploaded until you make a request. Mix a fast transcription engine with your favourite explanation model.</p>
+    </div>
+    <div class="prov-grid reveal" id="provGrid"></div>
+    <p style="text-align:center;margin-top:22px;color:var(--muted);font-size:13.5px">
+      🔒 API keys are stored locally on your device · Prefer offline? Run <b>Ollama</b> or <b>Local Whisper</b> with no key at all.</p>
+  </div>
+</section>
+
+<!-- ============ THEMES + SETTINGS + DATA ============ -->
+<section id="settings">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <span class="eyebrow">🎨 Make it yours</span>
+      <h2 class="section-title">Themes, controls, and your data — under your thumb</h2>
+      <p class="section-sub">Recolor the whole app with a tap, tune every playback control, and keep full ownership of your data with built-in health checks and backups.</p>
+    </div>
+
+    <div class="showcase reveal" style="margin-bottom:44px">
+      <div class="sc-copy">
+        <span class="eyebrow">Live theme</span>
+        <h3>Pick a color — watch this whole page change.</h3>
+        <p class="desc">Pawcast ships six color presets plus a custom primary color and full dark mode.
+          Try it right here: these swatches drive the real theme tokens used across this page.</p>
+        <div class="swatches" id="swatches"></div>
+        <div style="display:flex;gap:12px;margin-top:20px;align-items:center">
+          <span style="font-size:14px;color:var(--ink-soft)">Dark mode</span>
+          <div class="toggle" id="darkToggle"></div>
+          <span style="font-size:14px;color:var(--ink-soft);margin-left:12px">Seek mode</span>
+          <span class="pill" id="seekMode" style="cursor:pointer">⏱ Seconds</span>
+        </div>
+      </div>
+      <div class="sc-stage">
+        <div class="settings-mock">
+          <div class="sm-side">
+            <button class="on" data-tab="general">⚙️ General</button>
+            <button data-tab="ai">✨ AI</button>
+            <button data-tab="data">🗄️ Data</button>
+          </div>
+          <div class="sm-body">
+            <div class="sm-panel on" data-panel="general">
+              <div class="srow"><span>Language</span><small>English · 日本語 · 中文</small></div>
+              <div class="srow"><span>Color theme</span><span class="pill" id="themeName">Purple</span></div>
+              <div class="srow"><span>Seek step</span><small>5 seconds</small></div>
+              <div class="srow"><span>Small step (⇧ + arrows)</span><small>1 second</small></div>
+              <div class="srow"><span>Auto-save</span><div class="toggle on" data-toggle></div></div>
+            </div>
+            <div class="sm-panel" data-panel="ai">
+              <div class="srow"><span>Preferred provider</span><small>OpenAI GPT-4o</small></div>
+              <div class="srow"><span>Transcription</span><small>Groq Whisper</small></div>
+              <div class="srow"><span>Target language</span><small>Japanese</small></div>
+              <div class="srow"><span>Temperature</span><small>0.4 · Focused</small></div>
+              <div class="srow"><span>Status</span><span class="status-ok">● 4 of 7 providers configured</span></div>
+            </div>
+            <div class="sm-panel" data-panel="data">
+              <div class="srow"><span>Data health</span><span class="status-ok">● Healthy</span></div>
+              <div style="margin:10px 0 4px;font-size:13px;color:var(--ink-soft)">Storage — 2.1 GB used of 5 GB</div>
+              <div class="meter"><i style="width:42%;background:var(--primary)"></i></div>
+              <div class="srow"><span>Audio cache</span><small>1.4 GB</small></div>
+              <div class="srow"><span>Transcripts</span><small>0.6 GB</small></div>
+              <div style="display:flex;gap:8px;margin-top:12px">
+                <span class="pill">⬆︎ Export data</span>
+                <span class="pill">⬇︎ Import</span>
+                <span class="pill">🧹 Clear cache</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- KEYBOARD -->
+    <div class="reveal" style="max-width:760px;margin:0 auto;text-align:center">
+      <h3 style="font-size:22px;font-weight:800;margin-bottom:6px">⌨️ Hands on the keyboard, eyes on the audio</h3>
+      <p style="color:var(--muted);font-size:15px;margin-bottom:26px">Every core action is a keystroke away.</p>
+      <div class="kb-row"><kbd>Space</kbd><span>Play / pause</span><kbd>←</kbd><kbd>→</kbd><span>Seek</span><kbd>⇧←</kbd><kbd>⇧→</kbd><span>Small step</span></div>
+      <div class="kb-row"><kbd>A</kbd><span>Set loop start</span><kbd>B</kbd><span>Set loop end</span><kbd>L</kbd><span>Toggle loop</span><kbd>R</kbd><span>Record</span></div>
+      <div class="kb-row"><kbd>−</kbd><kbd>+</kbd><span>Speed</span><kbd>M</kbd><span>Mute</span><kbd>[</kbd><kbd>]</kbd><span>Prev / next bookmark</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ HOW IT WORKS ============ -->
+<section style="background:var(--bg-2)">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <span class="eyebrow">Your practice loop</span>
+      <h2 class="section-title">From play to fluent in four steps</h2>
+    </div>
+    <div class="steps reveal">
+      <div class="step"><h4>Load your media</h4><p>Paste a YouTube link, drop a file, or batch-map a whole folder for structured study.</p></div>
+      <div class="step"><h4>Loop &amp; transcribe</h4><p>Set A-B points and generate a word-timed transcript with your chosen engine.</p></div>
+      <div class="step"><h4>Shadow &amp; understand</h4><p>Record takes, tap words to seek, and ask AI to explain the tricky bits.</p></div>
+      <div class="step"><h4>Review &amp; recall</h4><p>Save phrases to your Glossary, drill sentences, and track what you've practiced.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CTA + DOWNLOAD ============ -->
+<section id="download">
+  <div class="wrap">
+    <div class="cta-band reveal">
+      <span class="paw" style="top:20px;left:40px">🐾</span>
+      <span class="paw" style="bottom:10px;right:60px;font-size:90px">🐾</span>
+      <span class="eyebrow" style="background:rgba(255,255,255,.2);color:#fff">Free public beta · v1.0.0-beta.4</span>
+      <h2 style="margin-top:16px">Ready to hear the difference?</h2>
+      <p>Download Pawcast for macOS or Windows and turn any audio into your personal language lab. No account, no cloud, no catch.</p>
+      <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap">
+        <a href="#" class="btn btn-primary"> Download for macOS</a>
+        <a href="#" class="btn btn-ghost" style="background:rgba(255,255,255,.14);border-color:rgba(255,255,255,.3);color:#fff"> Download for Windows</a>
+      </div>
+      <p style="font-size:13px;opacity:.8;margin-top:18px">Built on Tauri 2 · ~12 MB · Offline-first · Your data never leaves your device</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FOOTER ============ -->
+<footer>
+  <div class="wrap">
+    <div class="foot-grid">
+      <div>
+        <a class="brand" href="#top" style="margin-bottom:14px"><img src="logo.png" alt="" style="width:30px;height:30px" /> <span>Pawcast</span></a>
+        <p style="font-size:14px;color:var(--muted);max-width:280px">The ultimate A-B loop player for language learners &amp; musicians. Made with ❤️ for people who practice.</p>
+      </div>
+      <div>
+        <h5>Product</h5>
+        <a href="#features">Features</a><a href="#loop">A-B Loop</a><a href="#shadowing">Shadowing</a><a href="#transcript">Transcripts</a><a href="#practice">Sentence Practice</a>
+      </div>
+      <div>
+        <h5>Powered by</h5>
+        <a href="#ai">OpenAI Whisper</a><a href="#ai">Groq Whisper</a><a href="#ai">Google Gemini</a><a href="#ai">Ollama (local)</a><a href="#settings">Tauri 2 desktop</a>
+      </div>
+      <div>
+        <h5>Get started</h5>
+        <a href="#download">Download macOS</a><a href="#download">Download Windows</a><a href="#settings">Themes &amp; data</a><a href="#top">Back to top ↑</a>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span>© 2026 Pawcast · Built with Tauri, React &amp; a lot of practice.</span>
+      <span>English · 日本語 · 中文</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+/* ========== helpers ========== */
+const $ = (s,r=document)=>r.querySelector(s);
+const $$ = (s,r=document)=>[...r.querySelectorAll(s)];
+const fmt = t => `${String(Math.floor(t/60)).padStart(2,'0')}:${(t%60).toFixed(1).padStart(4,'0')}`;
+
+/* ========== feature grid ========== */
+const FEATURES = [
+  {i:'🔁',t:'Precision A-B Loop',d:'Millisecond-accurate loop points you can set, drag, nudge, halve, or double on the fly.'},
+  {i:'🎙️',t:'Shadowing Recorder',d:'Record unlimited takes over any loop and mix them against the original track.'},
+  {i:'📝',t:'AI Transcripts',d:'Word-timed transcripts via Whisper, Gemini or Groq — or upload your own SRT/VTT.'},
+  {i:'✨',t:'Select-to-Explain',d:'Highlight any phrase for a streamed grammar, nuance & vocab breakdown.'},
+  {i:'🌐',t:'Inline Translations',d:'Line-by-line translations in your target language, toggled on demand.'},
+  {i:'🎯',t:'Sentence Practice',d:'Loop one line at a time with auto-advance, per-sentence recording & progress checks.'},
+  {i:'📚',t:'Glossary',d:'Save phrases with their audio context, search them, and replay where you heard them.'},
+  {i:'🔖',t:'Bookmarks',d:'Drop named bookmarks, jump between them, auto-advance, and share your setup.'},
+  {i:'🌊',t:'Precision Waveform',d:'Zoomable waveform with scrub, region highlight, and frame-accurate seeking.'},
+  {i:'🎵',t:'Musician Mode',d:'BPM quantization snaps loops to musical beats for drilling licks & phrases.'},
+  {i:'📼',t:'YouTube & Local',d:'Stream YouTube or open MP3, WAV, FLAC, AAC, MP4, WebM — plus folder batch-mapping.'},
+  {i:'🔒',t:'Offline & Private',d:'Everything runs on your device. Keys stored locally; your audio never leaves.'},
+];
+$('#featureGrid').innerHTML = FEATURES.map((f,i)=>`
+  <div class="fcard reveal" style="transition-delay:${i*40}ms">
+    <div class="fic">${f.i}</div>
+    <h3>${f.t}</h3><p>${f.d}</p>
+  </div>`).join('');
+
+/* ========== A-B LOOP live demo ========== */
+(function(){
+  const DUR = 30;
+  let a=16.5,b=21.3,t=16.5,playing=false,speed=1,looping=true;
+  const wrap=$('#waveWrap'), region=$('#loopRegion'), head=$('#playhead'),
+        mA=$('#markerA'), mB=$('#markerB'), svg=$('#waveSvg');
+  let bars='';
+  for(let x=0;x<600;x+=6){
+    const h=8+Math.abs(Math.sin(x*0.09)*Math.cos(x*0.021))*70+Math.random()*10;
+    bars+=`<rect x="${x}" y="${(96-h)/2}" width="3.4" height="${h}" rx="1.6" fill="rgba(255,255,255,.5)"/>`;
+  }
+  svg.innerHTML=bars;
+  const pct=v=>`${(v/DUR)*100}%`;
+  function render(){
+    region.style.left=pct(a); region.style.width=`${((b-a)/DUR)*100}%`;
+    mA.style.left=pct(a); mB.style.left=pct(b);
+    head.style.left=pct(t);
+    $('#pdTime').textContent=`${fmt(t)} / 04:12`;
+    $('#loopReadout').textContent=`${fmt(a)} → ${fmt(b)}`;
+    $('#speedReadout').textContent=speed.toFixed(2)+'×';
+    $('#chipLoop').classList.toggle('on',looping);
+  }
+  let last=performance.now();
+  function frame(now){
+    const dt=(now-last)/1000; last=now;
+    if(playing){
+      t+=dt*speed;
+      if(looping){ if(t>=b) t=a; } else if(t>=DUR){ t=0; }
+    }
+    render(); requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+  $('#btnPlay').addEventListener('click',e=>{
+    playing=!playing; e.currentTarget.textContent=playing?'⏸':'▶';
+    if(playing&&(t<a||t>b)&&looping) t=a;
+  });
+  $('#chipLoop').addEventListener('click',()=>{looping=!looping;render();});
+  $('#chipHalf').addEventListener('click',()=>{const m=(a+b)/2,len=(b-a)/2;a=Math.max(0,m-len/2);b=Math.min(DUR,m+len/2);render();});
+  $('#chipDouble').addEventListener('click',()=>{const m=(a+b)/2,len=(b-a)*2;a=Math.max(0,m-len/2);b=Math.min(DUR,m+len/2);render();});
+  $('#btnBack').addEventListener('click',()=>{const len=b-a;a=Math.max(0,a-1);b=a+len;render();});
+  $('#btnFwd').addEventListener('click',()=>{const len=b-a;b=Math.min(DUR,b+1);a=b-len;render();});
+  $('#spUp').addEventListener('click',()=>{speed=Math.min(2,+(speed+0.25).toFixed(2));render();});
+  $('#spDown').addEventListener('click',()=>{speed=Math.max(0.25,+(speed-0.25).toFixed(2));render();});
+  wrap.addEventListener('click',e=>{
+    if(e.target.classList.contains('marker'))return;
+    const r=wrap.getBoundingClientRect();
+    t=Math.max(0,Math.min(DUR,((e.clientX-r.left)/r.width)*DUR)); render();
+  });
+  function drag(marker,which){
+    marker.addEventListener('pointerdown',e=>{
+      e.preventDefault(); marker.setPointerCapture(e.pointerId);
+      const move=ev=>{
+        const r=wrap.getBoundingClientRect();
+        let v=Math.max(0,Math.min(DUR,((ev.clientX-r.left)/r.width)*DUR));
+        if(which==='a') a=Math.min(v,b-0.5); else b=Math.max(v,a+0.5);
+        render();
+      };
+      const up=()=>{marker.removeEventListener('pointermove',move);marker.removeEventListener('pointerup',up);};
+      marker.addEventListener('pointermove',move); marker.addEventListener('pointerup',up);
+    });
+  }
+  drag(mA,'a'); drag(mB,'b');
+  render();
+})();
+
+/* ========== BPM quantization demo ========== */
+(function(){
+  const s=$('#bpmSlider');
+  const upd=()=>{
+    const bpm=+s.value, bar=(60/bpm)*4;
+    $('#bpmVal').textContent=bpm; $('#bpmEcho').textContent=bpm;
+    $('#barLen').textContent=bar.toFixed(2)+'s';
+    $('#loopLen').textContent=(bar*2).toFixed(2)+'s';
+  };
+  s.addEventListener('input',upd); upd();
+})();
+
+/* ========== Shadowing takes ========== */
+(function(){
+  const list=$('#takesList');
+  const wave=()=>Array.from({length:22},()=>`<i style="height:${20+Math.random()*80}%"></i>`).join('');
+  const takes=[{n:1,d:'0:04'},{n:2,d:'0:05'},{n:3,d:'0:04'}];
+  const paint=()=>{list.innerHTML=takes.map(k=>`
+    <div class="take"><div class="num">${k.n}</div>
+      <div class="mini-wave">${wave()}</div>
+      <span style="font-size:12px;color:var(--muted)">${k.d}</span>
+      <button class="rbtn" style="width:30px;height:30px;background:color-mix(in srgb,var(--primary) 14%,transparent);border-color:transparent;color:var(--primary)">▶</button>
+    </div>`).join('');};
+  paint();
+  const btn=$('#recBtn'), label=$('#recLabel');
+  let rec=false;
+  btn.addEventListener('click',()=>{
+    rec=!rec; btn.classList.toggle('recording',rec);
+    if(rec){label.textContent='● Recording take '+(takes.length+1)+'…';label.style.color='var(--error)';}
+    else{
+      const n=takes.length+1; takes.push({n,d:'0:0'+(3+Math.floor(Math.random()*4))});
+      label.textContent='Press REC to capture take '+(takes.length+1); label.style.color='var(--muted)'; paint();
+    }
+  });
+})();
+
+/* ========== Transcript + AI explanation ========== */
+(function(){
+  const LINES=[
+    {t:'00:14.2',sp:'A',w:['S’il','vous','plaît','...','dessine-moi','un','mouton.'],tr:'"Please... draw me a sheep."',explain:{'dessine-moi':'<b>dessine-moi</b> — imperative of <i>dessiner</i> (to draw) + the pronoun <b>moi</b> attached with a hyphen. A gentle command: “draw for me”.','S’il vous plaît':'A formal, polite “please” — literally “if it pleases you.” Uses <b>vous</b>, the respectful register.'}},
+    {t:'00:18.9',sp:'B',w:['Quoi','?'],tr:'"What?"',explain:{}},
+    {t:'00:21.3',sp:'A',w:['Dessine-moi','un','mouton','!'],tr:'"Draw me a sheep!"',explain:{'mouton':'<b>mouton</b> (m.) — “sheep.” Note it also means “mutton”; French uses the same word for the animal and the meat here.'}},
+    {t:'00:24.7',sp:'B',w:['J’ai','regardé','cette','apparition','avec','étonnement.'],tr:'"I looked at this apparition with astonishment."',explain:{'étonnement':'<b>étonnement</b> (m.) — “astonishment.” Related to the verb <i>étonner</i> (to astonish).','avec étonnement':'An adverbial phrase: <b>avec</b> + noun = “with astonishment,” i.e. “astonishedly.”'}},
+  ];
+  const box=$('#transcriptBox');
+  const HL = new Set(['dessine-moi','mouton','étonnement']);
+  box.innerHTML=LINES.map((l,i)=>{
+    const words=l.w.map(w=>{
+      const key=w.replace(/[.!?,]/g,'');
+      const hot=HL.has(key.toLowerCase())?' class="sel"':'';
+      return `<w data-line="${i}" data-w="${key}"${hot}>${w}</w> `;
+    }).join('');
+    return `<div class="ts-line${i===0?' active':''}" data-line="${i}">
+      <div class="ts-time">🔊 ${l.t} · Speaker ${l.sp}</div>
+      <div class="ts-text">${words}</div>
+      <div class="ts-trans">${l.tr}</div></div>`;
+  }).join('');
+
+  box.addEventListener('click',e=>{
+    const line=e.target.closest('.ts-line'); if(!line)return;
+    $$('.ts-line',box).forEach(l=>l.classList.remove('active'));
+    line.classList.add('active');
+    const w=e.target.closest('w');
+    if(w){
+      $$('w',box).forEach(x=>x.classList.remove('sel'));
+      const li=+w.dataset.line, key=w.dataset.w.toLowerCase();
+      const ex=LINES[li].explain;
+      let found=null;
+      for(const k in ex){ if(k.toLowerCase().includes(key)||key.includes(k.toLowerCase().split(' ')[0])){found=[k,ex[k]];break;} }
+      if(found){ w.classList.add('sel'); showAI(found[0],found[1]); }
+    }
+  });
+
+  const pop=$('#aiPop'), sel=$('#aiSel'), txt=$('#aiText');
+  let timer=null;
+  function showAI(phrase,html){
+    clearTimeout(timer);
+    pop.classList.add('show'); sel.textContent=phrase;
+    txt.innerHTML=''; txt.className='typing';
+    const plain=html; let i=0;
+    (function stream(){
+      const step=Math.ceil(plain.length/40);
+      i+=step;
+      txt.innerHTML=plain.slice(0,i);
+      if(i<plain.length){ timer=setTimeout(stream,28); }
+      else txt.className='';
+    })();
+  }
+
+  $('#transToggle').addEventListener('click',e=>{
+    const on=$$('.ts-line',box)[0].classList.toggle('showtrans');
+    $$('.ts-line',box).forEach(l=>l.classList.toggle('showtrans',on));
+    e.currentTarget.textContent = on?'🌐 Hide translations':'🌐 Show translations';
+  });
+})();
+
+/* ========== Sentence practice ========== */
+(function(){
+  const S=[
+    {x:'S’il vous plaît, dessine-moi un mouton.',done:true},
+    {x:'Quoi ? — Dessine-moi un mouton !',done:true},
+    {x:'J’ai regardé cette apparition avec étonnement.',done:false},
+    {x:'Mais oui, c’est bien un mouton que tu vois.',done:false},
+  ];
+  const box=$('#spCards');
+  const paint=()=>box.innerHTML=S.map((s,i)=>`
+    <div class="sp-card${s.done?' done':''}" data-i="${i}">
+      <div class="sp-tick">✓</div>
+      <div class="sp-txt">${s.x}</div>
+      <button class="rbtn" style="width:30px;height:30px;background:color-mix(in srgb,var(--coral) 18%,transparent);border-color:transparent;color:var(--coral)">🎙</button>
+    </div>`).join('');
+  paint();
+  box.addEventListener('click',e=>{
+    const c=e.target.closest('.sp-card'); if(!c)return;
+    S[+c.dataset.i].done=!S[+c.dataset.i].done; paint();
+  });
+})();
+
+/* ========== Glossary ========== */
+(function(){
+  const G=[
+    {p:'dessine-moi',s:'Le Petit Prince',tr:'draw me'},
+    {p:'étonnement',s:'Le Petit Prince',tr:'astonishment'},
+    {p:'apparition',s:'Le Petit Prince',tr:'apparition'},
+    {p:'だいじょうぶ',s:'ポッドキャスト #12',tr:'okay / all right'},
+    {p:'quand même',s:'InnerFrench',tr:'still / anyway'},
+  ];
+  $('#glossaryBox').innerHTML=`<div style="display:flex;flex-direction:column;gap:8px">`+
+    G.map(g=>`<div style="display:flex;align-items:center;gap:12px;padding:11px 13px;border:1px solid var(--line);border-radius:12px;background:var(--card-2)">
+      <div style="flex:1"><b style="font-size:14.5px">${g.p}</b>
+        <div style="font-size:12.5px;color:var(--muted)">${g.tr} · <span style="color:var(--primary)">${g.s}</span></div></div>
+      <button class="rbtn" style="width:32px;height:32px;background:color-mix(in srgb,var(--primary) 14%,transparent);border-color:transparent;color:var(--primary)" title="Play context">▶</button>
+    </div>`).join('')+`</div>`;
+})();
+
+/* ========== AI providers ========== */
+(function(){
+  const P=[
+    {n:'OpenAI',s:'GPT-4o · Whisper',g:'O'},{n:'Google Gemini',s:'Multimodal · diarization',g:'G'},
+    {n:'xAI Grok',s:'Grok models',g:'x'},{n:'Groq',s:'Ultra-fast Whisper',g:'⚡'},
+    {n:'Ollama',s:'Local · no key',g:'🦙'},{n:'DeepSeek',s:'OpenAI-compatible',g:'D'},
+    {n:'OpenCode Go',s:'glm · kimi · deepseek',g:'{}'},{n:'Local Whisper',s:'Self-hosted · no key',g:'🎧'},
+  ];
+  $('#provGrid').innerHTML=P.map(p=>`
+    <div class="prov"><div class="pi">${p.g}</div><b>${p.n}</b><span>${p.s}</span></div>`).join('');
+})();
+
+/* ========== Theme switcher (drives the whole page) ========== */
+(function(){
+  const PRESETS=[
+    {k:'purple',c:'#8B5CF6',n:'Purple'},{k:'blue',c:'#3B82F6',n:'Blue'},{k:'green',c:'#10B981',n:'Green'},
+    {k:'rose',c:'#F43F5E',n:'Rose'},{k:'orange',c:'#F97316',n:'Orange'},{k:'black',c:'#0F172A',n:'Charcoal'},
+  ];
+  const box=$('#swatches');
+  box.innerHTML=PRESETS.map((p,i)=>`<div class="swatch${i===0?' active':''}" data-k="${p.k}" data-n="${p.n}" style="background:${p.c}"></div>`).join('');
+  box.addEventListener('click',e=>{
+    const sw=e.target.closest('.swatch'); if(!sw)return;
+    document.documentElement.setAttribute('data-theme',sw.dataset.k);
+    $$('.swatch',box).forEach(s=>s.classList.remove('active')); sw.classList.add('active');
+    $('#themeName').textContent=sw.dataset.n;
+  });
+})();
+
+/* ========== Dark mode ========== */
+function setMode(dark){
+  document.documentElement.setAttribute('data-mode',dark?'dark':'light');
+  $('#modeToggle').textContent=dark?'☀️':'🌙';
+  $('#darkToggle').classList.toggle('on',dark);
+}
+let dark=false;
+$('#modeToggle').addEventListener('click',()=>{dark=!dark;setMode(dark);});
+$('#darkToggle').addEventListener('click',()=>{dark=!dark;setMode(dark);});
+
+/* ========== settings tabs ========== */
+$$('.sm-side button').forEach(b=>b.addEventListener('click',()=>{
+  $$('.sm-side button').forEach(x=>x.classList.remove('on')); b.classList.add('on');
+  $$('.sm-panel').forEach(p=>p.classList.toggle('on',p.dataset.panel===b.dataset.tab));
+}));
+
+/* ========== generic toggles & pills ========== */
+$$('[data-toggle]').forEach(t=>t.addEventListener('click',()=>t.classList.toggle('on')));
+$('#autoAdv').addEventListener('click',e=>e.currentTarget.classList.toggle('active'));
+let seekModes=['⏱ Seconds','📃 One Sentence'],sm=0;
+$('#seekMode').addEventListener('click',e=>{sm=(sm+1)%2;e.currentTarget.textContent=seekModes[sm];});
+
+/* ========== reveal on scroll ========== */
+const io=new IntersectionObserver(es=>es.forEach(en=>{
+  if(en.isIntersecting){en.target.classList.add('in');io.unobserve(en.target);}
+}),{threshold:.12});
+$$('.reveal').forEach(el=>io.observe(el));
+</script>
+</body>
+</html>

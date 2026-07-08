@@ -1,6 +1,6 @@
 [package]
 name = "pawcast"
-version = "1.0.0-beta.3"
+version = "1.0.0-beta.4"
 description = "Pawcast desktop runtime"
 edition = "2021"
 

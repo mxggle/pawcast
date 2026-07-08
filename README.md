@@ -186,6 +186,24 @@ When upgrading from desktop `1.0.0-beta.3`, Pawcast discovers the existing data-
 | **Shift + ← / →** | Seek -1s / +1s |
 | **↑ / ↓** | Volume Up / Down |
 
+## 🌐 Landing Page
+
+An interactive marketing site lives in [`website/`](website/) — a self-contained,
+single-file `index.html` (no build step) that acts as a **digital twin** of the app.
+It walks through every product feature with live, hands-on demos rather than static screenshots:
+
+- A working **A-B loop player** with draggable A/B handles, click-to-seek, play/loop, and speed controls.
+- A **transcript panel** with click-to-seek words, a select-to-explain AI panel (streamed), and inline translation toggle.
+- **Shadowing**, **Sentence Practice**, and **Glossary** mockups driven by real interactions.
+- A **live theme switcher** (six presets + dark mode) that recolors the entire page, mirroring the app's runtime theme tokens.
+
+Preview it locally by serving the folder statically:
+
+```bash
+npx serve website
+# then open the printed URL (e.g. http://localhost:3000)
+```
+
 ## 📝 License
 
 MIT License. See [LICENSE](LICENSE) for details.
