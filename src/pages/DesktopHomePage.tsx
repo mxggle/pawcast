@@ -24,6 +24,8 @@ interface ResumeCardStats {
   practiced: number;
 }
 
+const logoUrl = `${import.meta.env.BASE_URL}logo.png`;
+
 const ResumeCard = ({
   item,
   stats,
@@ -149,7 +151,7 @@ export const DesktopHomePage = ({ handleVideoIdSubmit }: DesktopHomePageProps) =
           className="flex flex-col items-center text-center"
         >
           <img
-            src="/logo.png"
+            src={logoUrl}
             alt="Pawcast"
             className="mb-5 h-16 w-16 object-contain"
           />

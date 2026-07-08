@@ -139,6 +139,7 @@ export const TranscriptPanel = ({ onCollapse }: TranscriptPanelProps = {}) => {
     (state) => (mediaId ? state.mediaTranscripts[mediaId] ?? EMPTY_SEGMENTS : EMPTY_SEGMENTS)
   );
   const [transcriptSource, setTranscriptSource] = useState<"youtube" | "ai">("youtube");
+  const hasCurrentYouTube = Boolean(currentYouTube);
   const hasStoredYouTubeCaptions = allTranscriptSegments.some(
     (segment) => segment.source === "youtube"
   );
@@ -243,8 +244,8 @@ export const TranscriptPanel = ({ onCollapse }: TranscriptPanelProps = {}) => {
   }, [mediaId, activeTabId]);
 
   useEffect(() => {
-    setTranscriptSource(currentYouTube ? "youtube" : "ai");
-  }, [currentYouTube?.id]);
+    setTranscriptSource(hasCurrentYouTube ? "youtube" : "ai");
+  }, [hasCurrentYouTube]);
 
   // Handle auto-pause on selection and auto-resume on dismissal
   useEffect(() => {

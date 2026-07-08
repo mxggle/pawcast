@@ -5,7 +5,7 @@
   "identifier": "com.pawcast.desktop",
   "build": {
     "beforeDevCommand": "npm run dev -- --host 127.0.0.1 --port 1420",
-    "devUrl": "http://localhost:1420",
+    "devUrl": "http://127.0.0.1:1420",
     "beforeBuildCommand": "npm run build",
     "frontendDist": "../dist"
   },
@@ -17,6 +17,7 @@
       {
         "label": "main",
         "title": "Pawcast",
+        "url": "index.html",
         "width": 1280,
         "height": 800,
         "minWidth": 900,
@@ -29,10 +30,10 @@
   },
   "bundle": {
     "active": true,
-    "targets": "all",
+    "targets": ["nsis"],
     "category": "Education",
     "copyright": "Copyright © 2026 Pawcast",
     "externalBin": ["binaries/ffmpeg", "binaries/ffprobe", "binaries/yt-dlp"],
-    "icon": ["icons/icon.png", "icons/icon.icns"]
+    "icon": ["icons/icon.png", "icons/icon.icns", "icons/icon.ico"]
   }
 }

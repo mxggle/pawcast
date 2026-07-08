@@ -130,6 +130,40 @@ fn canonical_import_rejects_checksum_mismatch_before_copying() {
 }
 
 #[test]
+fn canonical_import_skips_missing_manifest_files() {
+    let temp = tempfile::tempdir().unwrap();
+    let electron = temp.path().join("electron-user-data");
+    let legacy = electron.join("PawcastData");
+    let legacy_store = DataStore::open(&legacy, "old").unwrap();
+    legacy_store
+        .put_json(
+            "library/media-history.json",
+            &json!({"version":1,"items":[{"id":"keep","mediaId":"m1","type":"file","name":"Keep","accessedAt":1}]}),
+        )
+        .unwrap();
+    legacy_store
+        .put_json("study/bookmarks.json", &json!({"version":1,"bookmarks":[]}))
+        .unwrap();
+    fs::remove_file(legacy.join("study/bookmarks.json")).unwrap();
+    fs::create_dir_all(&electron).unwrap();
+    fs::write(
+        electron.join(".pawcast-datadir"),
+        legacy.to_string_lossy().as_bytes(),
+    )
+    .unwrap();
+
+    let destination = DataStore::open(temp.path().join("new/PawcastData"), "new").unwrap();
+    let result = migrate_electron_source(&destination, &electron).unwrap();
+
+    assert!(result.success);
+    assert_eq!(result.migrated_counts.get("mediaHistory"), Some(&1));
+    assert!(destination
+        .get_json("study/bookmarks.json")
+        .unwrap()
+        .is_none());
+}
+
+#[test]
 fn electron_config_deduplicates_repeated_incoming_ids() {
     let temp = tempfile::tempdir().unwrap();
     let electron = temp.path().join("electron-user-data");

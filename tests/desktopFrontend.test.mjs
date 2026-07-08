@@ -21,7 +21,7 @@ test("production frontend contains no Electron boundary or naming", async () => 
   const files = await sourceFiles(src);
   const violations = [];
   for (const file of files) {
-    const relative = path.relative(root, file);
+    const relative = path.relative(root, file).split(path.sep).join("/");
     const content = await readFile(file, "utf8");
     if (content.includes("window.electronAPI")) violations.push(`${relative}: window.electronAPI`);
     if (/\bisElectron\b/.test(content)) violations.push(`${relative}: isElectron`);

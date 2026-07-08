@@ -163,11 +163,13 @@ pub fn decode_protocol_path(url: &url::Url) -> Result<PathBuf, AppError> {
                 .operation("local_media")
         })?;
     #[cfg(windows)]
-    let decoded = decoded
+    let decoded_path: &str = decoded
         .strip_prefix('/')
         .filter(|path| path.as_bytes().get(1) == Some(&b':'))
         .unwrap_or(&decoded);
-    Ok(PathBuf::from(decoded.as_ref()))
+    #[cfg(not(windows))]
+    let decoded_path: &str = decoded.as_ref();
+    Ok(PathBuf::from(decoded_path))
 }
 
 pub fn read_planned_body(plan: &MediaResponsePlan) -> Result<Vec<u8>, AppError> {

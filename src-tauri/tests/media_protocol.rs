@@ -78,3 +78,23 @@ fn decodes_tauri_custom_protocol_urls_on_all_desktop_platforms() {
     assert_eq!(decode_protocol_path(&windows_webview).unwrap(), expected);
     assert_eq!(decode_protocol_path(&legacy).unwrap(), expected);
 }
+
+#[cfg(windows)]
+#[test]
+fn decodes_windows_drive_paths_without_unix_prefix() {
+    let encoded = "%2FC%3A%2FUsers%2Flearner%2FMedia%2Flesson%201.mp3";
+    let url = url::Url::parse(&format!("http://local-media.localhost/{encoded}")).unwrap();
+    let expected = std::path::PathBuf::from("C:/Users/learner/Media/lesson 1.mp3");
+
+    assert_eq!(decode_protocol_path(&url).unwrap(), expected);
+}
+
+#[cfg(not(windows))]
+#[test]
+fn preserves_drive_like_paths_on_unix_platforms() {
+    let encoded = "%2FC%3A%2FUsers%2Flearner%2FMedia%2Flesson%201.mp3";
+    let url = url::Url::parse(&format!("http://local-media.localhost/{encoded}")).unwrap();
+    let expected = std::path::PathBuf::from("/C:/Users/learner/Media/lesson 1.mp3");
+
+    assert_eq!(decode_protocol_path(&url).unwrap(), expected);
+}

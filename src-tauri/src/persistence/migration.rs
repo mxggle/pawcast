@@ -266,6 +266,13 @@ fn import_canonical_directory(
     let manifest = crate::persistence::manifest::load_manifest(source)?;
     for entry in &manifest.files {
         let source_path = crate::persistence::paths::resolve_data_path(source, &entry.path)?;
+        if !source_path.is_file() {
+            eprintln!(
+                "Skipping missing legacy Pawcast data file during migration: {}",
+                entry.path
+            );
+            continue;
+        }
         let checksum = crate::persistence::manifest::checksum_file(&source_path)?;
         if checksum != entry.checksum {
             return Err(AppError::new(
@@ -287,6 +294,9 @@ fn import_canonical_directory(
             _ => None,
         };
         let source_path = source.join(&entry.path);
+        if !source_path.is_file() {
+            continue;
+        }
         let bytes = fs::read(&source_path)
             .map_err(|error| AppError::io("read_legacy_canonical_file", error))?;
         if let Some((field, count_key)) = collection {
