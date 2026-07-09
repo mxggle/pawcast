@@ -23,6 +23,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "tauri": "tauri",
     "dev:tauri": "tauri dev",
     "build": "tsc && vite build",
     "build:tauri": "npm run prepare:sidecars && tauri build",
