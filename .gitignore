@@ -85,3 +85,6 @@ Desktop.ini
 # Test coverage
 coverage
 .nyc_output
+
+# Ignore CleanShot screenshots dropped in the repo
+CleanShot*.png
