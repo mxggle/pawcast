@@ -1,18 +1,47 @@
+<div align="center">
+
+<img src="public/logo.png" alt="Pawcast logo" width="128" height="128" />
+
 # Pawcast
 
-A modern desktop audio/video loop player with A-B repeat & Shadowing Recorder.
+**A modern desktop audio/video loop player with A-B repeat & a Shadowing Recorder.**
 
-Pawcast is a sleek and intuitive desktop app (Tauri 2) designed for language learners, musicians, and content reviewers. It allows you to loop YouTube videos and local files with precision, and now features a powerful **Shadowing Mode** to record and compare your voice with the original audio.
+Loop YouTube videos and local media with precision, transcribe with AI, and record your voice to master pronunciation — built for language learners, musicians, and content reviewers.
 
-🎯 **Supports:** MP3, MP4, WebM, FLAC, YouTube links, and more.
-📼 **Input:** Drag & drop local files or paste a YouTube URL.
-🔁 **Loop:** Set custom A-B loop points to focus on specific sections.
-🎙️ **Shadow:** Record your voice over the track to practice pronunciation.
+<p>
+  <a href="https://github.com/mxggle/pawcast/releases"><img alt="Release" src="https://img.shields.io/github/v/release/mxggle/pawcast?include_prereleases&sort=semver&color=ff9166&label=release" /></a>
+  <a href="#-license"><img alt="License" src="https://img.shields.io/badge/license-MIT-ff9166" /></a>
+  <img alt="Platform" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-2c2c2c" />
+  <img alt="Tauri" src="https://img.shields.io/badge/Tauri-2-24C8DB?logo=tauri&logoColor=white" />
+  <img alt="React" src="https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black" />
+  <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white" />
+  <img alt="Rust" src="https://img.shields.io/badge/Rust-1.92%2B-000000?logo=rust&logoColor=white" />
+</p>
+
+<p>
+  🎯 <b>Supports</b> MP3 · MP4 · WebM · FLAC · YouTube &nbsp;•&nbsp;
+  📼 <b>Input</b> Drag &amp; drop or paste a URL &nbsp;•&nbsp;
+  🔁 <b>Loop</b> Custom A-B points &nbsp;•&nbsp;
+  🎙️ <b>Shadow</b> Record &amp; compare your voice
+</p>
+
+</div>
 
 <img width="2560" height="1600" alt="CleanShot 2026-07-09 at 07 59 11@2x" src="https://github.com/user-attachments/assets/9636fd15-7b39-4563-9d30-21998d785b71" />
 <img width="2560" height="1600" alt="CleanShot 2026-07-09 at 07 58 15@2x" src="https://github.com/user-attachments/assets/5084c0e1-3994-43bd-be6e-b2a96f1bfb8d" />
 <img width="2560" height="1600" alt="CleanShot 2026-07-09 at 07 56 29@2x" src="https://github.com/user-attachments/assets/72e69531-a6c7-4c19-8bb3-e91241374df4" />
 
+
+## 📚 Table of Contents
+
+- [Features](#-features)
+- [Architecture](#-architecture)
+- [Tech Stack](#-tech-stack)
+- [Getting Started](#-getting-started)
+- [Usage](#-usage)
+- [Keyboard Shortcuts](#️-keyboard-shortcuts)
+- [Landing Page](#-landing-page)
+- [License](#-license)
 
 ## ✨ Features
 
